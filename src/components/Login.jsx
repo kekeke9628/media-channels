@@ -5,18 +5,29 @@ const DOMAINS = ['gmail.com', 'naver.com', 'premiumoutlets.co.kr'];
 const CUSTOM = '__custom__';
 
 export default function Login({ initialError }) {
+  const [mode, setMode] = useState('login'); // 'login' | 'forgot' | 'sent'
   const [local, setLocal] = useState('');
   const [domain, setDomain] = useState(DOMAINS[0]);
   const [customDomain, setCustomDomain] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState(
     initialError ? '로그인 링크가 만료되었거나 이미 사용되었습니다. 새 링크를 요청하세요. (' + initialError + ')' : ''
   );
 
   const email = local && `${local}@${domain === CUSTOM ? customDomain : domain}`;
 
-  const submit = async (e) => {
+  const submitLogin = async (e) => {
+    e.preventDefault();
+    if (!email || !password || busy) return;
+    setBusy(true);
+    setError('');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error) setError(error.message);
+  };
+
+  const submitForgot = async (e) => {
     e.preventDefault();
     if (!email || busy) return;
     setBusy(true);
@@ -32,13 +43,10 @@ export default function Login({ initialError }) {
       setError('허가되지 않은 사용자입니다.');
       return;
     }
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.href },
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
     setBusy(false);
     if (error) setError(error.message);
-    else setSent(true);
+    else setMode('sent');
   };
 
   return (
@@ -48,12 +56,12 @@ export default function Login({ initialError }) {
         <h1>점내 홍보매체</h1>
         <p className="sub">여주 프리미엄 아울렛 · 내부 직원 전용</p>
 
-        {sent ? (
+        {mode === 'sent' ? (
           <p className="okbox">
-            <b>{email}</b>로 로그인 링크를 보냈습니다. <b>이 브라우저에서</b> 메일함을 열어 링크를 클릭해야 로그인이 완료됩니다(다른 기기·다른 브라우저에서 열면 실패합니다).
+            <b>{email}</b>로 비밀번호 재설정 링크를 보냈습니다. <b>이 브라우저에서</b> 메일함을 열어 링크를 클릭해야 재설정이 완료됩니다(다른 기기·다른 브라우저에서 열면 실패합니다).
           </p>
         ) : (
-          <form onSubmit={submit} className="authform">
+          <form onSubmit={mode === 'forgot' ? submitForgot : submitLogin} className="authform">
             <label className="fld">
               <span>직원 이메일</span>
               <div className="emailfld">
@@ -89,10 +97,31 @@ export default function Login({ initialError }) {
                 )}
               </div>
             </label>
+            {mode === 'login' && (
+              <label className="fld">
+                <span>비밀번호</span>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="비밀번호"
+                />
+              </label>
+            )}
             {error && <p className="warnbox">{error}</p>}
             <button className="btn primary wide" type="submit" disabled={busy}>
-              {busy ? '전송 중…' : '로그인 링크 받기'}
+              {busy ? '처리 중…' : mode === 'forgot' ? '재설정 링크 받기' : '로그인'}
             </button>
+            {mode === 'login' ? (
+              <button type="button" className="btn wide" onClick={() => { setMode('forgot'); setError(''); }}>
+                비밀번호를 잊으셨나요?
+              </button>
+            ) : (
+              <button type="button" className="btn wide" onClick={() => { setMode('login'); setError(''); }}>
+                로그인으로 돌아가기
+              </button>
+            )}
           </form>
         )}
       </div>

@@ -1,4 +1,5 @@
-// 매직링크 인증 + admins 판별 (사양서 2.1 — 배너 시스템의 매직링크/admins/is_admin() 패턴 재사용)
+// 이메일+비밀번호 인증 + admins 판별. 매직링크 발신 한도(시간당 2통) 문제로
+// 비밀번호 로그인으로 전환했다(가로등배너 banner-admin과 동일한 전환).
 import { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient.js';
 
@@ -17,10 +18,15 @@ export function useAuth() {
   const [session, setSession] = useState(undefined); // undefined = 확인 중, null = 비로그인
   const [admin, setAdmin] = useState(undefined); // undefined = 확인 중, null = 미승인, 객체 = 승인된 직원
   const [authError, setAuthError] = useState(() => consumeAuthErrorFromUrl());
+  // 비밀번호 재설정 메일 링크를 열면 PASSWORD_RECOVERY 이벤트와 함께 임시 세션이 생긴다.
+  const [isRecovery, setIsRecovery] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      if (event === 'PASSWORD_RECOVERY') setIsRecovery(true);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -38,13 +44,21 @@ export function useAuth() {
 
   const loading = session === undefined || (!!session && admin === undefined);
 
+  const updatePassword = async (password) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+    setIsRecovery(false);
+  };
+
   return {
     session,
     admin,
     loading,
     authError,
+    isRecovery,
     isStaff: !!admin,
     isEditor: admin?.role === 'editor',
     signOut: () => supabase.auth.signOut(),
+    updatePassword,
   };
 }

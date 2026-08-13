@@ -7,6 +7,7 @@ import { zoneAt } from './data/seed.js';
 import { useAuth } from './lib/useAuth.js';
 
 import Login from './components/Login.jsx';
+import SetPassword from './components/SetPassword.jsx';
 import Unauthorized from './components/Unauthorized.jsx';
 import MapPanel from './components/MapPanel.jsx';
 import PostsPanel from './components/PostsPanel.jsx';
@@ -23,7 +24,7 @@ const TABS = { posts: '홍보물 관리', status: '매체 현황', gallery: '게
 const EDITOR_ONLY_TABS = new Set(['admins']);
 
 export default function App() {
-  const { session, admin, loading, authError, isEditor, signOut } = useAuth();
+  const { session, admin, loading, authError, isRecovery, isEditor, signOut, updatePassword } = useAuth();
 
   if (loading) {
     return (
@@ -32,6 +33,7 @@ export default function App() {
       </div>
     );
   }
+  if (isRecovery) return <SetPassword onSubmit={updatePassword} />;
   if (!session) return <Login initialError={authError} />;
   if (!admin) return <Unauthorized email={session.user.email} onSignOut={signOut} />;
 
