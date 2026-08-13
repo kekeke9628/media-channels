@@ -4,10 +4,11 @@ import { autoClose, buildState } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import { fetchMediaTypes, fetchMedia, fetchPostings, updateMediaPosition, createMedia, archiveMedia, restoreMedia, deleteMedia, createPosting, markPostingRemoved, undoPostingRemoval, adjustPostingEnd } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
-import { useAuth } from './lib/useAuth.js';
+import { useAuth, OWNER_EMAIL, resetAdminPassword } from './lib/useAuth.js';
 
 import Login from './components/Login.jsx';
 import SetPassword from './components/SetPassword.jsx';
+import AdminReset from './components/AdminReset.jsx';
 import Unauthorized from './components/Unauthorized.jsx';
 import MapPanel from './components/MapPanel.jsx';
 import PostsPanel from './components/PostsPanel.jsx';
@@ -24,7 +25,7 @@ const TABS = { posts: '홍보물 관리', status: '매체 현황', gallery: '게
 const EDITOR_ONLY_TABS = new Set(['admins']);
 
 export default function App() {
-  const { session, admin, loading, authError, isRecovery, isEditor, signOut, updatePassword } = useAuth();
+  const { session, admin, loading, authError, isEditor, signOut, updatePassword } = useAuth();
 
   if (loading) {
     return (
@@ -33,14 +34,18 @@ export default function App() {
       </div>
     );
   }
-  if (isRecovery) return <SetPassword onSubmit={updatePassword} />;
   if (!session) return <Login initialError={authError} />;
   if (!admin) return <Unauthorized email={session.user.email} onSignOut={signOut} />;
 
-  return <AppShell admin={admin} isEditor={isEditor} meId={session.user.id} onSignOut={signOut} />;
+  return (
+    <AppShell
+      admin={admin} isEditor={isEditor} meId={session.user.id} onSignOut={signOut}
+      email={session.user.email} accessToken={session.access_token} updatePassword={updatePassword}
+    />
+  );
 }
 
-function AppShell({ admin, isEditor, meId, onSignOut }) {
+function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, updatePassword }) {
   const [refDate, setRefDate] = useState(getToday());
   const [types, setTypes] = useState([]);
   const [media, setMedia] = useState([]);
@@ -54,6 +59,8 @@ function AppShell({ admin, isEditor, meId, onSignOut }) {
   const [narrow, setNarrow] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [mapImage, setMapImage] = useState(null);
+  const [changePwOpen, setChangePwOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
 
   useEffect(() => {
     getCenterMapUrl().then((url) => url && setMapImage(url));
@@ -233,9 +240,25 @@ function AppShell({ admin, isEditor, meId, onSignOut }) {
         <label className="reffield">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
         <div className="sidefoot">
           {admin.name || admin.email} · {isEditor ? '편집자' : '조회자'}
+          <button className="signout" onClick={() => setChangePwOpen(true)}>비밀번호 변경</button>
+          {email?.toLowerCase() === OWNER_EMAIL && (
+            <button className="signout" onClick={() => setResetOpen(true)}>관리자 비밀번호 초기화</button>
+          )}
           <button className="signout" onClick={onSignOut}>로그아웃</button>
         </div>
       </aside>
+      {changePwOpen && (
+        <SetPassword
+          onClose={() => setChangePwOpen(false)}
+          onSubmit={async (password) => { await updatePassword(password); }}
+        />
+      )}
+      {resetOpen && (
+        <AdminReset
+          onClose={() => setResetOpen(false)}
+          onSubmit={(targetEmail) => resetAdminPassword(targetEmail, accessToken)}
+        />
+      )}
 
       <main>
         <MapPanel
