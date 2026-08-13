@@ -21,6 +21,17 @@ export default function Login({ initialError }) {
     if (!email || busy) return;
     setBusy(true);
     setError('');
+    const { data: allowed, error: checkError } = await supabase.rpc('is_allowed_admin_email', { p_email: email });
+    if (checkError) {
+      setBusy(false);
+      setError(checkError.message);
+      return;
+    }
+    if (!allowed) {
+      setBusy(false);
+      setError('허가되지 않은 사용자입니다.');
+      return;
+    }
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.href },
