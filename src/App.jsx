@@ -240,6 +240,9 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         <label className="reffield">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
         <div className="sidefoot">
           {admin.name || admin.email} · {isEditor ? '편집자' : '조회자'}
+          <div className="sub" style={{ fontSize: 12, lineHeight: 1.4 }}>
+            공용 초기 비밀번호를 사용 중이라면 아래 '비밀번호 변경'으로 본인만의 비밀번호로 바꿔주세요.
+          </div>
           <button className="signout" onClick={() => setChangePwOpen(true)}>비밀번호 변경</button>
           {email?.toLowerCase() === OWNER_EMAIL && (
             <button className="signout" onClick={() => setResetOpen(true)}>관리자 비밀번호 초기화</button>
