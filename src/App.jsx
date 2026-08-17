@@ -81,6 +81,15 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     on(); window.addEventListener('resize', on);
     return () => window.removeEventListener('resize', on);
   }, []);
+
+  // 핀을 클릭해 상세 시트가 열린 상태에서 ESC를 누르면 선택을 해제한다.
+  useEffect(() => {
+    if (!selMedia) return;
+    const onKey = (e) => { if (e.key === 'Escape') setSelMedia(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selMedia]);
+
   const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2500); };
 
   const T = useMemo(() => Object.fromEntries(types.map((t) => [t.code, t])), [types]);
