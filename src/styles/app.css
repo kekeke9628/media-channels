@@ -69,7 +69,11 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .mapbg{position:absolute;inset:0;width:100%;height:100%}
 .mapbg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .zonelbl{position:absolute;transform:translateX(-50%);font-size:10.5px;font-weight:700;color:#A79E8D;letter-spacing:.5px;pointer-events:none}
-.pin{position:absolute;transform:translate(-50%,-56%);border:0;background:none;padding:0;cursor:pointer;z-index:5}
+/* 지도(.mapstage)와 분리된 레이어 — scale 없이 JS가 계산한 translate(px,px)로만 핀을 배치해
+   확대 시 SVG가 중첩 transform 때문에 흐려지는 문제를 피한다. 레이어 자체는 클릭을 통과시키고
+   개별 핀만 pointer-events를 되살린다. */
+.pin-layer{position:absolute;inset:0;pointer-events:none}
+.pin{position:absolute;left:0;top:0;pointer-events:auto;border:0;background:none;padding:0;cursor:pointer;z-index:5;will-change:transform}
 .pin.editable{cursor:grab}
 .pin-inner{transform-origin:center bottom}
 .pdot{position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;width:28px;height:34px;font-size:12px;font-weight:700;letter-spacing:-.4px;color:#fff;

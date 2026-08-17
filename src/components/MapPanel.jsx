@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { clamp } from '../constants.js';
 import { ZONES } from '../data/seed.js';
@@ -11,6 +11,13 @@ import MapCropModal from './MapCropModal.jsx';
 //
 // 핀은 지점(spot) 단위 집계가 아니라 매체 낱개 단위다 — 유형 아이콘 + 상태색으로 표시하고,
 // 편집 모드에서 드래그로 옮기면 드롭 즉시 저장되며, 빈 자리를 클릭하면 새 매체를 그 자리에 추가한다.
+//
+// 핀은 지도(.mapstage)와 같은 컨테이너에서 scale()로 함께 확대된 뒤 반대 배율로 counter-scale해
+// 크기만 되돌리면, 중첩된 transform 때문에 브라우저가 확대된 상태로 래스터화했다가 다시 축소해
+// 그리면서 해상도가 깨진다(가로등 배너 시스템에서 실제로 겪은 버그). 그래서 핀은 지도와 분리된
+// .pin-layer에 두고 JS가 계산한 translate(px,px)로만 위치를 잡는다 — scale을 아예 안 쓰므로
+// 배율과 무관하게 항상 원본 해상도로 그려진다. positionPins는 itemsRef로 최신 목록을 읽어서
+// 마운트 시 한 번만 등록되는 휠 리스너의 오래된 클로저에서 호출돼도 최신 위치를 계산한다.
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const CLICK_SLOP = 6; // 이 픽셀 이내 움직임은 팬이 아니라 클릭으로 본다
@@ -18,6 +25,9 @@ const CLICK_SLOP = 6; // 이 픽셀 이내 움직임은 팬이 아니라 클릭�
 export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, setSelMedia, onMoveLocal, onMoveCommit, onCreate, mapImage, onMapImage, isEditor }) {
   const wrapRef = useRef(null);
   const stageRef = useRef(null);
+  const pinRefs = useRef({});   // item.id -> 핀 DOM 노드 (지도와 분리된 레이어라 위치를 직접 계산해서 넣어줘야 함)
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
   const panRef = useRef({ x: 0, y: 0, zoom: 1 });
   const dragPinRef = useRef(null);
   const panDragRef = useRef(null);
@@ -38,20 +48,62 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
     return { x: clamp(x, r.width - w, 0), y: clamp(y, r.height - h, 0) };
   };
 
+  // 각 핀을 현재 pan/zoom 기준 픽셀 좌표로 옮긴다. -50%,-56%는 기존 .pin CSS의 앵커 오프셋과 동일.
+  const positionPins = useCallback((px, py, pz) => {
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (!r) return;
+    itemsRef.current.forEach((o) => {
+      const el = pinRefs.current[o.id];
+      if (!el) return;
+      const x = px + (o.x / 100) * r.width * pz;
+      const y = py + (o.y / 100) * r.height * pz;
+      el.style.transform = `translate(${x}px,${y}px) translate(-50%,-56%)`;
+    });
+  }, []);
+
   const applyTransform = () => {
     const st = stageRef.current;
     if (!st) return;
     const { x, y, zoom: z } = panRef.current;
     st.style.transform = `translate(${x}px, ${y}px) scale(${z})`;
+    positionPins(x, y, z);
   };
 
   const animateTransform = () => {
     const st = stageRef.current;
     if (!st) return;
-    st.style.transition = 'transform .32s cubic-bezier(.25,.8,.25,1)';
+    const transition = 'transform .32s cubic-bezier(.25,.8,.25,1)';
+    const pinEls = Object.values(pinRefs.current);
+    st.style.transition = transition;
+    pinEls.forEach((el) => { el.style.transition = transition; });
     applyTransform();
-    window.setTimeout(() => { if (st) st.style.transition = ''; }, 340);
+    window.setTimeout(() => {
+      if (st) st.style.transition = '';
+      pinEls.forEach((el) => { el.style.transition = ''; });
+    }, 340);
   };
+
+  // 배너 시스템에서 겪은 두 번째 버그: 핀은 .mapstage와 분리된 레이어라 지도만 트랜지션을 걸면
+  // 핀은 애니메이션 없이 즉시 최종 위치로 스냅돼 지도가 슬라이드되는 동안 핀만 먼저 튀어 보였다.
+  // animateTransform이 핀 엘리먼트에도 같은 트랜지션을 걸어 함께 움직이게 한 것으로 위 해결됨.
+
+  // 매체 목록(추가·드래그 이동·데이터 로드)이나 프레임 크기(반응형 리사이즈)가 바뀌면
+  // 현재 pan/zoom 기준으로 모든 핀 위치를 다시 계산한다.
+  useLayoutEffect(() => {
+    const { x, y, zoom: z } = panRef.current;
+    positionPins(x, y, z);
+  }, [items, positionPins]);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      const { x, y, zoom: z } = panRef.current;
+      positionPins(x, y, z);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [positionPins]);
 
   // 휠 줌 — useEffect + ref로 등록해 stale closure를 피하고, preventDefault를 위해
   // React onWheel(수동 리스너) 대신 네이티브 addEventListener를 쓴다.
@@ -243,12 +295,15 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
           {!mapImage && Object.entries(ZONES).map(([k, z]) => (
             <span key={k} className="zonelbl" style={{ left: z.box[0] + z.box[2] / 2 + '%', top: z.box[1] + 1.4 + '%', opacity: zoneFilter === 'ALL' || zoneFilter === k ? 1 : 0.3 }}>{z.label}</span>
           ))}
+        </div>
+        <div className="pin-layer">
           {items.map((o) => {
             const t = T[o.type]; if (!t) return null;
             const tone = o.overdue ? 'stale' : o.isEmpty ? 'empty' : 'full';
             return (
-              <button key={o.id} className={'pin ' + tone + (selMedia === o.id ? ' sel' : '') + (editMode ? ' editable' : '') + (zoom >= 1.5 ? ' zoomed' : '')}
-                style={{ left: o.x + '%', top: o.y + '%' }}
+              <button key={o.id}
+                ref={(el) => { if (el) pinRefs.current[o.id] = el; else delete pinRefs.current[o.id]; }}
+                className={'pin ' + tone + (selMedia === o.id ? ' sel' : '') + (editMode ? ' editable' : '') + (zoom >= 1.5 ? ' zoomed' : '')}
                 onPointerDown={(e) => {
                   if (!editMode) return;
                   e.stopPropagation();
@@ -256,7 +311,7 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
                   dragPinRef.current = o.id;
                 }}
                 onClick={() => !editMode && !addMode && setSelMedia(o.id)} onMouseEnter={() => setHover(o.id)} onMouseLeave={() => setHover(null)}>
-                <div className="pin-inner" style={{ transform: `scale(${1 / zoom})` }}>
+                <div className="pin-inner">
                   <span className="pdot">{t.glyph}</span>
                   {(hover === o.id || selMedia === o.id) && (
                     <span className="plabel">
