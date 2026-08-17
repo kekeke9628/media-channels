@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ALERT_DAYS, LONG_OPEN, getToday } from './constants.js';
 import { autoClose, buildState } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
@@ -218,6 +218,13 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
 
   const ctx = { T, types, refDate, isEditor };
   const tabEntries = Object.entries(TABS).filter(([k]) => isEditor || !EDITOR_ONLY_TABS.has(k));
+  // 사이드바(왼쪽) 탭 버튼은 지도 아래 본문 영역까지 화면을 안 움직여 줘서, 지도를 스크롤해
+  // 내려간 상태에서 누르면 바뀐 내용이 화면 밖에 있는 것처럼 보였다 — 탭 바까지 스크롤해준다.
+  const panelTopRef = useRef(null);
+  const goTab = (k) => {
+    setTab(k);
+    panelTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   if (dataLoading) {
     return (
@@ -240,7 +247,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         </div>
         <nav>
           {tabEntries.map(([k, v]) => (
-            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
+            <button key={k} className={tab === k ? 'on' : ''} onClick={() => goTab(k)}>
               {v}{k === 'posts' && kpi.stale > 0 && <em className="red">{kpi.stale}</em>}
             </button>
           ))}
@@ -281,7 +288,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           mapImage={mapImage} onMapImage={saveMapImage}
         />
 
-        <div className="tabs">
+        <div className="tabs" ref={panelTopRef}>
           {tabEntries.map(([k, v]) => (
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{v}{k === 'posts' && kpi.stale > 0 && <em>{kpi.stale}</em>}</button>
           ))}
