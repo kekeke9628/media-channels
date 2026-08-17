@@ -155,7 +155,8 @@ tbody tr.archived{opacity:.45}
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px}
 .ccard{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;cursor:pointer}
 .ccard:hover{border-color:var(--brass)}
-.cthumb{aspect-ratio:3/4;position:relative}
+.cthumb{aspect-ratio:3/4;position:relative;background:#EFEDE9}
+.cthumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cver{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px}
 .cshot{position:absolute;bottom:8px;right:8px;background:rgba(75,123,88,.92);color:#fff;font-size:10px;padding:2px 7px;border-radius:20px}
 .cbody{padding:11px 12px 12px}
@@ -249,13 +250,15 @@ tbody tr.archived{opacity:.45}
 .mtxt{flex:1;min-width:0}
 .mtxt b{font-size:12.5px;display:block}
 .mtxt i{font-style:normal;font-size:11px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
-.bigthumb{aspect-ratio:3/4;max-height:220px;border-radius:11px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:600;padding:14px;text-align:center}
+.bigthumb{aspect-ratio:3/4;max-height:220px;border-radius:11px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:600;padding:14px;text-align:center;position:relative;overflow:hidden}
+.bigthumb span,.bigthumb .facedir{position:relative;text-shadow:0 1px 4px rgba(0,0,0,.65)}
+.bigthumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .facegrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .bigthumb.face{aspect-ratio:3/4;max-height:180px;position:relative;gap:6px}
 .bigthumb.face .facedir{font-size:10.5px;font-weight:600;opacity:.85}
 .thumbrow{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .tsmall{flex:0 0 54px;text-align:center}
-.tsmall i{display:block;width:54px;height:72px;border-radius:7px}
+.tsmall i,.tsmall img{display:block;width:54px;height:72px;border-radius:7px;object-fit:cover}
 .tsmall em{font-style:normal;font-size:10px;color:var(--ink2);display:block;margin-top:3px}
 .mini-t{font-size:12px;margin-top:10px;min-width:0}
 .mini-t td{padding:6px 4px;border-bottom:1px solid #F0ECE4}

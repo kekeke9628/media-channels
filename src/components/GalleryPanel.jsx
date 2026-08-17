@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { contentOf } from '../constants.js';
 import { statusOf } from '../lib/status.js';
+import { getPostingImageUrls } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
 
 // 게시물 (이미지 카드) — 원본 대비 경량화 비율을 보여준다
@@ -11,7 +12,15 @@ export default function GalleryPanel({ media, postings, refDate, onPick }) {
   const [rangeOn, setRangeOn] = useState(false);
   const [from, setFrom] = useState('2025-01-01');
   const [to, setTo] = useState(refDate);
+  const [thumbUrls, setThumbUrls] = useState(new Map());
   const mName = (id) => media.find((m) => m.id === id)?.name || '-';
+
+  // 실제 업로드된 게시물 사진이 있으면 그라데이션 대신 그걸 보여준다.
+  useEffect(() => {
+    let cancelled = false;
+    getPostingImageUrls(postings.map((p) => p.thumbPath)).then((m) => { if (!cancelled) setThumbUrls(m); });
+    return () => { cancelled = true; };
+  }, [postings]);
   const rows = postings.filter((p) => {
     if (rangeOn) { if ((p.end || '9999-12-31') < from || p.start > to) return false; }
     else if (filter !== 'all' && statusOf(p, refDate) !== filter) return false;
@@ -40,7 +49,8 @@ export default function GalleryPanel({ media, postings, refDate, onPick }) {
           const s = statusOf(p, refDate);
           return (
             <div className="ccard" key={p.id} onClick={() => onPick(p.mediaId)}>
-              <div className="cthumb" style={{ background: `linear-gradient(150deg, hsl(${p.hue} 42% 52%), hsl(${(p.hue + 40) % 360} 38% 38%))` }}>
+              <div className="cthumb" style={thumbUrls.has(p.thumbPath) ? undefined : { background: `linear-gradient(150deg, hsl(${p.hue} 42% 52%), hsl(${(p.hue + 40) % 360} 38% 38%))` }}>
+                {thumbUrls.has(p.thumbPath) && <img className="cthumb-img" src={thumbUrls.get(p.thumbPath)} alt="" />}
                 <span className="cver mono">{p.start.slice(5)} ~ {p.end ? p.end.slice(5) : '미정'}</span>
                 {p.installPhoto && <span className="cshot">설치사진 ✓</span>}
               </div>

@@ -114,6 +114,18 @@ function dataUrlToBlob(dataUrl) {
 }
 
 const POSTING_BUCKET = 'posting-images';
+const POSTING_IMAGE_URL_TTL = 60 * 60; // 1시간, 배치도(center-map)와 동일
+
+// 게시물 이미지 서명 URL을 한 번에 여러 개 받아온다(갤러리 카드·매체 상세가 각각 여러 장을
+// 동시에 보여줘야 해서 경로별로 하나씩 요청하지 않고 배치로 처리). 비공개 버킷이라 서명 URL이
+// 필요하고, 존재하지 않는 경로는 조용히 건너뛴다(과거 데이터에 이미지가 없을 수 있음).
+export async function getPostingImageUrls(paths) {
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (!unique.length) return new Map();
+  const { data, error } = await supabase.storage.from(POSTING_BUCKET).createSignedUrls(unique, POSTING_IMAGE_URL_TTL);
+  if (error) throw error;
+  return new Map((data || []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]));
+}
 
 async function uploadPostingImage(path, dataUrl) {
   const { error } = await supabase.storage.from(POSTING_BUCKET).upload(path, dataUrlToBlob(dataUrl), {
