@@ -3,8 +3,10 @@ import { contentOf, days } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
+import SortTh, { sortRows } from './SortTh.jsx';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
+const statusRank = (o) => (o.overdue ? 0 : o.open ? 1 : o.live ? 2 : 3);
 
 // 매체 현황 — 담당자·제작처는 노출하지 않는다
 export default function StatusPanel({ T, state, postings, media, refDate, onPick }) {
@@ -12,6 +14,8 @@ export default function StatusPanel({ T, state, postings, media, refDate, onPick
   const [rangeOn, setRangeOn] = useState(false);
   const [from, setFrom] = useState('2025-01-01');
   const [to, setTo] = useState(refDate);
+  const [sortCur, setSortCur] = useState({ key: null, dir: null });
+  const [sortHist, setSortHist] = useState({ key: null, dir: null });
   const mName = (id) => media.find((m) => m.id === id)?.name || '-';
 
   const rows = state.filter((o) => !q || (o.name + (o.current?.brand || '')).toLowerCase().includes(q.toLowerCase()));
@@ -35,9 +39,25 @@ export default function StatusPanel({ T, state, postings, media, refDate, onPick
       {!rangeOn ? (
         <div className="scroll tall">
           <table>
-            <thead><tr><th>매체</th><th>유형</th><th>구역</th><th>업체명</th><th>내용</th><th>상태</th></tr></thead>
+            <thead><tr>
+              <SortTh label="매체" sortKey="media" sort={sortCur} setSort={setSortCur} />
+              <SortTh label="유형" sortKey="type" sort={sortCur} setSort={setSortCur} />
+              <SortTh label="구역" sortKey="zone" sort={sortCur} setSort={setSortCur} />
+              <SortTh label="업체명" sortKey="brand" sort={sortCur} setSort={setSortCur} />
+              <SortTh label="내용" sortKey="content" sort={sortCur} setSort={setSortCur} />
+              <SortTh label="상태" sortKey="status" sort={sortCur} setSort={setSortCur} />
+            </tr></thead>
             <tbody>
-              {rows.map((o) => {
+              {sortRows(rows, sortCur, (o, key) => {
+                const p = o.overdue || o.current;
+                if (key === 'media') return o.name;
+                if (key === 'type') return T[o.type]?.label || o.type;
+                if (key === 'zone') return zoneLabel(o.zone);
+                if (key === 'brand') return p ? p.brand : '';
+                if (key === 'content') return p ? contentOf(p) : '';
+                if (key === 'status') return statusRank(o);
+                return '';
+              }).map((o) => {
                 const p = o.overdue || o.current;
                 const t = T[o.type];
                 return (
@@ -62,9 +82,28 @@ export default function StatusPanel({ T, state, postings, media, refDate, onPick
       ) : (
         <div className="scroll tall">
           <table>
-            <thead><tr><th>매체</th><th>업체명</th><th>내용</th><th>게시</th><th>철거예정</th><th>실제철거</th><th className="r">기간</th><th>상태</th></tr></thead>
+            <thead><tr>
+              <SortTh label="매체" sortKey="media" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="업체명" sortKey="brand" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="내용" sortKey="content" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="게시" sortKey="start" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="철거예정" sortKey="end" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="실제철거" sortKey="removed" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="기간" sortKey="duration" sort={sortHist} setSort={setSortHist} className="r" />
+              <SortTh label="상태" sortKey="status" sort={sortHist} setSort={setSortHist} />
+            </tr></thead>
             <tbody>
-              {historyRows.map((p) => (
+              {sortRows(historyRows, sortHist, (p, key) => {
+                if (key === 'media') return mName(p.mediaId);
+                if (key === 'brand') return p.brand;
+                if (key === 'content') return contentOf(p);
+                if (key === 'start') return p.start;
+                if (key === 'end') return p.end || '9999-12-31';
+                if (key === 'removed') return p.removedAt || '';
+                if (key === 'duration') return p.end ? days(p.start, p.end) : -1;
+                if (key === 'status') return statusOf(p, refDate);
+                return '';
+              }).map((p) => (
                 <tr key={p.id} onClick={() => onPick(p.mediaId)}>
                   <td>{mName(p.mediaId)}</td>
                   <td><b>{p.brand}</b></td>

@@ -3,6 +3,7 @@ import { iso, DAY, diffDays, md, clamp, contentOf, days } from '../constants.js'
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
+import SortTh, { sortRows } from './SortTh.jsx';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
 
@@ -14,6 +15,7 @@ export default function TimelinePanel({ state, refDate, onPick }) {
   const [rangeOn, setRangeOn] = useState(false);
   const [from, setFrom] = useState(iso(Date.parse(refDate) - 90 * DAY));
   const [to, setTo] = useState(refDate);
+  const [sort, setSort] = useState({ key: null, dir: null });
   const T0 = Date.parse(refDate);
   const start = rangeOn ? Date.parse(from) : T0 - 30 * DAY;
   const effSpan = rangeOn ? Math.max(1, diffDays(from, to)) : span;
@@ -66,9 +68,28 @@ export default function TimelinePanel({ state, refDate, onPick }) {
       ) : (
         <div className="scroll tall">
           <table>
-            <thead><tr><th>매체</th><th>업체명</th><th>내용</th><th>게시</th><th>철거예정</th><th>실제철거</th><th className="r">기간</th><th>상태</th></tr></thead>
+            <thead><tr>
+              <SortTh label="매체" sortKey="media" sort={sort} setSort={setSort} />
+              <SortTh label="업체명" sortKey="brand" sort={sort} setSort={setSort} />
+              <SortTh label="내용" sortKey="content" sort={sort} setSort={setSort} />
+              <SortTh label="게시" sortKey="start" sort={sort} setSort={setSort} />
+              <SortTh label="철거예정" sortKey="end" sort={sort} setSort={setSort} />
+              <SortTh label="실제철거" sortKey="removed" sort={sort} setSort={setSort} />
+              <SortTh label="기간" sortKey="duration" sort={sort} setSort={setSort} className="r" />
+              <SortTh label="상태" sortKey="status" sort={sort} setSort={setSort} />
+            </tr></thead>
             <tbody>
-              {flatRows.map(({ o, p }) => (
+              {sortRows(flatRows, sort, ({ o, p }, key) => {
+                if (key === 'media') return o.name;
+                if (key === 'brand') return p.brand;
+                if (key === 'content') return contentOf(p);
+                if (key === 'start') return p.start;
+                if (key === 'end') return p.end || '9999-12-31';
+                if (key === 'removed') return p.removedAt || '';
+                if (key === 'duration') return p.end ? days(p.start, p.end) : -1;
+                if (key === 'status') return statusOf(p, refDate);
+                return '';
+              }).map(({ o, p }) => (
                 <tr key={p.id} onClick={() => onPick(o.id)}>
                   <td>{o.name}<i className="sub">{zoneLabel(o.zone)}</i></td>
                   <td><b>{p.brand}</b></td>
