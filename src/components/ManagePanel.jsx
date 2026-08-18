@@ -12,7 +12,13 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
   const [q, setQ] = useState('');
 
   const countOf = (code) => media.filter((m) => m.type === code && m.active).length;
-  const rows = media.filter((m) => !q || (m.name + m.id + zoneLabel(m.zone)).toLowerCase().includes(q.toLowerCase()));
+  const histOf = (id) => postings.filter((p) => p.mediaId === id).length;
+  const rows = media.filter((m) => {
+    if (!q) return true;
+    const t = T[m.type];
+    const haystack = [m.name, m.id, zoneLabel(m.zone), t?.label, m.faces, histOf(m.id) + '건'].join(' ').toLowerCase();
+    return haystack.includes(q.toLowerCase());
+  });
 
   const startEdit = (t) => { setEditing(t.code); setEdit({ label: t.label, spec: t.spec, faces: t.faces, glyph: t.glyph, color: t.color }); };
   const saveEdit = () => { onEditType(editing, edit); setEditing(null); };
@@ -74,15 +80,14 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
 
       {sec === 'media' && (
         <>
-          {isEditor && <p className="hint" style={{ marginBottom: 12 }}>새 매체는 상단의 <b>"+매체 관리"</b>로 원하는 위치에 바로 배치합니다. 위치를 옮기려면 "위치 편집" 모드에서 지도 핀을 드래그하세요.</p>}
-          <div className="toolrow"><input className="inp" placeholder="매체명 · 구역 검색" value={q} onChange={(e) => setQ(e.target.value)} /><span className="count mono">{rows.length}건</span></div>
+          <div className="toolrow"><input className="inp" placeholder="매체명 · 유형 · 구역 검색" value={q} onChange={(e) => setQ(e.target.value)} /><span className="count mono">{rows.length}건</span></div>
           <div className="scroll tall">
             <table>
               <thead><tr><th>매체명</th><th>유형</th><th>구역</th><th className="r">면수</th><th className="r">게시 이력</th><th className="r">관리</th></tr></thead>
               <tbody>
                 {rows.map((m) => {
                   const t = T[m.type];
-                  const hist = postings.filter((p) => p.mediaId === m.id).length;
+                  const hist = histOf(m.id);
                   return (
                     <tr key={m.id} className={m.active ? '' : 'archived'}>
                       <td><b>{m.name}</b><i className="sub mono">{m.id}</i></td>
@@ -97,7 +102,6 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
               </tbody>
             </table>
           </div>
-          <p className="hint" style={{ marginTop: 10 }}>게시 이력이 있는 매체는 삭제하면 과거 기록이 사라지므로 <b>보관 처리</b>됩니다.</p>
         </>
       )}
     </div>
