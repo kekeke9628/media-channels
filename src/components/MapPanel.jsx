@@ -299,7 +299,9 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
         <div className="pin-layer">
           {items.map((o) => {
             const t = T[o.type]; if (!t) return null;
-            const tone = o.overdue ? 'stale' : o.isEmpty ? 'empty' : 'full';
+            // 'empty'가 아니라 'vacant'를 쓴다 — 전역 .empty{padding:18px...}(빈 목록 안내문구용)와
+            // 클래스명이 충돌해 핀 버튼이 56px까지 부풀어 오르며 위치 앵커(-50%,-56%)가 어긋나던 버그였다.
+            const tone = o.overdue ? 'stale' : o.isEmpty ? 'vacant' : 'full';
             return (
               <button key={o.id}
                 ref={(el) => { if (el) pinRefs.current[o.id] = el; else delete pinRefs.current[o.id]; }}
