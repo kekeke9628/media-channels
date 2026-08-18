@@ -4,9 +4,12 @@ import { statusOf } from '../lib/status.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
 
-// 만료·철거완료는 "지금 걸려 있는 게시물"과 성격이 달라(하나는 방치된 것, 하나는
-// 이미 지난 기록) 다중선택 드롭다운에 같이 두면 애매해서 별도 ON/OFF로 뺀다.
-const STATUS_OPTS = [['live', ST.live.label, ST.live.color], ['open', ST.open.label, ST.open.color], ['upcoming', ST.upcoming.label, ST.upcoming.color]];
+// "지금 상태"는 사실 게시중(종료일 있든 없든) · 게시예정 · (해당없음) 3가지뿐이다.
+// 만료·철거완료는 상태가 아니라 각각 "게시중인데 방치된 경고 플래그"와 "지난 기록"이라
+// 다중선택 드롭다운에 같이 두면 애매해서 별도 ON/OFF로 뺀다. 종료일 유무(open/live)도
+// 필터에서는 "게시중" 하나로 묶고, 행별 상세 표시(StatusChip)에서만 구분해서 보여준다.
+const STATUS_OPTS = [['live', '게시중', ST.live.color], ['upcoming', ST.upcoming.label, ST.upcoming.color]];
+const statusBucket = (raw) => (raw === 'open' ? 'live' : raw);
 
 // 게시물 (이미지 카드) — 원본 대비 경량화 비율을 보여준다
 export default function GalleryPanel({ media, postings, refDate, isEditor, onPick }) {
@@ -34,7 +37,7 @@ export default function GalleryPanel({ media, postings, refDate, isEditor, onPic
     if (rangeOn) { if ((p.end || '9999-12-31') < from || p.start > to) return false; }
     else {
       const s = statusOf(p, refDate);
-      if (s === 'overdue' ? !showOverdue : s === 'removed' ? !showRemoved : !statusSel.has(s)) return false;
+      if (s === 'overdue' ? !showOverdue : s === 'removed' ? !showRemoved : !statusSel.has(statusBucket(s))) return false;
     }
     if (!q) return true;
     return (contentOf(p) + p.brand + mName(p.mediaId)).toLowerCase().includes(q.toLowerCase());
