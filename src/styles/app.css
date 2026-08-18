@@ -172,6 +172,12 @@ tbody tr:hover{background:#FBF9F5}
 tbody tr.archived{opacity:.45}
 .r{text-align:right}
 .sub{color:var(--ink2);font-style:normal;font-size:11.5px;display:block}
+/* .sub의 display:block이 <td className="sub">에 그대로 적용되면 그 셀만
+   테이블 셀 레이아웃(display:table-cell)에서 빠져 세로 정렬이 다른 열과
+   어긋나 보였다(예: 매체 유형 표의 "기본 규격" 열). 이 클래스가 span/i/p
+   같은 인라인 요소에 줄바꿈을 주려는 용도이지 td 자체를 바꾸려는 게
+   아니므로, td에 붙었을 때만 table-cell로 되돌린다. */
+td.sub{display:table-cell}
 .chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
 .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
 .tag.live{background:#E4EDF4;color:#3C6E9E}
