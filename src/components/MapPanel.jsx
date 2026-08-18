@@ -346,13 +346,11 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
   const [type, setType] = useState(types[0]?.code || '');
   const t = types.find((x) => x.code === type);
   const [name, setName] = useState('');
-  const [faces, setFaces] = useState(t?.faces || 1);
+  const [faces, setFaces] = useState('');
   const archivedOfType = archived.filter((m) => m.type === type);
   const [existingId, setExistingId] = useState(archivedOfType[0]?.id || '');
 
   useEffect(() => {
-    const nt = types.find((x) => x.code === type);
-    if (nt) setFaces(nt.faces);
     const list = archived.filter((m) => m.type === type);
     setExistingId(list[0]?.id || '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -360,7 +358,7 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
 
   const submit = () => {
     if (source === 'existing') { if (existingId) onSubmit({ mode: 'existing', id: existingId }); }
-    else if (name) onSubmit({ mode: 'new', type, name, faces });
+    else if (name && faces) onSubmit({ mode: 'new', type, name, faces: +faces });
   };
 
   return (
@@ -376,7 +374,7 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
       {source === 'new' ? (
         <>
           <input className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="매체명을 입력해주세요" />
-          <label className="fld"><span>면수</span><input className="inp num" type="number" min="1" max="6" style={{ width: 70, flex: 'none' }} value={faces} onChange={(e) => setFaces(+e.target.value)} /></label>
+          <input className="inp" type="number" min="1" max="6" value={faces} onChange={(e) => setFaces(e.target.value)} placeholder="면수를 입력해주세요" />
         </>
       ) : archivedOfType.length > 0 ? (
         <select className="sel" value={existingId} onChange={(e) => setExistingId(e.target.value)}>
@@ -387,7 +385,7 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
       )}
       <div className="addpop-btns">
         <button className="mini" onClick={onCancel}>취소</button>
-        <button className="mini ok" disabled={source === 'new' ? !name : !existingId} onClick={submit}>{source === 'existing' ? '이 자리로 복구' : '추가'}</button>
+        <button className="mini ok" disabled={source === 'new' ? (!name || !faces) : !existingId} onClick={submit}>{source === 'existing' ? '이 자리로 복구' : '추가'}</button>
       </div>
     </div>
   );
