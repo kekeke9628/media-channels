@@ -22,7 +22,7 @@ const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const CLICK_SLOP = 6; // 이 픽셀 이내 움직임은 팬이 아니라 클릭으로 본다
 
-export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, setSelMedia, onMoveLocal, onMoveCommit, onCreate, mapImage, onMapImage, isEditor }) {
+export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, setSelMedia, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, mapImage, onMapImage, isEditor }) {
   const wrapRef = useRef(null);
   const stageRef = useRef(null);
   const pinRefs = useRef({});   // item.id -> 핀 DOM 노드 (지도와 분리된 레이어라 위치를 직접 계산해서 넣어줘야 함)
@@ -36,8 +36,6 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
 
   const [zoom, setZoom] = useState(1);
   const [hover, setHover] = useState(null);
-  const [editMode, setEditMode] = useState(false);
-  const [addMode, setAddMode] = useState(false);
   const [addAt, setAddAt] = useState(null); // { x, y }
   const [open, setOpen] = useState(false);
   const [cropFile, setCropFile] = useState(null);
@@ -233,7 +231,7 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
   return (
     <div className="mapcard">
       <div className="maphead">
-        <div className="mtitle"><b>구역 배치도</b><span>핀 = 매체 · 빨강 = 만료 · 휠로 확대/드래그로 이동</span></div>
+        <div className="mtitle"><b>구역 배치도</b></div>
         <div className="mtools">
           <div className="dd">
             <button className="btn" onClick={() => setOpen((v) => !v)}>매체 유형 {typeFilter.size === active.length ? '전체' : typeFilter.size} ▾</button>
@@ -254,9 +252,6 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
           )}
           {isEditor && (
             <button className={'btn' + (editMode ? ' on' : '')} onClick={() => { setEditMode((v) => !v); setAddMode(false); }}>{editMode ? '위치 편집 중' : '위치 편집'}</button>
-          )}
-          {isEditor && (
-            <button className={'btn' + (addMode ? ' on' : '')} onClick={() => { setAddMode((v) => !v); setEditMode(false); }}>{addMode ? '추가할 위치 클릭…' : '+ 매체 추가'}</button>
           )}
         </div>
       </div>
@@ -328,7 +323,6 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
 
       <div className="legend">
         <span><i className="lg full" />정상</span><span><i className="lg stale" />만료</span><span><i className="lg vacant" />비어있음</span>
-        <span className="lghint">아이콘 = 매체 유형 · 편집 모드에서 드래그로 이동, "+ 매체 추가"로 새 매체 배치</span>
       </div>
 
       {cropFile && (
