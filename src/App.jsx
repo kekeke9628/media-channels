@@ -12,7 +12,6 @@ import AdminReset from './components/AdminReset.jsx';
 import Unauthorized from './components/Unauthorized.jsx';
 import MapPanel from './components/MapPanel.jsx';
 import PostsPanel from './components/PostsPanel.jsx';
-import StatusPanel from './components/StatusPanel.jsx';
 import GalleryPanel from './components/GalleryPanel.jsx';
 import TimelinePanel from './components/TimelinePanel.jsx';
 import ManagePanel from './components/ManagePanel.jsx';
@@ -21,7 +20,7 @@ import AdminsPanel from './components/AdminsPanel.jsx';
 import MediaSheet from './components/MediaSheet.jsx';
 import AddModal from './components/AddModal.jsx';
 
-const TABS = { posts: '홍보물 관리', status: '매체 현황', gallery: '게시물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
+const TABS = { posts: '홍보물 관리', gallery: '게시물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
 const EDITOR_ONLY_TABS = new Set(['alert', 'admins']);
 
 export default function App() {
@@ -332,7 +331,6 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
 
         <div className="panel">
           {tab === 'posts' && <PostsPanel {...ctx} state={state} postings={postings} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
-          {tab === 'status' && <StatusPanel {...ctx} state={visible} postings={postings} media={media} onPick={setSelMedia} />}
           {tab === 'gallery' && <GalleryPanel {...ctx} postings={postings} media={media} onPick={setSelMedia} />}
           {tab === 'timeline' && <TimelinePanel {...ctx} state={state} onPick={setSelMedia} />}
           {tab === 'manage' && (
