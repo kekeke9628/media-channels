@@ -37,7 +37,11 @@ export default function TimelinePanel({ state, refDate, onPick }) {
         {rangeOn ? (
           <div className="daterange"><input className="inp date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /><span className="sub">~</span><input className="inp date" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         ) : (
-          !asTable && <div className="seg">{[60, 120, 240].map((s) => <button key={s} className={span === s ? 'on' : ''} onClick={() => setSpan(s)}>{s}일</button>)}</div>
+          !asTable && (
+            <select className="sel" value={span} onChange={(e) => setSpan(+e.target.value)}>
+              {[60, 120, 240].map((s) => <option key={s} value={s}>{s}일</option>)}
+            </select>
+          )
         )}
         <button className={'btn' + (asTable ? ' on' : '')} onClick={() => setAsTable((v) => !v)}>{asTable ? '그래프로 보기' : '표로 보기'}</button>
       </div>
