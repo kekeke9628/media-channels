@@ -51,6 +51,9 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .btn.wide{width:100%;margin-top:10px}
 .btn.upload{position:relative;overflow:hidden}
 .btn:disabled{opacity:.4;cursor:default}
+.quickbtns{display:flex;gap:6px}
+.quickbtns .btn{flex:1;white-space:nowrap}
+.quickbtns.wide{width:100%;margin-top:10px}
 .sel{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12.5px;background:#fff;font-family:inherit}
 .mini-sel{padding:4px 6px;font-size:11.5px}
 .dd{position:relative}

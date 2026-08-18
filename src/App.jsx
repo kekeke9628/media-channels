@@ -255,11 +255,13 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
               데스크톱에서는 숨기고 아래 원래 .side-row2를 그대로 쓴다. */}
           <div className="mobile-quickrow">
             <label className="reffield">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
-            {isEditor && <button className="btn primary" onClick={() => setAddOpen(true)}>+게시물 관리</button>}
             {isEditor && (
-              <button className={'btn' + (addMode ? ' on' : '')} onClick={() => { setAddMode((v) => !v); setEditMode(false); }}>
-                {addMode ? '추가할 위치 클릭…' : '+매체 관리'}
-              </button>
+              <div className="quickbtns">
+                <button className="btn primary" onClick={() => setAddOpen(true)}>+게시물 관리</button>
+                <button className={'btn primary' + (addMode ? ' on' : '')} onClick={() => { setAddMode((v) => !v); setEditMode(false); }}>
+                  {addMode ? '추가할 위치 클릭…' : '+매체 관리'}
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -277,11 +279,13 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         {/* 모바일에서 "게시물 등록"+"게시일 기준"을 2행으로 묶기 위한 래퍼 — 데스크톱에서는
             display:contents로 기존 세로 배치에 영향을 주지 않는다. */}
         <div className="side-row2">
-          {isEditor && <button className="btn primary wide" onClick={() => setAddOpen(true)}>+게시물 관리</button>}
           {isEditor && (
-            <button className={'btn wide' + (addMode ? ' on' : '')} onClick={() => { setAddMode((v) => !v); setEditMode(false); }}>
-              {addMode ? '추가할 위치 클릭…' : '+매체 관리'}
-            </button>
+            <div className="quickbtns wide">
+              <button className="btn primary" onClick={() => setAddOpen(true)}>+게시물 관리</button>
+              <button className={'btn primary' + (addMode ? ' on' : '')} onClick={() => { setAddMode((v) => !v); setEditMode(false); }}>
+                {addMode ? '추가할 위치 클릭…' : '+매체 관리'}
+              </button>
+            </div>
           )}
           <label className="reffield">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
         </div>
