@@ -329,13 +329,6 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{v}{k === 'posts' && kpi.stale > 0 && <em>{kpi.stale}</em>}</button>
           ))}
         </div>
-        {/* 모바일 전용 — 탭 이름이 길어 가로 스크롤이 필요했던 .tabs 대신 드롭다운 하나로.
-            데스크톱에서는 숨기고 위 .tabs를 그대로 쓴다. */}
-        <select className="sel tabs-select" value={tab} onChange={(e) => setTab(e.target.value)}>
-          {tabEntries.map(([k, v]) => (
-            <option key={k} value={k}>{v}{k === 'posts' && kpi.stale > 0 ? ` (${kpi.stale})` : ''}</option>
-          ))}
-        </select>
 
         <div className="panel">
           {tab === 'posts' && <PostsPanel {...ctx} state={state} postings={postings} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
