@@ -289,8 +289,8 @@ tbody tr.archived{opacity:.45}
 .emailfld .at{color:var(--ink2);font-weight:600}
 
 .app.narrow{flex-direction:column}
-/* 모바일 2행 구성: 1행 = 로고+제목(그 아래 "여주 프리미엄 아울렛" 대신 게시중/만료 KPI),
-   2행 = 게시물 등록 버튼 + 게시일 기준. 한눈에 보이도록 가로 스크롤 없이 세로로 쌓는다. */
+/* 모바일 1행 구성: 로고+제목(그 아래 게시중/만료 KPI) 왼쪽, 기준일+게시물 등록을 압축해
+   오른쪽 여백에 넣는다 — 예전엔 2행이었지만 이제 이 한 줄 안에 다 들어간다. */
 .app.narrow .side{width:100%;flex:none;height:auto;position:relative;flex-direction:column;gap:10px;padding:12px 16px}
 .app.narrow .side nav{display:none}
 .app.narrow .sidefoot{display:none}
@@ -300,11 +300,12 @@ tbody tr.archived{opacity:.45}
 .app.narrow .brand{border-bottom:0;padding-bottom:0}
 .app.narrow .brand span{display:none}
 .app.narrow .skv{white-space:nowrap;gap:6px}
+.mobile-quickrow{display:none}
+.app.narrow .mobile-quickrow{display:flex;flex-direction:column;gap:5px;margin-left:auto;flex:none}
+.app.narrow .mobile-quickrow .reffield{flex-direction:row;gap:5px;white-space:nowrap;font-size:10.5px;padding:4px 7px}
+.app.narrow .mobile-quickrow .btn{font-size:10.5px;padding:4px 9px;white-space:nowrap;text-align:center}
 .side-row2{display:contents}
-.app.narrow .side-row2{display:flex;flex-direction:row;gap:10px;align-items:center;width:100%}
-.app.narrow .side-row2 .reffield{flex:1}
-.app.narrow .reffield{flex-direction:row;gap:6px;white-space:nowrap}
-.app.narrow .btn.wide{width:auto;margin-top:0;white-space:nowrap}
+.app.narrow .side-row2{display:none}
 .app.narrow main{padding:14px}
 .app.narrow .mapwrap{aspect-ratio:4/3}
 .app.narrow .sheet{width:100%}

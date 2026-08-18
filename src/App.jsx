@@ -249,6 +249,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
               <div className="skv bad"><em>만료</em><b>{kpi.stale}</b></div>
             </div>
           </div>
+          {/* 모바일 전용 — 기준일+게시물 등록을 브랜드 행 오른쪽 여백에 압축해 넣어 2행을 없앤다.
+              데스크톱에서는 숨기고 아래 원래 .side-row2를 그대로 쓴다. */}
+          <div className="mobile-quickrow">
+            <label className="reffield">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
+            {isEditor && <button className="btn primary" onClick={() => setAddOpen(true)}>+ 게시물 등록</button>}
+          </div>
         </div>
         <div className="sidekpi">
           <div className="skv"><em>게시중</em><b>{kpi.live + kpi.open}<i>/{kpi.total}</i></b></div>
