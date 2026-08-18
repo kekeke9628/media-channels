@@ -114,7 +114,11 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .lg{width:10px;height:12px;display:inline-block;clip-path:polygon(50% 0%,100% 22%,100% 100%,0% 100%,0% 22%)}
 .lg.full{background:#4B7B58}.lg.stale{background:#B4534B}.lg.vacant{background:#B5AFA4}
 
-.tabs{display:flex;gap:3px;border-bottom:1px solid var(--line);overflow-x:auto}
+/* touch-action:pan-x — 가로 스크롤 영역인데 세로 스크롤 페이지 안에 중첩돼 있어서,
+   모바일에서 탭을 톡 누르기만 해도 브라우저가 제스처를 세로 스크롤로 착각해
+   화면이 위아래로 살짝 튕기던 문제(overflow-anchor로는 못 잡았음). 이 영역은
+   가로 방향으로만 반응하게 명시해 세로 스크롤 체이닝을 막는다. */
+.tabs{display:flex;gap:3px;border-bottom:1px solid var(--line);overflow-x:auto;touch-action:pan-x;overscroll-behavior-x:contain}
 .tabs button{border:0;background:none;padding:10px 12px;font-weight:600;font-size:13.5px;color:var(--ink2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;display:flex;gap:6px;align-items:center}
 .tabs button.on{color:var(--ink);border-bottom-color:var(--brass)}
 .tabs em{font-style:normal;background:#B4534B;color:#fff;font-size:10.5px;padding:1px 7px;border-radius:10px;font-family:'IBM Plex Mono'}
