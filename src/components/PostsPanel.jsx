@@ -9,6 +9,7 @@ const zoneLabel = (z) => ZONES[z]?.label || z;
 const statusRank = (o) => (o.overdue ? 0 : o.open ? 1 : o.live ? 2 : 3);
 const statusCat = (o) => (o.overdue ? 'overdue' : o.open ? 'open' : o.live ? 'live' : 'vacant');
 const STATUS_OPTS = [['overdue', '만료', ST.overdue.color], ['live', '게시중', ST.live.color], ['open', '미정', ST.open.color], ['vacant', '비어있음', '#B5AFA4']];
+const STATUS_LABEL = Object.fromEntries(STATUS_OPTS.map(([k, v]) => [k, v]));
 
 // 홍보물 관리 (기본 화면) — 만료 건이 맨 앞에 오도록 정렬, 기간 조회는 이력 검색으로 전환
 export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, onRemove, onUndo, onPick }) {
@@ -32,7 +33,11 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
     return postings
       .filter((p) => typeSel.has(media.find((m) => m.id === p.mediaId)?.type))
       .filter((p) => (p.end || '9999-12-31') >= from && p.start <= to)
-      .filter((p) => !q || (contentOf(p) + p.brand + mName(p.mediaId)).toLowerCase().includes(q.toLowerCase()))
+      .filter((p) => {
+        if (!q) return true;
+        const haystack = [mName(p.mediaId), p.brand, contentOf(p), p.start, p.end, p.removedAt, ST[statusOf(p, refDate)]?.label].join(' ').toLowerCase();
+        return haystack.includes(q.toLowerCase());
+      })
       .sort((a, b) => b.start.localeCompare(a.start));
   }, [rangeOn, postings, typeSel, from, to, q, media]);
 
@@ -41,7 +46,12 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
     return state
       .filter((o) => typeSel.has(o.type))
       .filter((o) => statusSel.has(statusCat(o)))
-      .filter((o) => !q || (o.name + (o.current?.brand || '') + (o.current ? contentOf(o.current) : '')).toLowerCase().includes(q.toLowerCase()))
+      .filter((o) => {
+        if (!q) return true;
+        const p = o.overdue || o.current;
+        const haystack = [o.name, T[o.type]?.label, zoneLabel(o.zone), p?.brand, p ? contentOf(p) : '', p?.end, STATUS_LABEL[statusCat(o)]].join(' ').toLowerCase();
+        return haystack.includes(q.toLowerCase());
+      })
       .map((o) => ({ o, p: o.overdue || o.current }))
       .sort((a, b) => {
         const sa = a.p ? statusOf(a.p, refDate) : 'none', sb = b.p ? statusOf(b.p, refDate) : 'none';
@@ -50,12 +60,12 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         const ea = a.p?.end || '9999-12-31', eb = b.p?.end || '9999-12-31';
         return ea.localeCompare(eb);
       });
-  }, [state, typeSel, statusSel, q, refDate]);
+  }, [state, typeSel, statusSel, q, refDate, T]);
 
   return (
     <div>
       <div className="toolrow">
-        <input className="inp" placeholder="업체명 · 내용 · 매체명 검색" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="inp" placeholder="매체명 · 유형 · 구역 · 업체명 · 내용 · 상태 검색" value={q} onChange={(e) => setQ(e.target.value)} />
         <label className="chk"><input type="checkbox" checked={rangeOn} onChange={(e) => setRangeOn(e.target.checked)} />기간으로 조회</label>
         {rangeOn && (
           <div className="daterange">
