@@ -64,7 +64,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
               <div><em>업체명</em><b>{cur.brand}</b></div>
               <div><em>내용</em><b>{contentOf(cur)}</b></div>
               <div><em>게시일</em><b className="mono">{cur.start}</b></div>
-              <div><em>철거 예정</em><b className="mono">{cur.end || '미정'}</b></div>
+              <div><em>철거 예정일</em><b className="mono">{cur.end || '미정'}</b></div>
             </div>
             {isEditor && (
               <button className={'btn wide' + (o.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>철거 완료{o.overdue ? ` (+${o.overdueDays}일 지연)` : ''}</button>

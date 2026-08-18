@@ -87,7 +87,7 @@ export default function StatusPanel({ T, state, postings, media, refDate, onPick
               <SortTh label="업체명" sortKey="brand" sort={sortHist} setSort={setSortHist} />
               <SortTh label="내용" sortKey="content" sort={sortHist} setSort={setSortHist} />
               <SortTh label="게시" sortKey="start" sort={sortHist} setSort={setSortHist} />
-              <SortTh label="철거예정" sortKey="end" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="철거예정일" sortKey="end" sort={sortHist} setSort={setSortHist} />
               <SortTh label="실제철거" sortKey="removed" sort={sortHist} setSort={setSortHist} />
               <SortTh label="기간" sortKey="duration" sort={sortHist} setSort={setSortHist} className="r" />
               <SortTh label="상태" sortKey="status" sort={sortHist} setSort={setSortHist} />

@@ -92,7 +92,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
               <SortTh label="구역" sortKey="zone" sort={sortCur} setSort={setSortCur} />
               <SortTh label="업체명" sortKey="brand" sort={sortCur} setSort={setSortCur} />
               <SortTh label="내용" sortKey="content" sort={sortCur} setSort={setSortCur} />
-              <SortTh label="철거예정" sortKey="end" sort={sortCur} setSort={setSortCur} />
+              <SortTh label="철거예정일" sortKey="end" sort={sortCur} setSort={setSortCur} />
               <SortTh label="상태" sortKey="status" sort={sortCur} setSort={setSortCur} />
               <th className="r">조치</th>
             </tr></thead>
@@ -140,7 +140,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
               <SortTh label="업체명" sortKey="brand" sort={sortHist} setSort={setSortHist} />
               <SortTh label="내용" sortKey="content" sort={sortHist} setSort={setSortHist} />
               <SortTh label="게시" sortKey="start" sort={sortHist} setSort={setSortHist} />
-              <SortTh label="철거예정" sortKey="end" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="철거예정일" sortKey="end" sort={sortHist} setSort={setSortHist} />
               <SortTh label="실제철거" sortKey="removed" sort={sortHist} setSort={setSortHist} />
               <SortTh label="기간" sortKey="duration" sort={sortHist} setSort={setSortHist} className="r" />
               <SortTh label="상태" sortKey="status" sort={sortHist} setSort={setSortHist} />
