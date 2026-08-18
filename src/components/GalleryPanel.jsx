@@ -4,12 +4,16 @@ import { statusOf } from '../lib/status.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
 
-const STATUS_OPTS = [['overdue', ST.overdue.label, ST.overdue.color], ['live', ST.live.label, ST.live.color], ['open', ST.open.label, ST.open.color], ['upcoming', ST.upcoming.label, ST.upcoming.color], ['removed', ST.removed.label, ST.removed.color]];
+// 만료·철거완료는 "지금 걸려 있는 게시물"과 성격이 달라(하나는 방치된 것, 하나는
+// 이미 지난 기록) 다중선택 드롭다운에 같이 두면 애매해서 별도 ON/OFF로 뺀다.
+const STATUS_OPTS = [['live', ST.live.label, ST.live.color], ['open', ST.open.label, ST.open.color], ['upcoming', ST.upcoming.label, ST.upcoming.color]];
 
 // 게시물 (이미지 카드) — 원본 대비 경량화 비율을 보여준다
 export default function GalleryPanel({ media, postings, refDate, isEditor, onPick }) {
   const order = { overdue: 0, live: 1, open: 2, upcoming: 3, removed: 4 };
   const [statusSel, setStatusSel] = useState(new Set(STATUS_OPTS.map(([k]) => k)));
+  const [showOverdue, setShowOverdue] = useState(false);
+  const [showRemoved, setShowRemoved] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [q, setQ] = useState('');
   const [rangeOn, setRangeOn] = useState(false);
@@ -28,7 +32,10 @@ export default function GalleryPanel({ media, postings, refDate, isEditor, onPic
 
   const rows = postings.filter((p) => {
     if (rangeOn) { if ((p.end || '9999-12-31') < from || p.start > to) return false; }
-    else if (!statusSel.has(statusOf(p, refDate))) return false;
+    else {
+      const s = statusOf(p, refDate);
+      if (s === 'overdue' ? !showOverdue : s === 'removed' ? !showRemoved : !statusSel.has(s)) return false;
+    }
     if (!q) return true;
     return (contentOf(p) + p.brand + mName(p.mediaId)).toLowerCase().includes(q.toLowerCase());
   }).sort((a, b) => rangeOn ? b.start.localeCompare(a.start) : (order[statusOf(a, refDate)] ?? 9) - (order[statusOf(b, refDate)] ?? 9) || b.start.localeCompare(a.start));
@@ -41,17 +48,21 @@ export default function GalleryPanel({ media, postings, refDate, isEditor, onPic
         {rangeOn ? (
           <div className="daterange"><input className="inp date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /><span className="sub">~</span><input className="inp date" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         ) : (
-          <div className="dd right">
-            <button className="btn" onClick={() => setStatusOpen((v) => !v)}>상태 {statusSel.size === STATUS_OPTS.length ? '전체' : statusSel.size} ▾</button>
-            {statusOpen && (
-              <div className="ddmenu" onMouseLeave={() => setStatusOpen(false)}>
-                <div className="ddtop"><button onClick={() => setStatusSel(new Set(STATUS_OPTS.map(([k]) => k)))}>전체</button><button onClick={() => setStatusSel(new Set())}>해제</button></div>
-                {STATUS_OPTS.map(([k, v, color]) => (
-                  <label key={k}><input type="checkbox" checked={statusSel.has(k)} onChange={() => toggleStatus(k)} /><i style={{ background: color }} />{v}</label>
-                ))}
-              </div>
-            )}
-          </div>
+          <>
+            <div className="dd right">
+              <button className="btn" onClick={() => setStatusOpen((v) => !v)}>상태 {statusSel.size === STATUS_OPTS.length ? '전체' : statusSel.size} ▾</button>
+              {statusOpen && (
+                <div className="ddmenu" onMouseLeave={() => setStatusOpen(false)}>
+                  <div className="ddtop"><button onClick={() => setStatusSel(new Set(STATUS_OPTS.map(([k]) => k)))}>전체</button><button onClick={() => setStatusSel(new Set())}>해제</button></div>
+                  {STATUS_OPTS.map(([k, v, color]) => (
+                    <label key={k}><input type="checkbox" checked={statusSel.has(k)} onChange={() => toggleStatus(k)} /><i style={{ background: color }} />{v}</label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <label className="chk"><input type="checkbox" checked={showOverdue} onChange={(e) => setShowOverdue(e.target.checked)} />만료 포함</label>
+            <label className="chk"><input type="checkbox" checked={showRemoved} onChange={(e) => setShowRemoved(e.target.checked)} />철거완료 포함</label>
+          </>
         )}
         <span className="count mono">{rows.length}건</span>
       </div>
