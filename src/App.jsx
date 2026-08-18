@@ -22,7 +22,7 @@ import MediaSheet from './components/MediaSheet.jsx';
 import AddModal from './components/AddModal.jsx';
 
 const TABS = { posts: '홍보물 관리', status: '매체 현황', gallery: '게시물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
-const EDITOR_ONLY_TABS = new Set(['admins']);
+const EDITOR_ONLY_TABS = new Set(['alert', 'admins']);
 
 export default function App() {
   const { session, admin, loading, authError, isEditor, signOut, updatePassword } = useAuth();
@@ -336,7 +336,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
               onAddType={addType} onToggleType={toggleType} onEditType={editType}
               onRemoveMedia={removeMedia} onRestoreMedia={restoreMediaItem} />
           )}
-          {tab === 'alert' && <AlertPanel alerts={alerts} kpi={kpi} />}
+          {tab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} />}
           {tab === 'admins' && isEditor && <AdminsPanel meId={meId} />}
         </div>
       </main>
