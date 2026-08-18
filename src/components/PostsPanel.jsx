@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { contentOf, days } from '../constants.js';
+import { contentOf, days, ST } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
@@ -7,10 +7,13 @@ import SortTh, { sortRows } from './SortTh.jsx';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
 const statusRank = (o) => (o.overdue ? 0 : o.open ? 1 : o.live ? 2 : 3);
+const statusCat = (o) => (o.overdue ? 'overdue' : o.open ? 'open' : o.live ? 'live' : 'vacant');
+const STATUS_OPTS = [['overdue', '만료', ST.overdue.color], ['live', '게시중', ST.live.color], ['open', '미정', ST.open.color], ['vacant', '비어있음', '#B5AFA4']];
 
 // 홍보물 관리 (기본 화면) — 만료 건이 맨 앞에 오도록 정렬, 기간 조회는 이력 검색으로 전환
 export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, onRemove, onUndo, onPick }) {
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusSel, setStatusSel] = useState(new Set(STATUS_OPTS.map(([k]) => k)));
+  const [statusOpen, setStatusOpen] = useState(false);
   const [typeSel, setTypeSel] = useState(new Set(types.map((t) => t.code)));
   const [typeOpen, setTypeOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -22,6 +25,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
   const mName = (id) => media.find((m) => m.id === id)?.name || '-';
 
   const toggleType = (c) => setTypeSel((prev) => { const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n; });
+  const toggleStatus = (c) => setStatusSel((prev) => { const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n; });
 
   const historyRows = useMemo(() => {
     if (!rangeOn) return [];
@@ -36,7 +40,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
   const currentRows = useMemo(() => {
     return state
       .filter((o) => typeSel.has(o.type))
-      .filter((o) => statusFilter === 'all' || (statusFilter === 'overdue' ? o.overdue : statusFilter === 'live' ? o.live : statusFilter === 'open' ? o.open : true))
+      .filter((o) => statusSel.has(statusCat(o)))
       .filter((o) => !q || (o.name + (o.current?.brand || '') + (o.current ? contentOf(o.current) : '')).toLowerCase().includes(q.toLowerCase()))
       .map((o) => ({ o, p: o.overdue || o.current }))
       .sort((a, b) => {
@@ -46,7 +50,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         const ea = a.p?.end || '9999-12-31', eb = b.p?.end || '9999-12-31';
         return ea.localeCompare(eb);
       });
-  }, [state, typeSel, statusFilter, q, refDate]);
+  }, [state, typeSel, statusSel, q, refDate]);
 
   return (
     <div>
@@ -74,11 +78,17 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
           )}
         </div>
         {!rangeOn && (
-          <select className="sel" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            {[['overdue', '만료'], ['live', '게시중'], ['open', '미정'], ['all', '전체']].map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
+          <div className="dd">
+            <button className="btn" onClick={() => setStatusOpen((v) => !v)}>상태 {statusSel.size === STATUS_OPTS.length ? '전체' : statusSel.size} ▾</button>
+            {statusOpen && (
+              <div className="ddmenu" onMouseLeave={() => setStatusOpen(false)}>
+                <div className="ddtop"><button onClick={() => setStatusSel(new Set(STATUS_OPTS.map(([k]) => k)))}>전체</button><button onClick={() => setStatusSel(new Set())}>해제</button></div>
+                {STATUS_OPTS.map(([k, v, color]) => (
+                  <label key={k}><input type="checkbox" checked={statusSel.has(k)} onChange={() => toggleStatus(k)} /><i style={{ background: color }} />{v}</label>
+                ))}
+              </div>
+            )}
+          </div>
         )}
         <span className="count mono">{(rangeOn ? historyRows.length : currentRows.length)}건</span>
       </div>
