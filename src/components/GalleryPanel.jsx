@@ -34,7 +34,7 @@ export default function GalleryPanel({ media, postings, refDate, onPick }) {
         <input className="inp" placeholder="업체명 · 내용 · 매체 검색" value={q} onChange={(e) => setQ(e.target.value)} />
         <label className="chk"><input type="checkbox" checked={rangeOn} onChange={(e) => setRangeOn(e.target.checked)} />기간으로 조회</label>
         {rangeOn ? (
-          <><input className="inp date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /><span className="sub">~</span><input className="inp date" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></>
+          <div className="daterange"><input className="inp date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /><span className="sub">~</span><input className="inp date" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         ) : (
           <div className="seg">
             {[['overdue', '만료'], ['live', '게시중'], ['open', '미정'], ['upcoming', '예정'], ['removed', '철거완료'], ['all', '전체']].map(([k, v]) => (

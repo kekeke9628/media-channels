@@ -128,6 +128,11 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .formrow{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
 .inp{flex:1;min-width:130px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;font-family:inherit}
 .inp.date{flex:0 0 148px;min-width:0}
+/* 좁은 화면에서 toolrow가 줄바꿈되면 date input 혼자 남은 줄을 꽉 채워 보이던 문제
+   (iOS 네이티브 date input이 flex-basis를 무시하고 넓게 그려짐) — 두 날짜 입력을
+   별도 한 줄짜리 flex 컨테이너로 묶어 항상 같은 줄에서 절반씩 나눠 갖게 한다. */
+.daterange{display:flex;align-items:center;gap:6px;width:100%}
+.daterange .inp.date{flex:1;min-width:0}
 .inp.num{flex:0 0 64px;min-width:0;text-align:center;padding:8px 6px}
 .iconinp{width:52px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:7px 4px;font-size:14px;font-family:inherit}
 .colorinp{width:38px;height:34px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff}

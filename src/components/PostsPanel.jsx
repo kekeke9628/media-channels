@@ -53,11 +53,11 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         <input className="inp" placeholder="업체명 · 내용 · 매체명 검색" value={q} onChange={(e) => setQ(e.target.value)} />
         <label className="chk"><input type="checkbox" checked={rangeOn} onChange={(e) => setRangeOn(e.target.checked)} />기간으로 조회</label>
         {rangeOn && (
-          <>
+          <div className="daterange">
             <input className="inp date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
             <span className="sub">~</span>
             <input className="inp date" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          </>
+          </div>
         )}
       </div>
       <div className="toolrow">
