@@ -240,7 +240,15 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       <aside className="side">
         <div className="brand">
           <div className="bmark">YPO</div>
-          <div><b>점내 홍보매체</b><span>여주 프리미엄 아울렛</span></div>
+          <div>
+            <b>점내 홍보매체</b><span>여주 프리미엄 아울렛</span>
+            {/* 모바일 전용 — "여주 프리미엄 아울렛" 자리에 한눈에 보이도록 KPI를 대신 넣는다.
+                데스크톱에서는 CSS로 숨기고, 아래 원래 .sidekpi를 그대로 쓴다. */}
+            <div className="sidekpi mobile-kpi">
+              <div className="skv"><em>게시중</em><b>{kpi.live + kpi.open}<i>/{kpi.total}</i></b></div>
+              <div className="skv bad"><em>만료</em><b>{kpi.stale}</b></div>
+            </div>
+          </div>
         </div>
         <div className="sidekpi">
           <div className="skv"><em>게시중</em><b>{kpi.live + kpi.open}<i>/{kpi.total}</i></b></div>
@@ -253,8 +261,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
             </button>
           ))}
         </nav>
-        {isEditor && <button className="btn primary wide" onClick={() => setAddOpen(true)}>+ 게시물 등록</button>}
-        <label className="reffield">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
+        {/* 모바일에서 "게시물 등록"+"게시일 기준"을 2행으로 묶기 위한 래퍼 — 데스크톱에서는
+            display:contents로 기존 세로 배치에 영향을 주지 않는다. */}
+        <div className="side-row2">
+          {isEditor && <button className="btn primary wide" onClick={() => setAddOpen(true)}>+ 게시물 등록</button>}
+          <label className="reffield">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
+        </div>
         <div className="sidefoot">
           {admin.name || admin.email} · {isEditor ? '편집자' : '조회자'}
           <div className="sub" style={{ fontSize: 12, lineHeight: 1.4 }}>
