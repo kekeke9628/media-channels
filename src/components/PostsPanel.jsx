@@ -19,9 +19,9 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
   // 게시물 화면과 달리 기본 ON — 이 화면의 핵심 목적이 만료 건을 놓치지 않고 조치하는
   // 것이라(맨 위 정렬 + 철거 완료 버튼), 기본으로 숨기면 화면 목적과 어긋난다.
   const [showOverdue, setShowOverdue] = useState(true);
-  const [statusOpen, setStatusOpen] = useState(false);
   const [typeSel, setTypeSel] = useState(new Set(types.map((t) => t.code)));
-  const [typeOpen, setTypeOpen] = useState(false);
+  // 드롭다운은 한 번에 하나만 — 매체 유형/상태 필터가 동시에 열려 겹쳐 보이던 문제.
+  const [openDD, setOpenDD] = useState(null); // 'type' | 'status' | null
   const [q, setQ] = useState('');
   const [rangeOn, setRangeOn] = useState(false);
   const [from, setFrom] = useState('2025-01-01');
@@ -82,9 +82,9 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       </div>
       <div className="toolrow">
         <div className="dd">
-          <button className="btn" onClick={() => setTypeOpen((v) => !v)}>매체 유형 {typeSel.size === types.length ? '전체' : typeSel.size} ▾</button>
-          {typeOpen && (
-            <div className="ddmenu" onMouseLeave={() => setTypeOpen(false)}>
+          <button className="btn" onClick={() => setOpenDD((v) => (v === 'type' ? null : 'type'))}>매체 유형 {typeSel.size === types.length ? '전체' : typeSel.size} ▾</button>
+          {openDD === 'type' && (
+            <div className="ddmenu" onMouseLeave={() => setOpenDD(null)}>
               <div className="ddtop"><button onClick={() => setTypeSel(new Set(types.map((t) => t.code)))}>전체</button><button onClick={() => setTypeSel(new Set())}>해제</button></div>
               {types.map((t) => (
                 <label key={t.code}><input type="checkbox" checked={typeSel.has(t.code)} onChange={() => toggleType(t.code)} /><i style={{ background: t.color }} />{t.label}</label>
@@ -95,9 +95,9 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         {!rangeOn && (
           <>
             <div className="dd">
-              <button className="btn" onClick={() => setStatusOpen((v) => !v)}>상태 {statusSel.size === STATUS_OPTS.length ? '전체' : statusSel.size} ▾</button>
-              {statusOpen && (
-                <div className="ddmenu" onMouseLeave={() => setStatusOpen(false)}>
+              <button className="btn" onClick={() => setOpenDD((v) => (v === 'status' ? null : 'status'))}>상태 {statusSel.size === STATUS_OPTS.length ? '전체' : statusSel.size} ▾</button>
+              {openDD === 'status' && (
+                <div className="ddmenu" onMouseLeave={() => setOpenDD(null)}>
                   <div className="ddtop"><button onClick={() => setStatusSel(new Set(STATUS_OPTS.map(([k]) => k)))}>전체</button><button onClick={() => setStatusSel(new Set())}>해제</button></div>
                   {STATUS_OPTS.map(([k, v, color]) => (
                     <label key={k}><input type="checkbox" checked={statusSel.has(k)} onChange={() => toggleStatus(k)} /><i style={{ background: color }} />{v}</label>
