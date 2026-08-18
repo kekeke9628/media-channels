@@ -5,9 +5,9 @@ import { getPostingImageUrls } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
 
 // 게시물 (이미지 카드) — 원본 대비 경량화 비율을 보여준다
-export default function GalleryPanel({ media, postings, refDate, onPick }) {
+export default function GalleryPanel({ media, postings, refDate, isEditor, onPick }) {
   const order = { overdue: 0, live: 1, open: 2, upcoming: 3, removed: 4 };
-  const [filter, setFilter] = useState('overdue');
+  const [filter, setFilter] = useState('all');
   const [q, setQ] = useState('');
   const [rangeOn, setRangeOn] = useState(false);
   const [from, setFrom] = useState('2025-01-01');
@@ -36,11 +36,11 @@ export default function GalleryPanel({ media, postings, refDate, onPick }) {
         {rangeOn ? (
           <div className="daterange"><input className="inp date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /><span className="sub">~</span><input className="inp date" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         ) : (
-          <div className="seg">
-            {[['overdue', '만료'], ['live', '게시중'], ['open', '미정'], ['upcoming', '예정'], ['removed', '철거완료'], ['all', '전체']].map(([k, v]) => (
-              <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{v}</button>
+          <select className="sel" value={filter} onChange={(e) => setFilter(e.target.value)}>
+            {[['all', '전체'], ['overdue', '만료'], ['live', '게시중'], ['open', '미정'], ['upcoming', '예정'], ['removed', '철거완료']].map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
             ))}
-          </div>
+          </select>
         )}
         <span className="count mono">{rows.length}건</span>
       </div>
@@ -65,7 +65,7 @@ export default function GalleryPanel({ media, postings, refDate, onPick }) {
                 ) : (
                   <p className="sub" style={{ margin: '5px 0 7px' }}>이미지 미등록</p>
                 )}
-                {p.driveUrl && <a className="lnk" href={p.driveUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>원본(드라이브)</a>}
+                {isEditor && p.driveUrl && <a className="lnk" href={p.driveUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>원본(드라이브)</a>}
               </div>
             </div>
           );
