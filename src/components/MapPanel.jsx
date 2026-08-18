@@ -155,12 +155,6 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selMedia]);
 
-  const resetView = () => {
-    panRef.current = { x: 0, y: 0, zoom: 1 };
-    animateTransform();
-    setZoom(1);
-  };
-
   // 데스크톱(휠+드래그)과 모바일(핀치+드래그) 모두 지원 — Pointer Events로 손가락 2개를 추적한다.
   const onWrapPointerDown = (e) => {
     if (e.target.closest('.pin')) return; // 핀 위에서 시작한 드래그는 핀 자체가 처리
@@ -241,10 +235,6 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
       <div className="maphead">
         <div className="mtitle"><b>구역 배치도</b><span>핀 = 매체 · 빨강 = 만료 · 휠로 확대/드래그로 이동</span></div>
         <div className="mtools">
-          <select className="sel" value={zoneFilter} onChange={(e) => setZoneFilter(e.target.value)}>
-            <option value="ALL">전체 구역</option>
-            {Object.entries(ZONES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-          </select>
           <div className="dd">
             <button className="btn" onClick={() => setOpen((v) => !v)}>매체 유형 {typeFilter.size === active.length ? '전체' : typeFilter.size} ▾</button>
             {open && (
@@ -256,7 +246,6 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
               </div>
             )}
           </div>
-          <button className="btn" onClick={resetView}>{Math.round(zoom * 100)}% · 리셋</button>
           {isEditor && (
             <label className="btn upload">
               배치도 업로드
