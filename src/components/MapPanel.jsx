@@ -354,6 +354,7 @@ function AddMediaPopover({ types, at, zone, archived, zoneLabel, onCancel, onSub
   const [source, setSource] = useState('new'); // 'new' | 'existing' — 보관 중이던 매체를 이 자리로 옮겨 복구
   const [type, setType] = useState(types[0]?.code || '');
   const t = types.find((x) => x.code === type);
+  const [name, setName] = useState('');
   const [faces, setFaces] = useState(t?.faces || 1);
   const archivedOfType = archived.filter((m) => m.type === type);
   const [existingId, setExistingId] = useState(archivedOfType[0]?.id || '');
@@ -368,7 +369,7 @@ function AddMediaPopover({ types, at, zone, archived, zoneLabel, onCancel, onSub
 
   const submit = () => {
     if (source === 'existing') { if (existingId) onSubmit({ mode: 'existing', id: existingId }); }
-    else onSubmit({ mode: 'new', type, name: t.label + ' 신규', faces });
+    else if (name) onSubmit({ mode: 'new', type, name, faces });
   };
 
   return (
@@ -382,7 +383,10 @@ function AddMediaPopover({ types, at, zone, archived, zoneLabel, onCancel, onSub
         <button className={source === 'existing' ? 'on' : ''} onClick={() => setSource('existing')}>기존</button>
       </div>
       {source === 'new' ? (
-        <input className="inp num" type="number" min="1" max="6" title="면수" value={faces} onChange={(e) => setFaces(+e.target.value)} />
+        <>
+          <input className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="매체명을 입력해주세요" />
+          <input className="inp num" type="number" min="1" max="6" title="면수" value={faces} onChange={(e) => setFaces(+e.target.value)} />
+        </>
       ) : archivedOfType.length > 0 ? (
         <select className="sel" value={existingId} onChange={(e) => setExistingId(e.target.value)}>
           {archivedOfType.map((m) => <option key={m.id} value={m.id}>{m.name} · {zoneLabel(m.zone)}</option>)}
@@ -392,7 +396,7 @@ function AddMediaPopover({ types, at, zone, archived, zoneLabel, onCancel, onSub
       )}
       <div className="addpop-btns">
         <button className="mini" onClick={onCancel}>취소</button>
-        <button className="mini ok" disabled={source === 'new' ? !type : !existingId} onClick={submit}>{source === 'existing' ? '이 자리로 복구' : '추가'}</button>
+        <button className="mini ok" disabled={source === 'new' ? !name : !existingId} onClick={submit}>{source === 'existing' ? '이 자리로 복구' : '추가'}</button>
       </div>
     </div>
   );
