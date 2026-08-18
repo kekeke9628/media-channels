@@ -6,11 +6,11 @@ export const DEFAULT_REF = '2026-07-29';
 
 // ── 매체 유형 (사양서 3.1 초기 5종 — default_spec은 임시값) ──────────
 export const INIT_TYPES = [
-  { code: 'directory', label: '디렉토리', spec: '1200×2400mm', faces: 1, color: '#3C6E9E', glyph: 'E', movable: false, openEnded: true, active: true },
-  { code: 'ww_fixed', label: '고정형 웨더워리어', spec: '900×1800mm', faces: 2, color: '#4B7B58', glyph: 'FW', movable: false, openEnded: false, active: true },
-  { code: 'ww_mobile', label: '이동형 웨더워리어', spec: '700×1600mm', faces: 2, color: '#C2703D', glyph: 'MW', movable: true, openEnded: false, active: true },
-  { code: 'duratrans', label: '듀라트란스', spec: '1030×1456mm', faces: 1, color: '#7A5AA6', glyph: 'D', movable: false, openEnded: false, active: true },
-  { code: 'fabric', label: '패브릭홀더', spec: '1500×2000mm', faces: 1, color: '#BE8A2E', glyph: 'F', movable: false, openEnded: false, active: true },
+  { code: 'directory', label: '디렉토리', short: 'DIR', spec: '1200×2400mm', faces: 1, color: '#3C6E9E', glyph: 'E', movable: false, openEnded: true, active: true },
+  { code: 'ww_fixed', label: '고정형 웨더워리어', short: 'FW', spec: '900×1800mm', faces: 2, color: '#4B7B58', glyph: 'FW', movable: false, openEnded: false, active: true },
+  { code: 'ww_mobile', label: '이동형 웨더워리어', short: 'MW', spec: '700×1600mm', faces: 2, color: '#C2703D', glyph: 'MW', movable: true, openEnded: false, active: true },
+  { code: 'duratrans', label: '듀라트란스', short: 'DT', spec: '1030×1456mm', faces: 1, color: '#7A5AA6', glyph: 'D', movable: false, openEnded: false, active: true },
+  { code: 'fabric', label: '패브릭홀더', short: 'FH', spec: '1500×2000mm', faces: 1, color: '#BE8A2E', glyph: 'F', movable: false, openEnded: false, active: true },
 ];
 const COUNTS = { directory: 8, ww_fixed: 22, ww_mobile: 12, duratrans: 18, fabric: 14 };
 

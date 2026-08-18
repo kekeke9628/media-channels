@@ -134,6 +134,13 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .seg button{border:0;background:#fff;padding:7px 12px;font-size:12.5px;cursor:pointer;border-right:1px solid var(--line);color:var(--ink2)}
 .seg button:last-child{border-right:0}
 .seg button.on{background:#23211E;color:#fff;font-weight:600}
+.seg button .lblshort{display:none}
+/* 좁은 화면에서 한글 매체 유형명이 길어 2줄로 깨지며 border-right 구분선이 줄바꿈
+   중간에 끊겨 보이던 문제 — 한 줄 유지하고 라벨을 영문 약자로 축약(DIR/FW/MW/DT/FH). */
+.app.narrow .seg.wrap{flex-wrap:nowrap;overflow-x:auto}
+.app.narrow .seg.wrap button{white-space:nowrap}
+.app.narrow .seg.wrap .lblfull{display:none}
+.app.narrow .seg.wrap .lblshort{display:inline}
 .count{margin-left:auto;font-size:12px;color:var(--ink2)}
 
 .scroll{overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:11px}

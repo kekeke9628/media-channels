@@ -63,7 +63,10 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       <div className="toolrow">
         <div className="seg wrap">
           {types.map((t) => (
-            <button key={t.code} className={typeSel.has(t.code) ? 'on' : ''} onClick={() => toggleType(t.code)}>{t.label}</button>
+            <button key={t.code} className={typeSel.has(t.code) ? 'on' : ''} onClick={() => toggleType(t.code)}>
+              <span className="lblfull">{t.label}</span>
+              <span className="lblshort">{t.short}</span>
+            </button>
           ))}
         </div>
         {!rangeOn && (
