@@ -215,8 +215,8 @@ export default function AddModal({ T, types, media, postings, refDate, initialMe
           {!(mode === 'single' && draftMode) && (
             <>
               <div className="fld2">
-                <label className="fld"><span>게시일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
-                <label className="fld"><span>철거 예정일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
+                <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
+                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
               </div>
               <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일 미정 (미정 상태) — 철거 알람 대상에서 제외됩니다</label>
             </>
@@ -234,12 +234,12 @@ export default function AddModal({ T, types, media, postings, refDate, initialMe
           {mode === 'single' && conflict && (
             <div className="conflictbox">
               겹치는 게시물이 있습니다 — <b>{conflict.brand}</b> ({conflict.start} ~ {conflict.end || '미정'}).<br />
-              그대로 진행하면 이 게시물의 철거 예정일이 <b>{iso(Date.parse(start) - DAY)}</b>로 조정됩니다.
+              그대로 진행하면 이 게시물의 종료일이 <b>{iso(Date.parse(start) - DAY)}</b>로 조정됩니다.
               <div className="conflictbtns"><button className="mini" disabled={saving} onClick={() => setConflict(null)}>취소</button><button className="mini ok" disabled={saving} onClick={submitSingle}>{saving ? '저장 중…' : '그대로 진행'}</button></div>
             </div>
           )}
           {mode === 'bulk' && bulkConflictCount > 0 && (
-            <p className="warnbox">⚠ 선택된 매체 중 {bulkConflictCount}곳은 이미 겹치는 게시물이 있습니다 — 그대로 진행하면 기존 게시물의 철거 예정일이 자동으로 단축됩니다.</p>
+            <p className="warnbox">⚠ 선택된 매체 중 {bulkConflictCount}곳은 이미 겹치는 게시물이 있습니다 — 그대로 진행하면 기존 게시물의 종료일이 자동으로 단축됩니다.</p>
           )}
 
           <label className="fld"><span>게시물 이미지 (선택)</span></label>

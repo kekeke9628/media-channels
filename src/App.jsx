@@ -187,7 +187,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       await adjustPostingEnd(id, newEnd);
       setPostings((prev) => prev.map((p) => (p.id === id ? { ...p, end: newEnd } : p)));
       return true;
-    } catch (e) { flash('철거 예정일 조정에 실패했습니다: ' + e.message); return false; }
+    } catch (e) { flash('종료일 조정에 실패했습니다: ' + e.message); return false; }
   };
 
   // 미배치 시안에 매체·일정을 확정한다.

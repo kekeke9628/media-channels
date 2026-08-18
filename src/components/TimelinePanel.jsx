@@ -72,8 +72,8 @@ export default function TimelinePanel({ state, refDate, onPick }) {
               <SortTh label="매체명" sortKey="media" sort={sort} setSort={setSort} />
               <SortTh label="업체명" sortKey="brand" sort={sort} setSort={setSort} />
               <SortTh label="내용" sortKey="content" sort={sort} setSort={setSort} />
-              <SortTh label="게시" sortKey="start" sort={sort} setSort={setSort} />
-              <SortTh label="철거예정일" sortKey="end" sort={sort} setSort={setSort} />
+              <SortTh label="시작일" sortKey="start" sort={sort} setSort={setSort} />
+              <SortTh label="종료일" sortKey="end" sort={sort} setSort={setSort} />
               <SortTh label="실제철거" sortKey="removed" sort={sort} setSort={setSort} />
               <SortTh label="기간" sortKey="duration" sort={sort} setSort={setSort} className="r" />
               <SortTh label="상태" sortKey="status" sort={sort} setSort={setSort} />

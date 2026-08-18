@@ -27,8 +27,8 @@ export default function AssignModal({ posting, media, refDate, onClose, onAssign
           <p className="hint"><b>{posting.brand}</b>{posting.title ? ' · ' + posting.title : ''} 시안을 어느 매체에, 언제부터 걸지 정합니다.</p>
           <label className="fld"><span>매체</span><select value={mediaId} onChange={(e) => setMediaId(e.target.value)}>{live.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
           <div className="fld2">
-            <label className="fld"><span>게시일</span><input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
-            <label className="fld"><span>철거 예정일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => setEnd(e.target.value)} /></label>
+            <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
+            <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => setEnd(e.target.value)} /></label>
           </div>
           <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => setNoEnd(e.target.checked)} />종료일 미정 (미정 상태) — 철거 알람 대상에서 제외됩니다</label>
         </div>

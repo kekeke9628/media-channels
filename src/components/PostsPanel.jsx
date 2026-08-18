@@ -120,7 +120,8 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
               <SortTh label="구역" sortKey="zone" sort={sortCur} setSort={setSortCur} />
               <SortTh label="업체명" sortKey="brand" sort={sortCur} setSort={setSortCur} />
               <SortTh label="내용" sortKey="content" sort={sortCur} setSort={setSortCur} />
-              <SortTh label="철거예정일" sortKey="end" sort={sortCur} setSort={setSortCur} />
+              <SortTh label="시작일" sortKey="start" sort={sortCur} setSort={setSortCur} />
+              <SortTh label="종료일" sortKey="end" sort={sortCur} setSort={setSortCur} />
               <SortTh label="상태" sortKey="status" sort={sortCur} setSort={setSortCur} />
               <th className="r">조치</th>
             </tr></thead>
@@ -132,6 +133,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                 if (key === 'zone') return zoneLabel(o.zone);
                 if (key === 'brand') return p ? p.brand : '';
                 if (key === 'content') return p ? contentOf(p) : '';
+                if (key === 'start') return p ? p.start : '';
                 if (key === 'end') return p ? (p.end || '9999-12-31') : '9999-12-31';
                 if (key === 'status') return statusRank(o);
                 return '';
@@ -144,6 +146,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                     <td>{zoneLabel(o.zone)}</td>
                     <td>{p ? p.brand : <span className="sub">—</span>}</td>
                     <td className="sub">{p ? contentOf(p) : '—'}</td>
+                    <td className="mono">{p ? p.start : '—'}</td>
                     <td className="mono">{p ? (p.end || '미정') : '—'}</td>
                     <td>
                       {o.overdue ? <span className="tag over">만료 +{o.overdueDays}일</span>
@@ -168,8 +171,8 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
               <SortTh label="매체명" sortKey="media" sort={sortHist} setSort={setSortHist} />
               <SortTh label="업체명" sortKey="brand" sort={sortHist} setSort={setSortHist} />
               <SortTh label="내용" sortKey="content" sort={sortHist} setSort={setSortHist} />
-              <SortTh label="게시" sortKey="start" sort={sortHist} setSort={setSortHist} />
-              <SortTh label="철거예정일" sortKey="end" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="시작일" sortKey="start" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="종료일" sortKey="end" sort={sortHist} setSort={setSortHist} />
               <SortTh label="실제철거" sortKey="removed" sort={sortHist} setSort={setSortHist} />
               <SortTh label="기간" sortKey="duration" sort={sortHist} setSort={setSortHist} className="r" />
               <SortTh label="상태" sortKey="status" sort={sortHist} setSort={setSortHist} />
