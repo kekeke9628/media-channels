@@ -3,7 +3,7 @@ import { LONG_OPEN, contentOf } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 
-export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete }) {
+export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd }) {
   const t = T[o.type];
   const cur = o.overdue || o.current;
   const past = o.history.filter((p) => p.id !== cur?.id).slice().reverse();
@@ -27,6 +27,9 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
     <div className="sheet">
       <div className="shead"><div><b>{o.name}</b><i>{zoneLabel} · {t.label} · {o.spec || t.spec} · {o.faces}면</i></div><button onClick={onClose}>✕</button></div>
       <div className="sbody">
+        {isEditor && (
+          <button className="btn primary wide" onClick={() => onQuickAdd(o.id)}>📷 이 매체에 사진으로 바로 등록</button>
+        )}
         <h4>{o.overdue ? '지금 걸려 있는 것 (만료)' : o.open ? '지금 걸려 있는 것 (미정)' : '현재 게시물'}</h4>
         {o.overdue && <p className="warnbox">{o.overdue.end}에 철거 예정이었습니다. <b>+{o.overdueDays}일</b> 경과했습니다.</p>}
         {o.open && <p className="okbox">종료일이 정해지지 않았습니다. <b>{o.openDays}일째</b> 게시 중입니다.{o.openDays >= LONG_OPEN && ' 1년이 넘었으니 한 번 확인해 보세요.'}</p>}

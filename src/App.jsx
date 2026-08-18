@@ -58,6 +58,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const [toast, setToast] = useState('');
   const [narrow, setNarrow] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [addMediaId, setAddMediaId] = useState(null);
   const [mapImage, setMapImage] = useState(null);
   const [changePwOpen, setChangePwOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -310,11 +311,15 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       </main>
 
       {selMedia && byId[selMedia] && (
-        <MediaSheet {...ctx} o={byId[selMedia]} onClose={() => setSelMedia(null)} onRemove={markRemoved} onDelete={removeMedia} />
+        <MediaSheet
+          {...ctx} o={byId[selMedia]} onClose={() => setSelMedia(null)} onRemove={markRemoved} onDelete={removeMedia}
+          onQuickAdd={(id) => { setAddMediaId(id); setAddOpen(true); }}
+        />
       )}
       {addOpen && isEditor && (
         <AddModal
-          {...ctx} media={media} postings={postings} onClose={() => setAddOpen(false)}
+          {...ctx} media={media} postings={postings} initialMediaId={addMediaId}
+          onClose={() => { setAddOpen(false); setAddMediaId(null); }}
           onAdd={addPosting} onAdjustEnd={adjustEnd}
           onDone={(ok, failed) => flash(`${ok}건 등록 완료${failed ? ` · ${failed}건 실패` : ''}`)}
         />
