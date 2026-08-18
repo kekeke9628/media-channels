@@ -7,6 +7,9 @@ import { ZONES } from '../data/seed.js';
 // 이미지 업로드 시 브라우저 canvas에서 WebP 2단(view 1600px / thumb 400px) 변환 (사양서 6장)
 export default function AddModal({ T, types, media, postings, refDate, initialMediaId, onClose, onAdd, onAdjustEnd, onDone }) {
   const [mode, setMode] = useState('single'); // 'single' | 'bulk'
+  // 시안(디자인)은 만들어놨지만 어느 매체·언제 걸지 아직 안 정했을 때 — 매체/일정 없이
+  // 업체명·이미지만 먼저 저장해두고, 나중에 게시물 화면에서 "매체 배치"로 확정한다.
+  const [draftMode, setDraftMode] = useState(false);
   const live = media.filter((m) => m.active);
   const activeTypes = useMemo(() => types.filter((t) => t.active), [types]);
 
@@ -21,8 +24,10 @@ export default function AddModal({ T, types, media, postings, refDate, initialMe
   const [selected, setSelected] = useState(() => new Set());
   useEffect(() => { if (mode === 'bulk') setSelected(new Set(bulkTargets.map((x) => x.id))); }, [mode, typeCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const t = mode === 'bulk' ? T[typeCode] : (m ? T[m.type] : null);
-  const faceCount = t?.faces || 1;
+  const t = mode === 'bulk' ? T[typeCode] : (draftMode ? null : (m ? T[m.type] : null));
+  // 미배치 시안은 아직 매체(=면수)가 안 정해졌으니 일단 1면으로 취급 — 2면 매체에
+  // 배치하게 되면 그때 2면째 이미지를 추가로 올리면 된다.
+  const faceCount = draftMode ? 1 : (t?.faces || 1);
 
   const [brand, setBrand] = useState('');
   const [title, setTitle] = useState('');
@@ -110,6 +115,9 @@ export default function AddModal({ T, types, media, postings, refDate, initialMe
   };
 
   const buildPayload = (targetMediaId) => {
+    if (draftMode) {
+      return { mediaId: null, brand, title, start: null, end: null, driveUrl: drive || '#', singleResult: result, faceResults: null, installPhoto };
+    }
     const faceResults = faceCount === 2 ? [0, 1].map((i) => ({ direction: directions[i], result: results[i] })) : null;
     return {
       mediaId: targetMediaId, brand, title, start, end: noEnd ? null : end,
@@ -123,6 +131,13 @@ export default function AddModal({ T, types, media, postings, refDate, initialMe
   const bulkConflictCount = [...selected].filter((id) => findOverlap(id)).length;
 
   const submitSingle = async () => {
+    if (draftMode) {
+      setSaving(true);
+      const added = await onAdd(buildPayload(null));
+      setSaving(false);
+      if (added) onClose();
+      return;
+    }
     const ov = findOverlap(mediaId);
     if (ov && !conflict) { setConflict(ov); return; }
     setSaving(true);
@@ -157,16 +172,16 @@ export default function AddModal({ T, types, media, postings, refDate, initialMe
 
   const submit = () => {
     if (!brand || saving) return;
-    if (mode === 'single') { if (mediaId) submitSingle(); }
+    if (mode === 'single') { if (draftMode || mediaId) submitSingle(); }
     else if (selected.size > 0) submitBulk();
   };
 
-  const canSubmit = mode === 'single' ? (!!mediaId && !!brand && !conflict) : (!!brand && selected.size > 0);
+  const canSubmit = mode === 'single' ? (draftMode ? !!brand : (!!mediaId && !!brand && !conflict)) : (!!brand && selected.size > 0);
 
   return (
     <div className="modal" onClick={onClose}>
       <div className="mbox" onClick={(e) => e.stopPropagation()}>
-        <div className="mhead"><b>게시물 등록</b><button onClick={onClose}>✕</button></div>
+        <div className="mhead"><b>{mode === 'single' && draftMode ? '시안 등록 (미배치)' : '게시물 등록'}</b><button onClick={onClose}>✕</button></div>
         <div className="mbody">
           <div className="seg">
             <button className={mode === 'single' ? 'on' : ''} disabled={saving} onClick={() => setMode('single')}>단일 매체</button>
@@ -175,8 +190,13 @@ export default function AddModal({ T, types, media, postings, refDate, initialMe
 
           {mode === 'single' ? (
             <>
-              <label className="fld"><span>매체</span><select value={mediaId} onChange={(e) => setMediaId(e.target.value)}>{live.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-              {t && <p className="hint">{t.label} · 규격 <b>{m.spec || t.spec}</b> · {m.faces}면{t.movable ? ' · 이동형' : ''}</p>}
+              <label className="chk"><input type="checkbox" checked={draftMode} onChange={(e) => setDraftMode(e.target.checked)} />매체·일정 나중에 정하기 (시안만 먼저 등록)</label>
+              {!draftMode && (
+                <>
+                  <label className="fld"><span>매체</span><select value={mediaId} onChange={(e) => setMediaId(e.target.value)}>{live.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+                  {t && <p className="hint">{t.label} · 규격 <b>{m.spec || t.spec}</b> · {m.faces}면{t.movable ? ' · 이동형' : ''}</p>}
+                </>
+              )}
             </>
           ) : (
             <>
@@ -192,11 +212,15 @@ export default function AddModal({ T, types, media, postings, refDate, initialMe
 
           <label className="fld"><span>업체명</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: 나이키" /></label>
           <label className="fld"><span>내용 (선택)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="비워두면 업체명이 그대로 들어갑니다" /></label>
-          <div className="fld2">
-            <label className="fld"><span>게시일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
-            <label className="fld"><span>철거 예정일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
-          </div>
-          <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일 미정 (미정 상태) — 철거 알람 대상에서 제외됩니다</label>
+          {!(mode === 'single' && draftMode) && (
+            <>
+              <div className="fld2">
+                <label className="fld"><span>게시일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
+                <label className="fld"><span>철거 예정일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
+              </div>
+              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일 미정 (미정 상태) — 철거 알람 대상에서 제외됩니다</label>
+            </>
+          )}
           <label className="fld"><span>원본 위치</span><input value={drive} onChange={(e) => setDrive(e.target.value)} placeholder="구글드라이브 링크" /></label>
 
           <label className="fld"><span>설치 확인 사진 (선택)</span></label>
@@ -288,7 +312,7 @@ export default function AddModal({ T, types, media, postings, refDate, initialMe
           {mode === 'bulk' && <span className="sub" style={{ marginRight: 'auto' }}>{saving && progress ? `등록 중… ${progress.done}/${progress.total}` : ''}</span>}
           <button className="btn" disabled={saving} onClick={onClose}>취소</button>
           <button className="btn primary" onClick={submit} disabled={!canSubmit || saving}>
-            {saving ? '저장 중…' : mode === 'bulk' ? `${selected.size}건 등록` : '등록'}
+            {saving ? '저장 중…' : mode === 'bulk' ? `${selected.size}건 등록` : draftMode ? '시안 등록' : '등록'}
           </button>
         </div>
       </div>

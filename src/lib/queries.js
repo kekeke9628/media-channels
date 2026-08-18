@@ -236,3 +236,15 @@ export async function adjustPostingEnd(id, newEnd) {
   const { error } = await supabase.from('postings').update({ end_date: newEnd }).eq('id', id);
   if (error) throw error;
 }
+
+// 미배치 시안(media_id/start_date가 비어있는 게시물)을 특정 매체·기간에 배치한다.
+export async function assignPosting(id, { mediaId, start, end }) {
+  const { data, error } = await supabase
+    .from('postings')
+    .update({ media_id: mediaId, start_date: start, end_date: end })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return mapPosting(data);
+}

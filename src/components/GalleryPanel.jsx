@@ -12,11 +12,13 @@ const STATUS_OPTS = [['live', '게시중', ST.live.color], ['upcoming', ST.upcom
 const statusBucket = (raw) => (raw === 'open' ? 'live' : raw);
 
 // 게시물 (이미지 카드) — 원본 대비 경량화 비율을 보여준다
-export default function GalleryPanel({ media, postings, refDate, isEditor, onPick }) {
-  const order = { overdue: 0, live: 1, open: 2, upcoming: 3, removed: 4 };
+export default function GalleryPanel({ media, postings, refDate, isEditor, onPick, onAssign }) {
+  const order = { draft: -1, overdue: 0, live: 1, open: 2, upcoming: 3, removed: 4 };
   const [statusSel, setStatusSel] = useState(new Set(STATUS_OPTS.map(([k]) => k)));
   const [showOverdue, setShowOverdue] = useState(false);
   const [showRemoved, setShowRemoved] = useState(false);
+  // 미배치 시안은 조치가 필요한 항목이라 기본으로 보여준다(만료·철거완료와 다름).
+  const [showDrafts, setShowDrafts] = useState(true);
   const [statusOpen, setStatusOpen] = useState(false);
   const [q, setQ] = useState('');
   const [rangeOn, setRangeOn] = useState(false);
@@ -34,14 +36,14 @@ export default function GalleryPanel({ media, postings, refDate, isEditor, onPic
   const toggleStatus = (c) => setStatusSel((prev) => { const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n; });
 
   const rows = postings.filter((p) => {
-    if (rangeOn) { if ((p.end || '9999-12-31') < from || p.start > to) return false; }
+    if (rangeOn) { if (!p.start || (p.end || '9999-12-31') < from || p.start > to) return false; }
     else {
       const s = statusOf(p, refDate);
-      if (s === 'overdue' ? !showOverdue : s === 'removed' ? !showRemoved : !statusSel.has(statusBucket(s))) return false;
+      if (s === 'draft' ? !showDrafts : s === 'overdue' ? !showOverdue : s === 'removed' ? !showRemoved : !statusSel.has(statusBucket(s))) return false;
     }
     if (!q) return true;
     return (contentOf(p) + p.brand + mName(p.mediaId)).toLowerCase().includes(q.toLowerCase());
-  }).sort((a, b) => rangeOn ? b.start.localeCompare(a.start) : (order[statusOf(a, refDate)] ?? 9) - (order[statusOf(b, refDate)] ?? 9) || b.start.localeCompare(a.start));
+  }).sort((a, b) => rangeOn ? b.start.localeCompare(a.start) : (order[statusOf(a, refDate)] ?? 9) - (order[statusOf(b, refDate)] ?? 9) || (a.start || '').localeCompare(b.start || ''));
 
   return (
     <div>
@@ -63,6 +65,7 @@ export default function GalleryPanel({ media, postings, refDate, isEditor, onPic
                 </div>
               )}
             </div>
+            <label className="chk"><input type="checkbox" checked={showDrafts} onChange={(e) => setShowDrafts(e.target.checked)} />미배치 포함</label>
             <label className="chk"><input type="checkbox" checked={showOverdue} onChange={(e) => setShowOverdue(e.target.checked)} />만료 포함</label>
             <label className="chk"><input type="checkbox" checked={showRemoved} onChange={(e) => setShowRemoved(e.target.checked)} />철거완료 포함</label>
           </>
@@ -72,15 +75,16 @@ export default function GalleryPanel({ media, postings, refDate, isEditor, onPic
       <div className="cgrid">
         {rows.slice(0, 60).map((p) => {
           const s = statusOf(p, refDate);
+          const isDraft = s === 'draft';
           return (
-            <div className="ccard" key={p.id} onClick={() => onPick(p.mediaId)}>
+            <div className="ccard" key={p.id} onClick={() => (isDraft ? isEditor && onAssign(p.id) : onPick(p.mediaId))}>
               <div className="cthumb" style={thumbUrls.has(p.thumbPath) ? undefined : { background: `linear-gradient(150deg, hsl(${p.hue} 42% 52%), hsl(${(p.hue + 40) % 360} 38% 38%))` }}>
                 {thumbUrls.has(p.thumbPath) && <img className="cthumb-img" src={thumbUrls.get(p.thumbPath)} alt="" />}
-                <span className="cver mono">{p.start.slice(5)} ~ {p.end ? p.end.slice(5) : '미정'}</span>
+                {!isDraft && <span className="cver mono">{p.start.slice(5)} ~ {p.end ? p.end.slice(5) : '미정'}</span>}
                 {p.installPhoto && <span className="cshot">설치사진 ✓</span>}
               </div>
               <div className="cbody">
-                <b>{p.brand}</b><i className="sub">{contentOf(p)} · {mName(p.mediaId)}</i>
+                <b>{p.brand}</b><i className="sub">{contentOf(p)}{!isDraft && ' · ' + mName(p.mediaId)}</i>
                 <div className="crow">
                   <StatusChip status={s} />
                   {p.bytesLight > 0 && <span className="sub mono">{(p.bytesLight / 1024).toFixed(0)}KB</span>}
@@ -90,7 +94,8 @@ export default function GalleryPanel({ media, postings, refDate, isEditor, onPic
                 ) : (
                   <p className="sub" style={{ margin: '5px 0 7px' }}>이미지 미등록</p>
                 )}
-                {isEditor && p.driveUrl && <a className="lnk" href={p.driveUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>원본(드라이브)</a>}
+                {isDraft ? (isEditor && <button className="btn primary wide" style={{ marginTop: 6 }} onClick={(e) => { e.stopPropagation(); onAssign(p.id); }}>매체 배치</button>)
+                  : (isEditor && p.driveUrl && <a className="lnk" href={p.driveUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>원본(드라이브)</a>)}
               </div>
             </div>
           );

@@ -3,6 +3,7 @@
 import { diffDays } from '../constants.js';
 
 export const statusOf = (p, ref) => {
+  if (!p.mediaId) return 'draft';
   if (p.removedAt) return 'removed';
   if (p.start > ref) return 'upcoming';
   if (!p.end) return 'open';

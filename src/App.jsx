@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ALERT_DAYS, LONG_OPEN, getToday } from './constants.js';
 import { autoClose, buildState } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
-import { fetchMediaTypes, fetchMedia, fetchPostings, updateMediaPosition, createMedia, archiveMedia, restoreMedia, deleteMedia, createPosting, markPostingRemoved, undoPostingRemoval, adjustPostingEnd } from './lib/queries.js';
+import { fetchMediaTypes, fetchMedia, fetchPostings, updateMediaPosition, createMedia, archiveMedia, restoreMedia, deleteMedia, createPosting, markPostingRemoved, undoPostingRemoval, adjustPostingEnd, assignPosting } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
 import { useAuth, OWNER_EMAIL, resetAdminPassword } from './lib/useAuth.js';
 
@@ -19,6 +19,7 @@ import AlertPanel from './components/AlertPanel.jsx';
 import AdminsPanel from './components/AdminsPanel.jsx';
 import MediaSheet from './components/MediaSheet.jsx';
 import AddModal from './components/AddModal.jsx';
+import AssignModal from './components/AssignModal.jsx';
 
 const TABS = { posts: '홍보물 관리', gallery: '게시물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
 const EDITOR_ONLY_TABS = new Set(['alert', 'admins']);
@@ -58,6 +59,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const [narrow, setNarrow] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [addMediaId, setAddMediaId] = useState(null);
+  const [assigningId, setAssigningId] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const [mapImage, setMapImage] = useState(null);
@@ -174,6 +176,16 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       setPostings((prev) => prev.map((p) => (p.id === id ? { ...p, end: newEnd } : p)));
       return true;
     } catch (e) { flash('철거 예정일 조정에 실패했습니다: ' + e.message); return false; }
+  };
+
+  // 미배치 시안에 매체·일정을 확정한다.
+  const assignDraft = async (id, patch) => {
+    try {
+      const updated = await assignPosting(id, patch);
+      setPostings((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      flash('매체를 배치했습니다.');
+      return true;
+    } catch (e) { flash('배치에 실패했습니다: ' + e.message); return false; }
   };
 
   const addType = (t) => { setTypes((prev) => [...prev, t]); flash('매체 유형을 추가했습니다.'); };
@@ -331,7 +343,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
 
         <div className="panel">
           {tab === 'posts' && <PostsPanel {...ctx} state={state} postings={postings} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
-          {tab === 'gallery' && <GalleryPanel {...ctx} postings={postings} media={media} onPick={setSelMedia} />}
+          {tab === 'gallery' && <GalleryPanel {...ctx} postings={postings} media={media} onPick={setSelMedia} onAssign={setAssigningId} />}
           {tab === 'timeline' && <TimelinePanel {...ctx} state={state} onPick={setSelMedia} />}
           {tab === 'manage' && (
             <ManagePanel {...ctx} media={media} postings={postings}
@@ -355,6 +367,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           onClose={() => { setAddOpen(false); setAddMediaId(null); }}
           onAdd={addPosting} onAdjustEnd={adjustEnd}
           onDone={(ok, failed) => flash(`${ok}건 등록 완료${failed ? ` · ${failed}건 실패` : ''}`)}
+        />
+      )}
+      {assigningId && isEditor && (
+        <AssignModal
+          posting={postings.find((p) => p.id === assigningId)} media={media} refDate={refDate}
+          onClose={() => setAssigningId(null)} onAssign={assignDraft}
         />
       )}
       {toast && <div className="toast">{toast}</div>}
