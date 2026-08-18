@@ -79,6 +79,10 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
    개별 핀만 pointer-events를 되살린다. */
 .pin-layer{position:absolute;inset:0;pointer-events:none}
 .pin{position:absolute;left:0;top:0;pointer-events:auto;border:0;background:none;padding:0;cursor:pointer;z-index:5;will-change:transform}
+/* 핀 아이콘(특히 모바일에서 19×20px로 줄어드는 .pdot)은 손가락으로 정확히 맞추기엔 너무 작다.
+   -50%,-56% 위치 계산은 버튼 자신의 박스 크기를 기준으로 하므로 .pin에 직접 패딩을 주면 앵커가
+   틀어진다 — 대신 ::before로 보이지 않는 히트 영역만 넓혀서 시각적 크기는 그대로 둔다. */
+.pin::before{content:'';position:absolute;inset:-14px}
 .pin.editable{cursor:grab}
 .pin-inner{transform-origin:center bottom}
 .pdot{position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;width:28px;height:34px;font-size:12px;font-weight:700;letter-spacing:-.4px;color:#fff;
