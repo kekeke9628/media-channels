@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap');
 *{box-sizing:border-box}
+/* iOS Safari가 "읽기 편하라고" 페이지 전체 글자 크기를 임의로 키우는 텍스트 자동 확대를 끈다 —
+   화면 배율이 통째로 커 보이던(버튼·숫자까지 다 커짐) 원인. 데스크톱 브라우저는 이 동작이
+   없어서 재현이 안 됐다. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0}
 .app{--bg:#F5F2EA;--card:#fff;--line:#E2DBCC;--ink:#26241F;--ink2:#7A7263;--brass:#A67F3A;--brass-soft:#EFE6D3;
   display:flex;min-height:100vh;background:var(--bg);color:var(--ink);
