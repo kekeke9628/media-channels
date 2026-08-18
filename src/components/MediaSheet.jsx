@@ -31,9 +31,9 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
         {isEditor && (
           <button className="btn primary wide" onClick={() => onQuickAdd(o.id)}>📷 이 매체에 사진으로 바로 등록</button>
         )}
-        <h4>{o.overdue ? '지금 걸려 있는 것 (만료)' : o.open ? '지금 걸려 있는 것 (미정)' : '현재 게시물'}</h4>
-        {o.overdue && <p className="warnbox">{o.overdue.end}에 철거 예정이었습니다. <b>+{o.overdueDays}일</b> 경과했습니다.</p>}
-        {o.open && <p className="okbox">종료일이 정해지지 않았습니다. <b>{o.openDays}일째</b> 게시 중입니다.{o.openDays >= LONG_OPEN && ' 1년이 넘었으니 한 번 확인해 보세요.'}</p>}
+        <h4>현재 게시물</h4>
+        {o.overdue && <p className="warnbox">종료일보다 <b>+{o.overdueDays}일</b> 지났습니다.</p>}
+        {o.open && <p className="okbox"><b>{o.openDays}일째</b> 게시 중입니다.{o.openDays >= LONG_OPEN && ' 1년이 넘었으니 한 번 확인해 보세요.'}</p>}
         {cur ? (
           <>
             {cur.faces ? (
@@ -67,7 +67,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
               <div><em>종료일</em><b className="mono">{cur.end || '미정'}</b></div>
             </div>
             {isEditor && (
-              <button className={'btn wide' + (o.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>철거 완료{o.overdue ? ` (+${o.overdueDays}일 지연)` : ''}</button>
+              <button className={'btn wide' + (o.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>철거 완료</button>
             )}
           </>
         ) : <p className="empty">비어있습니다 · {o.emptyDays >= 365 ? '365+' : o.emptyDays}일째</p>}

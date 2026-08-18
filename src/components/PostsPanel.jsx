@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { contentOf, days, diffDays, ST } from '../constants.js';
+import { contentOf, days, ST } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
@@ -53,11 +53,13 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       .filter((o) => { const cat = statusCat(o); return cat === 'overdue' ? showOverdue : statusSel.has(cat); })
       .filter((o) => {
         if (!q) return true;
-        const p = o.overdue || o.current;
+        const p = o.overdue || o.current || o.next;
         const haystack = [o.name, T[o.type]?.label, zoneLabel(o.zone), p?.brand, p ? contentOf(p) : '', p?.end, STATUS_LABEL[statusCat(o)]].join(' ').toLowerCase();
         return haystack.includes(q.toLowerCase());
       })
-      .map((o) => ({ o, p: o.overdue || o.current }))
+      // next(게시예정)도 p로 포함시켜 시작일·종료일·업체명 컬럼이 "—"로 비지 않고
+      // 실제 예정 정보를 보여주게 한다 — 별도로 D-day 문구를 상태 배지에 반복할 필요가 없어진다.
+      .map((o) => ({ o, p: o.overdue || o.current || o.next }))
       .sort((a, b) => {
         const sa = a.p ? statusOf(a.p, refDate) : 'none', sb = b.p ? statusOf(b.p, refDate) : 'none';
         const oa = order[sa] ?? 9, ob = order[sb] ?? 9;
@@ -123,7 +125,6 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
               <SortTh label="시작일" sortKey="start" sort={sortCur} setSort={setSortCur} />
               <SortTh label="종료일" sortKey="end" sort={sortCur} setSort={setSortCur} />
               <SortTh label="상태" sortKey="status" sort={sortCur} setSort={setSortCur} />
-              <th className="r">조치</th>
             </tr></thead>
             <tbody>
               {sortRows(currentRows, sortCur, (row, key) => {
@@ -148,15 +149,15 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                     <td className="sub">{p ? contentOf(p) : '—'}</td>
                     <td className="mono">{p ? p.start : '—'}</td>
                     <td className="mono">{p ? (p.end || '미정') : '—'}</td>
-                    <td>
-                      {o.overdue ? <span className="tag over">만료 +{o.overdueDays}일</span>
-                        : o.open ? <span className="tag live">게시중 · 종료일 미정</span>
-                        : o.live ? <span className="tag live">게시중 · D-{o.dToRemove}</span>
-                        : o.next ? <span className="tag upcoming">게시예정 · D-{diffDays(refDate, o.next.start)}</span>
+                    <td onClick={(e) => o.overdue && e.stopPropagation()}>
+                      {o.overdue ? (
+                        <>
+                          <span className="tag over">만료 +{o.overdueDays}일</span>
+                          {isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>철거 완료</button>}
+                        </>
+                      ) : (o.live || o.open) ? <span className="tag live">게시중</span>
+                        : o.next ? <span className="tag upcoming">게시예정</span>
                         : <span className="tag vacant">비어있음</span>}
-                    </td>
-                    <td className="r" onClick={(e) => e.stopPropagation()}>
-                      {o.overdue && isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>철거 완료</button>}
                     </td>
                   </tr>
                 );
