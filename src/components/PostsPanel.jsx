@@ -87,7 +87,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         <div className="scroll tall">
           <table>
             <thead><tr>
-              <SortTh label="매체" sortKey="media" sort={sortCur} setSort={setSortCur} />
+              <SortTh label="매체명" sortKey="media" sort={sortCur} setSort={setSortCur} />
               <SortTh label="유형" sortKey="type" sort={sortCur} setSort={setSortCur} />
               <SortTh label="구역" sortKey="zone" sort={sortCur} setSort={setSortCur} />
               <SortTh label="업체명" sortKey="brand" sort={sortCur} setSort={setSortCur} />
@@ -136,7 +136,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         <div className="scroll tall">
           <table>
             <thead><tr>
-              <SortTh label="매체" sortKey="media" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="매체명" sortKey="media" sort={sortHist} setSort={setSortHist} />
               <SortTh label="업체명" sortKey="brand" sort={sortHist} setSort={setSortHist} />
               <SortTh label="내용" sortKey="content" sort={sortHist} setSort={setSortHist} />
               <SortTh label="게시" sortKey="start" sort={sortHist} setSort={setSortHist} />

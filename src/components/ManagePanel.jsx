@@ -78,7 +78,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
           <div className="toolrow"><input className="inp" placeholder="매체명 · 구역 검색" value={q} onChange={(e) => setQ(e.target.value)} /><span className="count mono">{rows.length}건</span></div>
           <div className="scroll tall">
             <table>
-              <thead><tr><th>매체</th><th>유형</th><th>구역</th><th className="r">면수</th><th className="r">게시 이력</th><th className="r">관리</th></tr></thead>
+              <thead><tr><th>매체명</th><th>유형</th><th>구역</th><th className="r">면수</th><th className="r">게시 이력</th><th className="r">관리</th></tr></thead>
               <tbody>
                 {rows.map((m) => {
                   const t = T[m.type];

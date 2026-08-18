@@ -69,7 +69,7 @@ export default function TimelinePanel({ state, refDate, onPick }) {
         <div className="scroll tall">
           <table>
             <thead><tr>
-              <SortTh label="매체" sortKey="media" sort={sort} setSort={setSort} />
+              <SortTh label="매체명" sortKey="media" sort={sort} setSort={setSort} />
               <SortTh label="업체명" sortKey="brand" sort={sort} setSort={setSort} />
               <SortTh label="내용" sortKey="content" sort={sort} setSort={setSort} />
               <SortTh label="게시" sortKey="start" sort={sort} setSort={setSort} />
