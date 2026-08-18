@@ -55,7 +55,7 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .sel{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12.5px;background:#fff;font-family:inherit}
 .mini-sel{padding:4px 6px;font-size:11.5px}
 .dd{position:relative}
-.ddmenu{position:absolute;right:0;top:calc(100% + 5px);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;z-index:30;box-shadow:0 10px 28px rgba(0,0,0,.1);min-width:200px}
+.ddmenu{position:absolute;left:0;top:calc(100% + 5px);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;z-index:30;box-shadow:0 10px 28px rgba(0,0,0,.1);min-width:200px;max-width:calc(100vw - 32px)}
 .ddtop{display:flex;gap:5px;margin-bottom:6px}
 .ddtop button{flex:1;border:1px solid var(--line);background:#FAF8F4;border-radius:6px;padding:5px;font-size:11.5px;cursor:pointer}
 .ddmenu label{display:flex;align-items:center;gap:7px;padding:5px 4px;font-size:12.5px;cursor:pointer}
