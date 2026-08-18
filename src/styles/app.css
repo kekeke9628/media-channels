@@ -242,12 +242,12 @@ tbody tr.archived{opacity:.45}
 .slack b{display:block;font-size:13px;margin-bottom:3px}
 .slack span{display:block;font-size:12.5px}
 
-.sheet{position:fixed;right:0;top:0;bottom:0;width:min(430px,100%);background:#fff;border-left:1px solid var(--line);box-shadow:-12px 0 40px rgba(0,0,0,.1);z-index:50;display:flex;flex-direction:column}
+.sheet{background:#fff;border-radius:15px;width:min(460px,100%);max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden}
 .shead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
 .shead b{font-size:15px;display:block}
 .shead i{font-style:normal;font-size:11.5px;color:var(--ink2)}
 .shead button{border:0;background:none;font-size:17px;cursor:pointer;color:var(--ink2)}
-.sbody{padding:16px 18px;overflow:auto}
+.sbody{padding:16px 18px;overflow:auto;flex:1;min-height:0}
 .sbody h4{font-size:12.5px;margin:18px 0 8px;color:var(--ink2)}
 .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
 .statgrid div{border:1px solid var(--line);border-radius:9px;padding:9px 11px}
@@ -308,7 +308,6 @@ tbody tr.archived{opacity:.45}
 .app.narrow .side-row2{display:none}
 .app.narrow main{padding:14px}
 .app.narrow .mapwrap{aspect-ratio:4/3}
-.app.narrow .sheet{width:100%}
 /* width:100%가 640px보다 넓은 좁은모드 화면(태블릿·큰 폰)에서 컬럼 몇 개짜리 테이블을 억지로
    늘려서, 짧은 헤더 글자와 정렬 화살표 사이에 큰 빈 칸이 생기던 문제 — 컨테이너보다 넓게
    늘어나지 않고 내용 기준(최소 640px)으로만 넓어지게 한다. 좁으면 기존처럼 가로 스크롤. */

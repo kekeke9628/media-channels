@@ -24,9 +24,10 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [o.id]);
   return (
-    <div className="sheet">
-      <div className="shead"><div><b>{o.name}</b><i>{zoneLabel} · {t.label} · {o.spec || t.spec} · {o.faces}면</i></div><button onClick={onClose}>✕</button></div>
-      <div className="sbody">
+    <div className="modal" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="shead"><div><b>{o.name}</b><i>{zoneLabel} · {t.label} · {o.spec || t.spec} · {o.faces}면</i></div><button onClick={onClose}>✕</button></div>
+        <div className="sbody">
         {isEditor && (
           <button className="btn primary wide" onClick={() => onQuickAdd(o.id)}>📷 이 매체에 사진으로 바로 등록</button>
         )}
@@ -92,6 +93,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
             <button className="btn wide danger" onClick={() => onDelete(o.id)}>{o.history.length ? '이 매체 보관' : '이 매체 삭제'}</button>
           </>
         )}
+        </div>
       </div>
     </div>
   );
