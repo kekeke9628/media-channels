@@ -136,7 +136,7 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .seg button.on{background:#23211E;color:#fff;font-weight:600}
 .seg button .lblshort{display:none}
 /* 좁은 화면에서 한글 매체 유형명이 길어 2줄로 깨지며 border-right 구분선이 줄바꿈
-   중간에 끊겨 보이던 문제 — 한 줄 유지하고 라벨을 영문 약자로 축약(DIR/FW/MW/DT/FH). */
+   중간에 끊겨 보이던 문제 — 한 줄 유지하고 라벨을 유형 아이콘 글자(t.glyph)로 축약. */
 .app.narrow .seg.wrap{flex-wrap:nowrap;overflow-x:auto}
 .app.narrow .seg.wrap button{white-space:nowrap}
 .app.narrow .seg.wrap .lblfull{display:none}

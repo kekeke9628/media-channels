@@ -65,7 +65,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
           {types.map((t) => (
             <button key={t.code} className={typeSel.has(t.code) ? 'on' : ''} onClick={() => toggleType(t.code)}>
               <span className="lblfull">{t.label}</span>
-              <span className="lblshort">{t.short}</span>
+              <span className="lblshort">{t.glyph}</span>
             </button>
           ))}
         </div>
