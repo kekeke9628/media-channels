@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&display=swap');
 *{box-sizing:border-box}
+body{margin:0}
 .app{--bg:#F5F2EA;--card:#fff;--line:#E2DBCC;--ink:#26241F;--ink2:#7A7263;--brass:#A67F3A;--brass-soft:#EFE6D3;
   display:flex;min-height:100vh;background:var(--bg);color:var(--ink);
   font-family:'Noto Sans KR',-apple-system,sans-serif;font-size:14px;line-height:1.55}
@@ -266,7 +267,10 @@ tbody tr.archived{opacity:.45}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#23211E;color:#fff;padding:10px 18px;border-radius:22px;font-size:13px;z-index:80}
 
 .authwrap{min-height:100vh;display:grid;place-items:center;background:var(--bg,#F5F2EA);padding:20px}
-.authcard{width:min(380px,100%);background:#fff;border:1px solid #E2DBCC;border-radius:15px;padding:28px 26px;text-align:center}
+/* 그리드 아이템은 기본 min-width:auto라 내용(특히 좁은 화면에서 select 등)이 트랙을
+   380px까지 밀어붙여 뷰포트보다 넓어지면서, 카드가 화면 밖으로 밀려 안 가운데로 보이는
+   원인이었다 — min-width:0으로 그리드 트랙이 뷰포트에 맞춰 줄어들 수 있게 한다. */
+.authcard{width:min(380px,100%);min-width:0;background:#fff;border:1px solid #E2DBCC;border-radius:15px;padding:28px 26px;text-align:center}
 .authcard .bmark{width:44px;height:44px;margin:0 auto 14px;border-radius:8px;background:#A67F3A;color:#1c1a17;display:grid;place-items:center;font-weight:800;font-size:13px;font-family:'Big Shoulders Display',sans-serif;letter-spacing:.03em}
 .authcard h1{font-size:19px;margin:0 0 4px;font-family:'Big Shoulders Display',sans-serif;font-weight:800;letter-spacing:.02em;text-transform:uppercase}
 .authcard .sub{font-size:12px;color:#7A7263;margin:0 0 22px}
