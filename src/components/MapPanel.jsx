@@ -22,7 +22,7 @@ const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const CLICK_SLOP = 6; // 이 픽셀 이내 움직임은 팬이 아니라 클릭으로 본다
 
-export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, setSelMedia, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, mapImage, onMapImage, isEditor }) {
+export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, setSelMedia, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, onRestoreAt, mapImage, onMapImage, isEditor }) {
   const wrapRef = useRef(null);
   const stageRef = useRef(null);
   const pinRefs = useRef({});   // item.id -> 핀 DOM 노드 (지도와 분리된 레이어라 위치를 직접 계산해서 넣어줘야 함)
@@ -315,8 +315,13 @@ export default function MapPanel({ T, types, items, zoneFilter, setZoneFilter, t
       {addAt && createPortal(
         <AddMediaPopover
           types={active} at={addAt} zone={zoneLabel(zoneAtLocal(addAt))}
+          archived={allMedia.filter((m) => !m.active)} zoneLabel={zoneLabel}
           onCancel={() => setAddAt(null)}
-          onSubmit={(payload) => { onCreate(payload, addAt.x, addAt.y); setAddAt(null); }}
+          onSubmit={(payload) => {
+            if (payload.mode === 'existing') onRestoreAt(payload.id, addAt.x, addAt.y);
+            else onCreate(payload, addAt.x, addAt.y);
+            setAddAt(null);
+          }}
         />,
         document.body
       )}
@@ -345,16 +350,26 @@ function zoneAtLocal(pt) {
   return Object.keys(ZONES)[0];
 }
 
-function AddMediaPopover({ types, at, zone, onCancel, onSubmit }) {
+function AddMediaPopover({ types, at, zone, archived, zoneLabel, onCancel, onSubmit }) {
+  const [source, setSource] = useState('new'); // 'new' | 'existing' — 보관 중이던 매체를 이 자리로 옮겨 복구
   const [type, setType] = useState(types[0]?.code || '');
   const t = types.find((x) => x.code === type);
   const [faces, setFaces] = useState(t?.faces || 1);
+  const archivedOfType = archived.filter((m) => m.type === type);
+  const [existingId, setExistingId] = useState(archivedOfType[0]?.id || '');
 
   useEffect(() => {
     const nt = types.find((x) => x.code === type);
     if (nt) setFaces(nt.faces);
+    const list = archived.filter((m) => m.type === type);
+    setExistingId(list[0]?.id || '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
+
+  const submit = () => {
+    if (source === 'existing') { if (existingId) onSubmit({ mode: 'existing', id: existingId }); }
+    else onSubmit({ mode: 'new', type, name: t.label + ' 신규', faces });
+  };
 
   return (
     <div className="addpop" style={{ '--ax': at.clientX + 'px', '--ay': at.clientY + 'px' }} onClick={(e) => e.stopPropagation()}>
@@ -362,10 +377,22 @@ function AddMediaPopover({ types, at, zone, onCancel, onSubmit }) {
       <select className="sel" value={type} onChange={(e) => setType(e.target.value)}>
         {types.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
       </select>
-      <input className="inp num" type="number" min="1" max="6" title="면수" value={faces} onChange={(e) => setFaces(+e.target.value)} />
+      <div className="seg">
+        <button className={source === 'new' ? 'on' : ''} onClick={() => setSource('new')}>신규</button>
+        <button className={source === 'existing' ? 'on' : ''} onClick={() => setSource('existing')}>기존</button>
+      </div>
+      {source === 'new' ? (
+        <input className="inp num" type="number" min="1" max="6" title="면수" value={faces} onChange={(e) => setFaces(+e.target.value)} />
+      ) : archivedOfType.length > 0 ? (
+        <select className="sel" value={existingId} onChange={(e) => setExistingId(e.target.value)}>
+          {archivedOfType.map((m) => <option key={m.id} value={m.id}>{m.name} · {zoneLabel(m.zone)}</option>)}
+        </select>
+      ) : (
+        <p className="sub" style={{ padding: '4px 0' }}>보관 중인 {t?.label}이 없습니다.</p>
+      )}
       <div className="addpop-btns">
         <button className="mini" onClick={onCancel}>취소</button>
-        <button className="mini ok" disabled={!type} onClick={() => onSubmit({ type, name: t.label + ' 신규', faces })}>추가</button>
+        <button className="mini ok" disabled={source === 'new' ? !type : !existingId} onClick={submit}>{source === 'existing' ? '이 자리로 복구' : '추가'}</button>
       </div>
     </div>
   );

@@ -70,6 +70,14 @@ export async function restoreMedia(id) {
   if (error) throw error;
 }
 
+// 보관 중인(숨겨진) 매체를 지도의 새 위치에서 복구한다 — 이력(게시 기록)은 그대로
+// 유지한 채, 물리적으로 프레임이 옮겨진 것처럼 위치만 새로 저장한다.
+export async function restoreMediaAt(id, x, y, zone) {
+  const { data, error } = await supabase.from('media').update({ active: true, x, y, zone }).eq('id', id).select().single();
+  if (error) throw error;
+  return { id: data.id, type: data.type, name: data.name, faces: data.faces, spec: data.spec || '', active: data.active, zone: data.zone, x: +data.x, y: +data.y };
+}
+
 export async function deleteMedia(id) {
   const { error } = await supabase.from('media').delete().eq('id', id);
   if (error) throw error;

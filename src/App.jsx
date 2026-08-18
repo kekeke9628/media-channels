@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ALERT_DAYS, LONG_OPEN, getToday } from './constants.js';
 import { autoClose, buildState } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
-import { fetchMediaTypes, fetchMedia, fetchPostings, updateMediaPosition, createMedia, archiveMedia, restoreMedia, deleteMedia, createPosting, markPostingRemoved, undoPostingRemoval, adjustPostingEnd, assignPosting } from './lib/queries.js';
+import { fetchMediaTypes, fetchMedia, fetchPostings, updateMediaPosition, createMedia, archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, markPostingRemoved, undoPostingRemoval, adjustPostingEnd, assignPosting } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
 import { useAuth, OWNER_EMAIL, resetAdminPassword } from './lib/useAuth.js';
 
@@ -142,6 +142,18 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       flash('매체를 추가했습니다.');
     } catch (e) {
       flash('매체 추가에 실패했습니다: ' + e.message);
+    }
+  };
+  // 보관 중이던 매체를 지도의 새 위치에서 복구한다 — 게시 이력은 유지한 채 프레임을
+  // 옮긴 것처럼 처리(신규 생성 대신).
+  const restoreMediaAtLocal = async (id, x, y) => {
+    const zone = zoneAt(x, y);
+    try {
+      const updated = await restoreMediaAt(id, x, y, zone);
+      setMedia((prev) => prev.map((m) => (m.id === id ? updated : m)));
+      flash('매체를 복구했습니다.');
+    } catch (e) {
+      flash('매체 복구에 실패했습니다: ' + e.message);
     }
   };
 
@@ -327,11 +339,11 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
 
       <main>
         <MapPanel
-          {...ctx} items={visible} zoneFilter={zoneFilter} setZoneFilter={setZoneFilter}
+          {...ctx} items={visible} allMedia={media} zoneFilter={zoneFilter} setZoneFilter={setZoneFilter}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
           selMedia={selMedia} setSelMedia={setSelMedia}
           editMode={editMode} setEditMode={setEditMode} addMode={addMode} setAddMode={setAddMode}
-          onMoveLocal={moveMediaLocal} onMoveCommit={moveMediaCommit} onCreate={addMediaAt}
+          onMoveLocal={moveMediaLocal} onMoveCommit={moveMediaCommit} onCreate={addMediaAt} onRestoreAt={restoreMediaAtLocal}
           mapImage={mapImage} onMapImage={saveMapImage}
         />
 
