@@ -1,19 +1,24 @@
 import React, { useState, useMemo } from 'react';
-import { contentOf, days, ST } from '../constants.js';
+import { contentOf, days, diffDays, ST } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
 import SortTh, { sortRows } from './SortTh.jsx';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
-const statusRank = (o) => (o.overdue ? 0 : o.open ? 1 : o.live ? 2 : 3);
-const statusCat = (o) => (o.overdue ? 'overdue' : o.open ? 'open' : o.live ? 'live' : 'vacant');
-const STATUS_OPTS = [['overdue', '만료', ST.overdue.color], ['live', '게시중', ST.live.color], ['open', '미정', ST.open.color], ['vacant', '비어있음', '#B5AFA4']];
-const STATUS_LABEL = Object.fromEntries(STATUS_OPTS.map(([k, v]) => [k, v]));
+const statusRank = (o) => (o.overdue ? 0 : o.open ? 1 : o.live ? 2 : o.next ? 3 : 4);
+// "지금 상태"는 게시중(종료일 있든/없든)·게시예정·비어있음 3가지뿐이다. 만료는 상태가
+// 아니라 "게시중인데 방치된" 경고 플래그라 별도 ON/OFF로 뺀다(게시물 화면과 통일).
+const statusCat = (o) => (o.overdue ? 'overdue' : (o.live || o.open) ? 'live' : o.next ? 'upcoming' : 'vacant');
+const STATUS_OPTS = [['live', '게시중', ST.live.color], ['upcoming', ST.upcoming.label, ST.upcoming.color], ['vacant', '비어있음', '#B5AFA4']];
+const STATUS_LABEL = { ...Object.fromEntries(STATUS_OPTS.map(([k, v]) => [k, v])), overdue: '만료' };
 
 // 홍보물 관리 (기본 화면) — 만료 건이 맨 앞에 오도록 정렬, 기간 조회는 이력 검색으로 전환
 export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, onRemove, onUndo, onPick }) {
   const [statusSel, setStatusSel] = useState(new Set(STATUS_OPTS.map(([k]) => k)));
+  // 게시물 화면과 달리 기본 ON — 이 화면의 핵심 목적이 만료 건을 놓치지 않고 조치하는
+  // 것이라(맨 위 정렬 + 철거 완료 버튼), 기본으로 숨기면 화면 목적과 어긋난다.
+  const [showOverdue, setShowOverdue] = useState(true);
   const [statusOpen, setStatusOpen] = useState(false);
   const [typeSel, setTypeSel] = useState(new Set(types.map((t) => t.code)));
   const [typeOpen, setTypeOpen] = useState(false);
@@ -45,7 +50,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
   const currentRows = useMemo(() => {
     return state
       .filter((o) => typeSel.has(o.type))
-      .filter((o) => statusSel.has(statusCat(o)))
+      .filter((o) => { const cat = statusCat(o); return cat === 'overdue' ? showOverdue : statusSel.has(cat); })
       .filter((o) => {
         if (!q) return true;
         const p = o.overdue || o.current;
@@ -60,7 +65,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         const ea = a.p?.end || '9999-12-31', eb = b.p?.end || '9999-12-31';
         return ea.localeCompare(eb);
       });
-  }, [state, typeSel, statusSel, q, refDate, T]);
+  }, [state, typeSel, statusSel, showOverdue, q, refDate, T]);
 
   return (
     <div>
@@ -88,17 +93,20 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
           )}
         </div>
         {!rangeOn && (
-          <div className="dd">
-            <button className="btn" onClick={() => setStatusOpen((v) => !v)}>상태 {statusSel.size === STATUS_OPTS.length ? '전체' : statusSel.size} ▾</button>
-            {statusOpen && (
-              <div className="ddmenu" onMouseLeave={() => setStatusOpen(false)}>
-                <div className="ddtop"><button onClick={() => setStatusSel(new Set(STATUS_OPTS.map(([k]) => k)))}>전체</button><button onClick={() => setStatusSel(new Set())}>해제</button></div>
-                {STATUS_OPTS.map(([k, v, color]) => (
-                  <label key={k}><input type="checkbox" checked={statusSel.has(k)} onChange={() => toggleStatus(k)} /><i style={{ background: color }} />{v}</label>
-                ))}
-              </div>
-            )}
-          </div>
+          <>
+            <div className="dd">
+              <button className="btn" onClick={() => setStatusOpen((v) => !v)}>상태 {statusSel.size === STATUS_OPTS.length ? '전체' : statusSel.size} ▾</button>
+              {statusOpen && (
+                <div className="ddmenu" onMouseLeave={() => setStatusOpen(false)}>
+                  <div className="ddtop"><button onClick={() => setStatusSel(new Set(STATUS_OPTS.map(([k]) => k)))}>전체</button><button onClick={() => setStatusSel(new Set())}>해제</button></div>
+                  {STATUS_OPTS.map(([k, v, color]) => (
+                    <label key={k}><input type="checkbox" checked={statusSel.has(k)} onChange={() => toggleStatus(k)} /><i style={{ background: color }} />{v}</label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <label className="chk"><input type="checkbox" checked={showOverdue} onChange={(e) => setShowOverdue(e.target.checked)} />만료 포함</label>
+          </>
         )}
         <span className="count mono">{(rangeOn ? historyRows.length : currentRows.length)}건</span>
       </div>
@@ -141,6 +149,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                       {o.overdue ? <span className="tag over">만료 +{o.overdueDays}일</span>
                         : o.open ? <span className="tag open">미정 {o.openDays}일째</span>
                         : o.live ? <span className="tag live">D-{o.dToRemove}</span>
+                        : o.next ? <span className="tag upcoming">게시예정 D-{diffDays(refDate, o.next.start)}</span>
                         : <span className="tag vacant">비어있음</span>}
                     </td>
                     <td className="r" onClick={(e) => e.stopPropagation()}>
