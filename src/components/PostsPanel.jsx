@@ -147,9 +147,9 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                     <td className="mono">{p ? (p.end || '미정') : '—'}</td>
                     <td>
                       {o.overdue ? <span className="tag over">만료 +{o.overdueDays}일</span>
-                        : o.open ? <span className="tag open">미정 {o.openDays}일째</span>
-                        : o.live ? <span className="tag live">D-{o.dToRemove}</span>
-                        : o.next ? <span className="tag upcoming">게시예정 D-{diffDays(refDate, o.next.start)}</span>
+                        : o.open ? <span className="tag live">게시중 · 종료일 미정</span>
+                        : o.live ? <span className="tag live">게시중 · D-{o.dToRemove}</span>
+                        : o.next ? <span className="tag upcoming">게시예정 · D-{diffDays(refDate, o.next.start)}</span>
                         : <span className="tag vacant">비어있음</span>}
                     </td>
                     <td className="r" onClick={(e) => e.stopPropagation()}>
