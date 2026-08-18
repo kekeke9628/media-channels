@@ -304,6 +304,10 @@ tbody tr.archived{opacity:.45}
 .app.narrow main{padding:14px}
 .app.narrow .mapwrap{aspect-ratio:4/3}
 .app.narrow .sheet{width:100%}
+/* width:100%가 640px보다 넓은 좁은모드 화면(태블릿·큰 폰)에서 컬럼 몇 개짜리 테이블을 억지로
+   늘려서, 짧은 헤더 글자와 정렬 화살표 사이에 큰 빈 칸이 생기던 문제 — 컨테이너보다 넓게
+   늘어나지 않고 내용 기준(최소 640px)으로만 넓어지게 한다. 좁으면 기존처럼 가로 스크롤. */
+.app.narrow table{width:auto}
 @media(max-width:600px){
   .cgrid{grid-template-columns:1fr}
   .side nav button{font-size:12.5px;padding:7px 9px}
