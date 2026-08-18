@@ -218,6 +218,7 @@ export default function AddModal({ T, types, media, postings, refDate, initialMe
             <p className="warnbox">⚠ 선택된 매체 중 {bulkConflictCount}곳은 이미 겹치는 게시물이 있습니다 — 그대로 진행하면 기존 게시물의 철거 예정일이 자동으로 단축됩니다.</p>
           )}
 
+          <label className="fld"><span>게시물 이미지 (선택)</span></label>
           {faceCount === 2 ? (
             <>
               <p className="hint">이 매체는 2면이라 앞/뒤 이미지를 각각 올리고, 면마다 방향을 적어 두면 설치 때 헷갈리지 않습니다.</p>
