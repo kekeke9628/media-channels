@@ -74,7 +74,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
 
       {sec === 'media' && (
         <>
-          {isEditor && <p className="hint" style={{ marginBottom: 12 }}>새 매체는 위쪽 지도의 <b>"+ 매체 추가"</b>로 원하는 위치에 바로 배치합니다. 위치를 옮기려면 "위치 편집" 모드에서 지도 핀을 드래그하세요.</p>}
+          {isEditor && <p className="hint" style={{ marginBottom: 12 }}>새 매체는 상단의 <b>"+매체 관리"</b>로 원하는 위치에 바로 배치합니다. 위치를 옮기려면 "위치 편집" 모드에서 지도 핀을 드래그하세요.</p>}
           <div className="toolrow"><input className="inp" placeholder="매체명 · 구역 검색" value={q} onChange={(e) => setQ(e.target.value)} /><span className="count mono">{rows.length}건</span></div>
           <div className="scroll tall">
             <table>

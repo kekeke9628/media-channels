@@ -89,8 +89,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
         {isEditor && (
           <>
             <h4>매체 관리</h4>
-            <p className="hint">위치는 지도에서 편집 모드로 드래그하면 바로 저장됩니다.</p>
-            <button className="btn wide danger" onClick={() => onDelete(o.id)}>{o.history.length ? '이 매체 보관' : '이 매체 삭제'}</button>
+            <button className="btn wide danger" onClick={() => onDelete(o.id)}>{o.history.length ? '이 매체 지도에서 숨기기' : '이 매체 삭제'}</button>
           </>
         )}
         </div>
