@@ -348,12 +348,11 @@ function zoneAtLocal(pt) {
 function AddMediaPopover({ types, at, zone, onCancel, onSubmit }) {
   const [type, setType] = useState(types[0]?.code || '');
   const t = types.find((x) => x.code === type);
-  const [name, setName] = useState(t ? t.label + ' 신규' : '');
   const [faces, setFaces] = useState(t?.faces || 1);
 
   useEffect(() => {
     const nt = types.find((x) => x.code === type);
-    if (nt) { setName(nt.label + ' 신규'); setFaces(nt.faces); }
+    if (nt) setFaces(nt.faces);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
@@ -363,11 +362,10 @@ function AddMediaPopover({ types, at, zone, onCancel, onSubmit }) {
       <select className="sel" value={type} onChange={(e) => setType(e.target.value)}>
         {types.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
       </select>
-      <input className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="매체명" />
       <input className="inp num" type="number" min="1" max="6" title="면수" value={faces} onChange={(e) => setFaces(+e.target.value)} />
       <div className="addpop-btns">
         <button className="mini" onClick={onCancel}>취소</button>
-        <button className="mini ok" disabled={!name || !type} onClick={() => onSubmit({ type, name, faces })}>추가</button>
+        <button className="mini ok" disabled={!type} onClick={() => onSubmit({ type, name: t.label + ' 신규', faces })}>추가</button>
       </div>
     </div>
   );
