@@ -230,7 +230,11 @@ tbody tr.archived{opacity:.45}
 .medialist-all{background:#F7F5F1;font-weight:600;position:sticky;top:0}
 .conflicttag{margin-left:auto;background:#F4E5E3;color:#B4534B;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px}
 
-.tl{min-width:640px;padding:12px}
+/* overflow:hidden — "오늘" 세로선(.tlnow)이 실제 행 개수와 무관하게 항상 600px
+   고정 높이라, 행이 몇 개 안 될 때 카드 아래로 삐져나와 보이던 문제. 이 박스
+   높이는 행 개수에 따라 자연스럽게 정해지므로, 여기서 잘라내면 정확히
+   마지막 행 아래에서 선이 끊긴다. */
+.tl{min-width:640px;padding:12px;overflow:hidden}
 .tlhead{display:flex;gap:10px;margin-bottom:8px}
 .tlhead>span{width:150px;flex:0 0 150px}
 .tlticks{flex:1;position:relative;height:16px;border-bottom:1px solid var(--line)}
