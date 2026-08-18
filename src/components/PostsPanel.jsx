@@ -74,11 +74,11 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
           )}
         </div>
         {!rangeOn && (
-          <div className="seg">
+          <select className="sel" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             {[['overdue', '만료'], ['live', '게시중'], ['open', '미정'], ['all', '전체']].map(([k, v]) => (
-              <button key={k} className={statusFilter === k ? 'on' : ''} onClick={() => setStatusFilter(k)}>{v}</button>
+              <option key={k} value={k}>{v}</option>
             ))}
-          </div>
+          </select>
         )}
         <span className="count mono">{(rangeOn ? historyRows.length : currentRows.length)}건</span>
       </div>
