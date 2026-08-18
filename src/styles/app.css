@@ -58,6 +58,9 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .mini-sel{padding:4px 6px;font-size:11.5px}
 .dd{position:relative}
 .ddmenu{position:absolute;left:0;top:calc(100% + 5px);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;z-index:30;box-shadow:0 10px 28px rgba(0,0,0,.1);min-width:200px;max-width:calc(100vw - 32px)}
+/* dd 버튼이 툴바 오른쪽 끝 쪽에 있을 때(예: 검색창 뒤에 오는 상태 필터) left:0으로
+   펼치면 화면 오른쪽 밖으로 넘어간다 — 이 경우 오른쪽 끝을 버튼에 맞춰 왼쪽으로 편다. */
+.dd.right .ddmenu{left:auto;right:0}
 .ddtop{display:flex;gap:5px;margin-bottom:6px}
 .ddtop button{flex:1;border:1px solid var(--line);background:#FAF8F4;border-radius:6px;padding:5px;font-size:11.5px;cursor:pointer}
 .ddmenu label{display:flex;align-items:center;gap:7px;padding:5px 4px;font-size:12.5px;cursor:pointer}
