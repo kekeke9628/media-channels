@@ -314,7 +314,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
 
       {addAt && createPortal(
         <AddMediaPopover
-          types={active} at={addAt} zone={zoneLabel(zoneAtLocal(addAt))}
+          types={active} at={addAt}
           archived={allMedia.filter((m) => !m.active)} zoneLabel={zoneLabel}
           onCancel={() => setAddAt(null)}
           onSubmit={(payload) => {
@@ -341,16 +341,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   );
 }
 
-// 사양서 3.2와 달리 지점이 없으므로, 클릭한 좌표가 속한 구역을 화면에서도 바로 계산해 보여준다.
-function zoneAtLocal(pt) {
-  for (const [key, z] of Object.entries(ZONES)) {
-    const [bx, by, bw, bh] = z.box;
-    if (pt.x >= bx && pt.x <= bx + bw && pt.y >= by && pt.y <= by + bh) return key;
-  }
-  return Object.keys(ZONES)[0];
-}
-
-function AddMediaPopover({ types, at, zone, archived, zoneLabel, onCancel, onSubmit }) {
+function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit }) {
   const [source, setSource] = useState('new'); // 'new' | 'existing' — 보관 중이던 매체를 이 자리로 옮겨 복구
   const [type, setType] = useState(types[0]?.code || '');
   const t = types.find((x) => x.code === type);
@@ -374,7 +365,7 @@ function AddMediaPopover({ types, at, zone, archived, zoneLabel, onCancel, onSub
 
   return (
     <div className="addpop" style={{ '--ax': at.clientX + 'px', '--ay': at.clientY + 'px' }} onClick={(e) => e.stopPropagation()}>
-      <b>새 매체 추가 <i className="sub">{zone}</i></b>
+      <b>새 매체 추가</b>
       <select className="sel" value={type} onChange={(e) => setType(e.target.value)}>
         {types.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
       </select>
@@ -385,7 +376,7 @@ function AddMediaPopover({ types, at, zone, archived, zoneLabel, onCancel, onSub
       {source === 'new' ? (
         <>
           <input className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="매체명을 입력해주세요" />
-          <input className="inp num" type="number" min="1" max="6" title="면수" value={faces} onChange={(e) => setFaces(+e.target.value)} />
+          <label className="fld"><span>면수</span><input className="inp num" type="number" min="1" max="6" style={{ width: 70, flex: 'none' }} value={faces} onChange={(e) => setFaces(+e.target.value)} /></label>
         </>
       ) : archivedOfType.length > 0 ? (
         <select className="sel" value={existingId} onChange={(e) => setExistingId(e.target.value)}>
