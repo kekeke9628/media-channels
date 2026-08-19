@@ -1,7 +1,13 @@
 // Supabase 조회 레이어 — 사양서 3장 스키마를 M1의 mock 데이터 형태(camelCase)로 매핑한다.
 // 기준일(refDate)이 클라이언트에서 바뀔 수 있으므로(사양서 7장) 파생 상태는 여전히
-// lib/status.js에서 클라이언트가 계산한다 — v_posting_status/v_media_state는 항상 실제 "오늘"
-// 기준이라 여기서는 쓰지 않고, 원본 테이블만 그대로 읽는다.
+// lib/status.js에서 클라이언트가 계산한다.
+//
+// postings(홍보물)와 placements(배치)는 분리된 테이블이다 — 홍보물 하나가 여러 매체에
+// 동시에 걸리거나, 아직 어느 매체에도 걸리지 않은 채로 존재할 수 있다.
+//   - fetchPostings(): 순수 홍보물 목록(브랜드·내용·이미지) — 매체·일정과 무관하게 홍보물
+//     자체를 관리하는 화면(PromosPanel)에서 쓴다.
+//   - fetchPlacements(): 배치 + 해당 홍보물 정보를 평탄화한 목록 — 매체별 현재 상태·타임라인·
+//     이력처럼 "어느 매체에 무엇이 걸려 있는가" 관점의 화면에서 예전 postings와 같은 모양으로 쓴다.
 import { supabase } from './supabaseClient.js';
 
 // 갤러리·매체 상세 카드의 그라데이션 색상 — 실 이미지가 없는 동안 id로 결정적으로 생성한다.
@@ -86,13 +92,9 @@ export async function deleteMedia(id) {
 function mapPosting(p) {
   return {
     id: p.id,
-    mediaId: p.media_id,
+    type: p.type,
     brand: p.brand,
     title: p.title || '',
-    start: p.start_date,
-    end: p.end_date,
-    removedAt: p.removed_at,
-    removalSource: p.removal_source,
     driveUrl: p.origin_url,
     thumbPath: p.thumb_path,
     viewPath: p.view_path,
@@ -101,13 +103,35 @@ function mapPosting(p) {
     hue: hueOf(p.id),
     bytesOrig: p.bytes_orig || 0,
     bytesLight: p.bytes_light || 0,
+    createdAt: p.created_at,
   };
 }
 
+function mapPlacement(pl) {
+  return {
+    id: pl.id,
+    postingId: pl.posting_id,
+    mediaId: pl.media_id,
+    start: pl.start_date,
+    end: pl.end_date,
+    removedAt: pl.removed_at,
+    removalSource: pl.removal_source,
+  };
+}
+
+// 순수 홍보물 목록 — 매체 배치와 무관하게 홍보물 자체(브랜드·내용·이미지)를 관리한다.
 export async function fetchPostings() {
-  const { data, error } = await supabase.from('postings').select('*').order('start_date');
+  const { data, error } = await supabase.from('postings').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return data.map(mapPosting);
+}
+
+// 배치 목록 — 배치 정보에 소속 홍보물 정보를 얹어 평탄화한다. 매체별 현재 상태 표,
+// 타임라인, 이력 조회처럼 "어느 매체에 무엇이 걸려 있었는가" 화면들이 쓰는 모양.
+export async function fetchPlacements() {
+  const { data, error } = await supabase.from('placements').select('*, postings(*)').order('start_date');
+  if (error) throw error;
+  return data.map((pl) => ({ ...mapPosting(pl.postings), ...mapPlacement(pl) }));
 }
 
 // data:URL(webp) → Blob. AddModal이 canvas.toDataURL로 만든 2단(view/thumb) 이미지를
@@ -124,7 +148,7 @@ function dataUrlToBlob(dataUrl) {
 const POSTING_BUCKET = 'posting-images';
 const POSTING_IMAGE_URL_TTL = 60 * 60; // 1시간, 배치도(center-map)와 동일
 
-// 게시물 이미지 서명 URL을 한 번에 여러 개 받아온다(갤러리 카드·매체 상세가 각각 여러 장을
+// 홍보물 이미지 서명 URL을 한 번에 여러 개 받아온다(갤러리 카드·매체 상세가 각각 여러 장을
 // 동시에 보여줘야 해서 경로별로 하나씩 요청하지 않고 배치로 처리). 비공개 버킷이라 서명 URL이
 // 필요하고, 존재하지 않는 경로는 조용히 건너뛴다(과거 데이터에 이미지가 없을 수 있음).
 export async function getPostingImageUrls(paths) {
@@ -144,18 +168,17 @@ async function uploadPostingImage(path, dataUrl) {
   return path;
 }
 
-// 게시물 등록 — mediaFaces===2(웨더워리어)이면 face 배열(앞/뒤 방향+변환결과)을 받아
-// 면마다 별도 이미지를 올리고 faces(jsonb)에 담는다. 1면 매체는 기존 thumb/view 컬럼을 쓴다.
-export async function createPosting({ mediaId, brand, title, start, end, driveUrl, singleResult, faceResults, installPhoto }) {
+// 홍보물 등록 — 매체·일정과 무관하게 브랜드·내용·이미지만 먼저 등록한다. 어느 매체에
+// 걸지는 나중에(또는 여러 번) createPlacement로 따로 정한다. faces===2(웨더워리어류)이면
+// face 배열(앞/뒤 방향+변환결과)을 받아 면마다 별도 이미지를 올리고 faces(jsonb)에 담는다.
+export async function createPosting({ type, brand, title, driveUrl, singleResult, faceResults, installPhoto }) {
   const { data: userData } = await supabase.auth.getUser();
   const { data: inserted, error: insertError } = await supabase
     .from('postings')
     .insert({
-      media_id: mediaId,
+      type,
       brand,
       title: title || null,
-      start_date: start,
-      end_date: end,
       origin_url: driveUrl || null,
       created_by: userData?.user?.id || null,
     })
@@ -195,6 +218,47 @@ export async function createPosting({ mediaId, brand, title, start, end, driveUr
   return mapPosting(updated);
 }
 
+// 이미 등록된 홍보물이 매체·이미지 전부 없이 텍스트 실수 등으로 잘못 만들어졌을 때를 위한
+// 삭제 — 배치가 하나라도 있으면 이력이 걸린 셈이라 호출 쪽(App)에서 막는다.
+export async function deletePosting(id) {
+  const { error } = await supabase.from('postings').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// 등록된 홍보물을 매체에 배치한다 — 처음 배치든, 이미 다른 매체(들)에 걸려 있는 홍보물의
+// 추가 배치든 동일하게 새 placements 행을 하나 만든다.
+export async function createPlacement({ postingId, mediaId, start, end }) {
+  const { data, error } = await supabase
+    .from('placements')
+    .insert({ posting_id: postingId, media_id: mediaId, start_date: start, end_date: end })
+    .select()
+    .single();
+  if (error) throw error;
+  return mapPlacement(data);
+}
+
+// 배치를 잘못 만들었을 때(엉뚱한 매체 선택 등) 되돌리는 삭제 — 실제 철거 기록(removed_at)과는
+// 다르다. 실제 철거는 markPlacementRemoved를 쓴다.
+export async function deletePlacement(id) {
+  const { error } = await supabase.from('placements').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function markPlacementRemoved(id, removedAt) {
+  const { error } = await supabase.from('placements').update({ removed_at: removedAt, removal_source: 'manual' }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function undoPlacementRemoval(id) {
+  const { error } = await supabase.from('placements').update({ removed_at: null, removal_source: null }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function adjustPlacementEnd(id, newEnd) {
+  const { error } = await supabase.from('placements').update({ end_date: newEnd }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function fetchAdmins() {
   const { data, error } = await supabase.from('admins').select('user_id, email, name, role').order('created_at');
   if (error) throw error;
@@ -228,31 +292,4 @@ export async function updateAdminRole(userId, role) {
 export async function removeAdmin(userId) {
   const { error } = await supabase.from('admins').delete().eq('user_id', userId);
   if (error) throw error;
-}
-
-export async function markPostingRemoved(id, removedAt) {
-  const { error } = await supabase.from('postings').update({ removed_at: removedAt, removal_source: 'manual' }).eq('id', id);
-  if (error) throw error;
-}
-
-export async function undoPostingRemoval(id) {
-  const { error } = await supabase.from('postings').update({ removed_at: null, removal_source: null }).eq('id', id);
-  if (error) throw error;
-}
-
-export async function adjustPostingEnd(id, newEnd) {
-  const { error } = await supabase.from('postings').update({ end_date: newEnd }).eq('id', id);
-  if (error) throw error;
-}
-
-// 미배치 시안(media_id/start_date가 비어있는 게시물)을 특정 매체·기간에 배치한다.
-export async function assignPosting(id, { mediaId, start, end }) {
-  const { data, error } = await supabase
-    .from('postings')
-    .update({ media_id: mediaId, start_date: start, end_date: end })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return mapPosting(data);
 }

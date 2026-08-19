@@ -8,15 +8,17 @@ import SortTh, { sortRows } from './SortTh.jsx';
 const zoneLabel = (z) => ZONES[z]?.label || z;
 const statusRank = (o) => (o.overdue ? 0 : o.open ? 1 : o.live ? 2 : o.next ? 3 : 4);
 // "지금 상태"는 게시중(종료일 있든/없든)·게시예정·비어있음 3가지뿐이다. 만료는 상태가
-// 아니라 "게시중인데 방치된" 경고 플래그라 별도 ON/OFF로 뺀다(게시물 화면과 통일).
+// 아니라 "게시중인데 방치된" 경고 플래그라 별도 ON/OFF로 뺀다(홍보물 화면과 통일).
 const statusCat = (o) => (o.overdue ? 'overdue' : (o.live || o.open) ? 'live' : o.next ? 'upcoming' : 'vacant');
 const STATUS_OPTS = [['live', '게시중', ST.live.color], ['upcoming', ST.upcoming.label, ST.upcoming.color], ['vacant', '비어있음', '#B5AFA4']];
 const STATUS_LABEL = { ...Object.fromEntries(STATUS_OPTS.map(([k, v]) => [k, v])), overdue: '만료' };
 
-// 홍보물 관리 (기본 화면) — 만료 건이 맨 앞에 오도록 정렬, 기간 조회는 이력 검색으로 전환
+// 매체 현황 (기본 화면) — 매체별 현재 배치 상태 표. 만료 건이 맨 앞에 오도록 정렬, 기간
+// 조회는 이력 검색으로 전환. postings prop은 배치(placement)가 홍보물 정보와 함께
+// 평탄화된 목록이다(App이 fetchPlacements 결과를 넘긴다).
 export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, onRemove, onUndo, onPick }) {
   const [statusSel, setStatusSel] = useState(new Set(STATUS_OPTS.map(([k]) => k)));
-  // 게시물 화면과 달리 기본 ON — 이 화면의 핵심 목적이 만료 건을 놓치지 않고 조치하는
+  // 홍보물 화면과 달리 기본 ON — 이 화면의 핵심 목적이 만료 건을 놓치지 않고 조치하는
   // 것이라(맨 위 정렬 + 철거 완료 버튼), 기본으로 숨기면 화면 목적과 어긋난다.
   const [showOverdue, setShowOverdue] = useState(true);
   const [typeSel, setTypeSel] = useState(new Set(types.map((t) => t.code)));

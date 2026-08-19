@@ -22,7 +22,6 @@ export const ST = {
   upcoming: { label: '게시예정', color: '#7A5AA6', soft: '#EEE8F4' },
   overdue: { label: '만료', color: '#B4534B', soft: '#F4E5E3' },
   removed: { label: '철거완료', color: '#9A948A', soft: '#EFEDE9' },
-  draft: { label: '미배치', color: '#A67F3A', soft: '#F3EBDD' },
 };
 
 export const contentOf = (p) => p.title || p.brand;

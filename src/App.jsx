@@ -2,7 +2,11 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ALERT_DAYS, LONG_OPEN, getToday } from './constants.js';
 import { autoClose, buildState } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
-import { fetchMediaTypes, fetchMedia, fetchPostings, updateMediaPosition, createMedia, archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, markPostingRemoved, undoPostingRemoval, adjustPostingEnd, assignPosting } from './lib/queries.js';
+import {
+  fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, createMedia,
+  archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
+  createPlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd,
+} from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
 import { useAuth, OWNER_EMAIL, resetAdminPassword } from './lib/useAuth.js';
 
@@ -12,7 +16,7 @@ import AdminReset from './components/AdminReset.jsx';
 import Unauthorized from './components/Unauthorized.jsx';
 import MapPanel from './components/MapPanel.jsx';
 import PostsPanel from './components/PostsPanel.jsx';
-import GalleryPanel from './components/GalleryPanel.jsx';
+import PromosPanel from './components/PromosPanel.jsx';
 import TimelinePanel from './components/TimelinePanel.jsx';
 import ManagePanel from './components/ManagePanel.jsx';
 import AlertPanel from './components/AlertPanel.jsx';
@@ -21,7 +25,7 @@ import MediaSheet from './components/MediaSheet.jsx';
 import AddModal from './components/AddModal.jsx';
 import AssignModal from './components/AssignModal.jsx';
 
-const TABS = { posts: '홍보물 관리', gallery: '게시물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
+const TABS = { posts: '매체 현황', promos: '홍보물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
 const EDITOR_ONLY_TABS = new Set(['alert', 'admins']);
 
 export default function App() {
@@ -49,7 +53,10 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const [refDate, setRefDate] = useState(getToday());
   const [types, setTypes] = useState([]);
   const [media, setMedia] = useState([]);
+  // postings = 홍보물(브랜드·내용·이미지, 매체와 무관) / placements = 배치(홍보물이 얹혀
+  // 평탄화된 것, 매체별 현재 상태·타임라인·이력 화면이 예전 postings와 같은 모양으로 쓴다).
   const [postings, setPostings] = useState([]);
+  const [placements, setPlacements] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [tab, setTab] = useState('posts');
   const [selMedia, setSelMedia] = useState(null);
@@ -71,11 +78,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   }, []);
 
   useEffect(() => {
-    Promise.all([fetchMediaTypes(), fetchMedia(), fetchPostings()]).then(([t, m, p]) => {
+    Promise.all([fetchMediaTypes(), fetchMedia(), fetchPostings(), fetchPlacements()]).then(([t, m, p, pl]) => {
       setTypes(t);
       setTypeFilter(new Set(t.map((x) => x.code)));
       setMedia(m);
       setPostings(p);
+      setPlacements(pl);
       setDataLoading(false);
     });
   }, []);
@@ -97,7 +105,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2500); };
 
   const T = useMemo(() => Object.fromEntries(types.map((t) => [t.code, t])), [types]);
-  const state = useMemo(() => buildState(media, autoClose(postings, refDate), refDate), [media, postings, refDate]);
+  const state = useMemo(() => buildState(media, autoClose(placements, refDate), refDate), [media, placements, refDate]);
   const byId = useMemo(() => Object.fromEntries(state.map((o) => [o.id, o])), [state]);
 
   const visible = useMemo(
@@ -159,45 +167,52 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
 
   const markRemoved = async (id) => {
     try {
-      await markPostingRemoved(id, refDate);
-      setPostings((prev) => prev.map((p) => (p.id === id ? { ...p, removedAt: refDate, removalSource: 'manual' } : p)));
+      await markPlacementRemoved(id, refDate);
+      setPlacements((prev) => prev.map((p) => (p.id === id ? { ...p, removedAt: refDate, removalSource: 'manual' } : p)));
       flash('철거 완료로 기록했습니다.');
     } catch (e) { flash('처리에 실패했습니다: ' + e.message); }
   };
   const undoRemoved = async (id) => {
     try {
-      await undoPostingRemoval(id);
-      setPostings((prev) => prev.map((p) => (p.id === id ? { ...p, removedAt: null, removalSource: null } : p)));
+      await undoPlacementRemoval(id);
+      setPlacements((prev) => prev.map((p) => (p.id === id ? { ...p, removedAt: null, removalSource: null } : p)));
       flash('철거 기록을 취소했습니다.');
     } catch (e) { flash('처리에 실패했습니다: ' + e.message); }
   };
-  // silent: 일괄 등록에서 N건을 등록할 때 매번 토스트가 뜨는 걸 막고, 호출 쪽에서 한 번만 요약해서 보여준다.
+  // silent: 등록+배치를 한 번에 하는 흐름에서 중간 토스트 없이 마지막 결과만 보여줄 때 쓴다.
   const addPosting = async (p, { silent } = {}) => {
     try {
       const created = await createPosting(p);
-      setPostings((prev) => [...prev, created]);
-      if (!silent) flash('게시물을 등록했습니다.');
-      return true;
-    } catch (e) { if (!silent) flash('게시물 등록에 실패했습니다: ' + e.message); return false; }
+      setPostings((prev) => [created, ...prev]);
+      if (!silent) flash('홍보물을 등록했습니다.');
+      return created;
+    } catch (e) { if (!silent) flash('홍보물 등록에 실패했습니다: ' + e.message); return null; }
   };
-  // 겹침 조정(기존 게시물 철거일 단축)은 새 게시물을 넣기 전에 반드시 먼저 커밋돼야 한다 —
-  // DB에 겹치는 기간을 막는 exclusion 제약이 있어, 순서가 뒤바뀌면 새 게시물 삽입이 거부된다.
+  const deletePostingItem = async (id) => {
+    try {
+      await deletePosting(id);
+      setPostings((prev) => prev.filter((p) => p.id !== id));
+      flash('홍보물을 삭제했습니다.');
+    } catch (e) { flash('삭제에 실패했습니다: ' + e.message); }
+  };
+  // 홍보물을 매체에 배치한다 — posting은 이미 state에 있는(또는 방금 등록한) 홍보물 전체
+  // 객체를 그대로 받아, placements 목록에 얹을 때 브랜드·이미지 등을 함께 평탄화한다.
+  const addPlacement = async (posting, { mediaId, start, end }, { silent } = {}) => {
+    try {
+      const created = await createPlacement({ postingId: posting.id, mediaId, start, end });
+      setPlacements((prev) => [...prev, { ...posting, ...created }]);
+      if (!silent) flash('매체에 배치했습니다.');
+      return true;
+    } catch (e) { if (!silent) flash('배치에 실패했습니다: ' + e.message); return false; }
+  };
+  // 겹침 조정(기존 배치 종료일 단축)은 새 배치를 넣기 전에 반드시 먼저 커밋돼야 한다 —
+  // DB에 겹치는 기간을 막는 exclusion 제약이 있어, 순서가 뒤바뀌면 새 배치 삽입이 거부된다.
   const adjustEnd = async (id, newEnd) => {
     try {
-      await adjustPostingEnd(id, newEnd);
-      setPostings((prev) => prev.map((p) => (p.id === id ? { ...p, end: newEnd } : p)));
+      await adjustPlacementEnd(id, newEnd);
+      setPlacements((prev) => prev.map((p) => (p.id === id ? { ...p, end: newEnd } : p)));
       return true;
     } catch (e) { flash('종료일 조정에 실패했습니다: ' + e.message); return false; }
-  };
-
-  // 미배치 시안에 매체·일정을 확정한다.
-  const assignDraft = async (id, patch) => {
-    try {
-      const updated = await assignPosting(id, patch);
-      setPostings((prev) => prev.map((p) => (p.id === id ? updated : p)));
-      flash('매체를 배치했습니다.');
-      return true;
-    } catch (e) { flash('배치에 실패했습니다: ' + e.message); return false; }
   };
 
   const addType = (t) => { setTypes((prev) => [...prev, t]); flash('매체 유형을 추가했습니다.'); };
@@ -205,7 +220,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const editType = (code, patch) => { setTypes((prev) => prev.map((t) => (t.code === code ? { ...t, ...patch } : t))); flash('매체 유형을 수정했습니다.'); };
 
   const removeMedia = async (id) => {
-    const used = postings.some((p) => p.mediaId === id);
+    const used = placements.some((p) => p.mediaId === id);
     try {
       if (used) {
         await archiveMedia(id);
@@ -274,13 +289,13 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
               <div className="skv bad"><em>만료</em><b>{kpi.stale}</b></div>
             </div>
           </div>
-          {/* 모바일 전용 — 기준일+게시물 등록을 브랜드 행 오른쪽 여백에 압축해 넣어 2행을 없앤다.
+          {/* 모바일 전용 — 기준일+홍보물 등록을 브랜드 행 오른쪽 여백에 압축해 넣어 2행을 없앤다.
               데스크톱에서는 숨기고 아래 원래 .side-row2를 그대로 쓴다. */}
           <div className="mobile-quickrow">
             <label className="reffield">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
             {isEditor && (
               <div className="quickbtns">
-                <button className="btn primary" onClick={() => setAddOpen(true)}>+게시물 관리</button>
+                <button className="btn primary" onClick={() => setAddOpen(true)}>+홍보물 등록</button>
                 <button className={'btn primary' + (addMode ? ' on' : '')} onClick={() => { setAddMode((v) => !v); setEditMode(false); }}>
                   {addMode ? '추가할 위치 클릭…' : '+매체 관리'}
                 </button>
@@ -299,12 +314,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
             </button>
           ))}
         </nav>
-        {/* 모바일에서 "게시물 등록"+"게시일 기준"을 2행으로 묶기 위한 래퍼 — 데스크톱에서는
+        {/* 모바일에서 "홍보물 등록"+"기준일"을 2행으로 묶기 위한 래퍼 — 데스크톱에서는
             display:contents로 기존 세로 배치에 영향을 주지 않는다. */}
         <div className="side-row2">
           {isEditor && (
             <div className="quickbtns wide">
-              <button className="btn primary" onClick={() => setAddOpen(true)}>+게시물 관리</button>
+              <button className="btn primary" onClick={() => setAddOpen(true)}>+홍보물 등록</button>
               <button className={'btn primary' + (addMode ? ' on' : '')} onClick={() => { setAddMode((v) => !v); setEditMode(false); }}>
                 {addMode ? '추가할 위치 클릭…' : '+매체 관리'}
               </button>
@@ -354,11 +369,14 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         </div>
 
         <div className="panel">
-          {tab === 'posts' && <PostsPanel {...ctx} state={state} postings={postings} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
-          {tab === 'gallery' && <GalleryPanel {...ctx} postings={postings} media={media} onPick={setSelMedia} onAssign={setAssigningId} />}
+          {tab === 'posts' && <PostsPanel {...ctx} state={state} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
+          {tab === 'promos' && (
+            <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
+              onPick={setSelMedia} onAssign={setAssigningId} onRemove={markRemoved} onUndo={undoRemoved} onDeletePosting={deletePostingItem} />
+          )}
           {tab === 'timeline' && <TimelinePanel {...ctx} state={state} onPick={setSelMedia} />}
           {tab === 'manage' && (
-            <ManagePanel {...ctx} media={media} postings={postings}
+            <ManagePanel {...ctx} media={media} postings={placements}
               onAddType={addType} onToggleType={toggleType} onEditType={editType}
               onRemoveMedia={removeMedia} onRestoreMedia={restoreMediaItem} />
           )}
@@ -375,16 +393,16 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       )}
       {addOpen && isEditor && (
         <AddModal
-          {...ctx} media={media} postings={postings} initialMediaId={addMediaId}
+          {...ctx} media={media} placements={placements} initialMediaId={addMediaId}
           onClose={() => { setAddOpen(false); setAddMediaId(null); }}
-          onAdd={addPosting} onAdjustEnd={adjustEnd}
-          onDone={(ok, failed) => flash(`${ok}건 등록 완료${failed ? ` · ${failed}건 실패` : ''}`)}
+          onAdd={addPosting} onAssign={addPlacement} onAdjustEnd={adjustEnd}
         />
       )}
       {assigningId && isEditor && (
         <AssignModal
-          posting={postings.find((p) => p.id === assigningId)} media={media} refDate={refDate}
-          onClose={() => setAssigningId(null)} onAssign={assignDraft}
+          {...ctx} posting={postings.find((p) => p.id === assigningId)} media={media} placements={placements}
+          onClose={() => setAssigningId(null)} onAssign={addPlacement} onAdjustEnd={adjustEnd}
+          onDone={(ok, failed) => flash(`${ok}건 배치 완료${failed ? ` · ${failed}건 실패` : ''}`)}
         />
       )}
       {toast && <div className="toast">{toast}</div>}

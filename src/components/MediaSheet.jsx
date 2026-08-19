@@ -31,7 +31,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
         {isEditor && (
           <button className="btn primary wide" onClick={() => onQuickAdd(o.id)}>📷 이 매체에 사진으로 바로 등록</button>
         )}
-        <h4>현재 게시물</h4>
+        <h4>현재 배치</h4>
         {o.overdue && <p className="warnbox">종료일보다 <b>+{o.overdueDays}일</b> 지났습니다.</p>}
         {o.open && <p className="okbox"><b>{o.openDays}일째</b> 게시 중입니다.{o.openDays >= LONG_OPEN && ' 1년이 넘었으니 한 번 확인해 보세요.'}</p>}
         {cur ? (

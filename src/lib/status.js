@@ -1,9 +1,10 @@
 // 파생 상태 규칙 (사양서 4장) — 상태는 저장하지 않고 날짜에서 계산한다.
-// M4에서 이 로직은 v_posting_status / v_media_state 뷰 쿼리로 대체된다.
+// 여기서 다루는 p는 배치(placement, 홍보물 정보가 얹혀 평탄화된 것)다 — 배치는 항상
+// media_id·start_date를 갖고 생성되므로(DB 제약) "미배치" 여부는 여기서 판단할 대상이 아니다.
+// 미배치는 홍보물(postings)에 배치가 0개인 상태를 뜻하며, PromosPanel이 별도로 판단한다.
 import { diffDays } from '../constants.js';
 
 export const statusOf = (p, ref) => {
-  if (!p.mediaId) return 'draft';
   if (p.removedAt) return 'removed';
   if (p.start > ref) return 'upcoming';
   if (!p.end) return 'open';
@@ -11,10 +12,10 @@ export const statusOf = (p, ref) => {
   return 'live';
 };
 
-// 후속 게시물이 시작됐다면 이전 것은 물리적으로 반드시 철거됐다 (4.2). 기록 누락이면 자동으로 채운다.
-export function autoClose(postings, ref) {
+// 후속 배치가 시작됐다면 이전 것은 물리적으로 반드시 철거됐다 (4.2). 기록 누락이면 자동으로 채운다.
+export function autoClose(placements, ref) {
   const by = {};
-  postings.forEach((p) => (by[p.mediaId] = by[p.mediaId] || []).push(p));
+  placements.forEach((p) => (by[p.mediaId] = by[p.mediaId] || []).push(p));
   const out = [];
   Object.values(by).forEach((arr) => {
     const list = arr.slice().sort((a, b) => a.start.localeCompare(b.start));
@@ -27,9 +28,9 @@ export function autoClose(postings, ref) {
   return out;
 }
 
-export function buildState(media, postings, ref) {
+export function buildState(media, placements, ref) {
   const by = {};
-  postings.forEach((p) => (by[p.mediaId] = by[p.mediaId] || []).push(p));
+  placements.forEach((p) => (by[p.mediaId] = by[p.mediaId] || []).push(p));
   return media.filter((m) => m.active).map((m) => {
     const list = (by[m.id] || []).slice().sort((a, b) => a.start.localeCompare(b.start));
     const live = list.find((p) => statusOf(p, ref) === 'live');

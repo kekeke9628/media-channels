@@ -20,7 +20,7 @@ export default function AlertPanel({ alerts, kpi }) {
         {alerts.stale.length === 0 && <p className="empty">해당 없음</p>}
         {alerts.stale.length > 0 && (
           <div className="slack danger">
-            <b>🚨 만료된 게시물 {alerts.stale.length}건</b>
+            <b>🚨 만료된 배치 {alerts.stale.length}건</b>
             <span>{alerts.stale.slice(0, 4).map((o) => `[${o.name}] ${o.overdue.brand} +${o.overdueDays}일`).join(' / ')}{alerts.stale.length > 4 ? ` 외 ${alerts.stale.length - 4}건` : ''}</span>
           </div>
         )}
