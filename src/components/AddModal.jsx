@@ -166,7 +166,10 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
           <label className="fld"><span>업체명</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: 나이키" /></label>
           <label className="fld"><span>내용 (선택)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="비워두면 업체명이 그대로 들어갑니다" /></label>
-          <label className="fld"><span>원본 파일 링크 (선택)</span><input value={drive} onChange={(e) => setDrive(e.target.value)} placeholder="구글드라이브 공유 링크 붙여넣기" inputMode="url" /></label>
+          <label className="fld"><span>인쇄용 원본 파일 (선택)</span><input value={drive} onChange={(e) => setDrive(e.target.value)} placeholder="구글드라이브 공유 링크 붙여넣기" inputMode="url" /></label>
+          {/* 이 칸이 무엇인지 아무 설명이 없어 만든 사람조차 헷갈렸다 — 앱이 인쇄용 원본을
+              보관하지 않는다는 전제(사양서 9장)를 여기서 한 줄로 밝힌다. */}
+          <p className="hint">이 앱에는 가벼운 이미지만 저장됩니다. 나중에 다시 인쇄를 맡길 때 필요한 원본(AI·PSD 등)은 구글드라이브에 두고 링크만 붙여넣어 주세요.</p>
           {drive.trim() && !looksLikeUrl(drive) && <p className="warnbox">링크 형식이 아닌 것 같습니다 — 구글드라이브에서 "링크 복사"로 받은 주소를 붙여넣어 주세요.</p>}
 
           <label className="fld"><span>홍보물 이미지 (선택)</span></label>
