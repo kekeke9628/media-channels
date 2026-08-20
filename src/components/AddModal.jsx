@@ -121,18 +121,18 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
       const adjusted = await onAdjustEnd(ov.id, iso(Date.parse(start) - DAY));
       if (!adjusted) { setSaving(false); return; }
     }
-    const created = await onAdd(buildPayload(), placeNow ? { silent: true } : {});
+    // 등록·배치 각각의 토스트 대신 결과를 합쳐 호출 쪽(App)에서 한 번만 알린다.
+    const created = await onAdd(buildPayload(), { silent: true });
     if (!created) { setSaving(false); return; }
     if (placeNow) {
-      // 등록·배치를 한 번에 했으면 "배치했습니다"만 뜨면 홍보물이 등록됐는지 알 수 없어,
-      // 두 단계를 모두 조용히 처리하고 합친 문구를 여기서 한 번만 띄운다.
       const placed = await onAssign(created, { mediaId, start, end: noEnd ? null : end, installPhoto }, { silent: true });
       setSaving(false);
-      onDone?.(placed);
+      onDone?.({ placed });
       if (placed) onClose();
       return;
     }
     setSaving(false);
+    onDone?.({ registeredOnly: true });
     onClose();
   };
 
@@ -204,7 +204,10 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
             </>
           )}
 
-          <label className="chk"><input type="checkbox" checked={placeNow} onChange={(e) => { setPlaceNow(e.target.checked); setConflict(null); }} />지금 매체에 배치하기</label>
+          <label className="chk"><input type="checkbox" checked={placeNow} onChange={(e) => { setPlaceNow(e.target.checked); setConflict(null); }} />지금 매체에 배치하기 (한 곳)</label>
+          {/* 여기서는 매체를 하나만 고를 수 있는데, 처음 쓰는 사람은 "여러 곳에 거는 법"을
+              못 찾고 이 화면에서 막힌다 — 경로를 미리 알려 준다. */}
+          <p className="hint">여러 매체에 한 번에 걸려면 그냥 등록만 하세요. 등록 후 홍보물 화면의 <b>+ 배치 추가</b>에서 여러 곳을 한꺼번에 고를 수 있습니다.</p>
           {placeNow && (
             <>
               {targets.length === 0 ? (

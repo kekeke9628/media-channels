@@ -39,7 +39,10 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
   };
 
   const [selected, setSelected] = useState(() => new Set(targets.map((x) => x.id)));
+  const [bulkConfirm, setBulkConfirm] = useState(false);
   useEffect(() => { if (mode === 'bulk') setSelected(new Set(targets.map((x) => x.id))); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 조건이 하나라도 바뀌면 확인을 다시 받는다(확인 후 날짜만 고치고 진행하는 걸 막는다).
+  useEffect(() => { setBulkConfirm(false); }, [start, end, noEnd, selected, mode]);
 
   const mediaPlacements = (id) => placements.filter((pl) => pl.mediaId === id).sort((a, b) => b.start.localeCompare(a.start));
   const findOverlap = (id) => {
@@ -87,10 +90,15 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
     if (ok > 0) onClose();
   };
 
+  // 단일 배치는 겹칠 때 conflictbox로 한 번 더 확인받는데 벌크는 경고문만 띄우고 바로
+  // 진행해서, 기존 홍보물 여러 건의 종료일이 사용자도 모르게 앞당겨졌다 — 같은 확인 단계를 둔다.
   const submit = () => {
     if (saving) return;
     if (mode === 'single') { if (mediaId) submitSingle(); }
-    else if (selected.size > 0) submitBulk();
+    else if (selected.size > 0) {
+      if (bulkConflictCount > 0 && !bulkConfirm) { setBulkConfirm(true); return; }
+      submitBulk();
+    }
   };
 
   const canSubmit = mode === 'single' ? !!mediaId : selected.size > 0;
@@ -140,8 +148,18 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
               <div className="conflictbtns"><button className="mini" disabled={saving} onClick={() => setConflict(null)}>취소</button><button className="mini ok" disabled={saving} onClick={submitSingle}>{saving ? '저장 중…' : '그대로 진행'}</button></div>
             </div>
           )}
-          {mode === 'bulk' && bulkConflictCount > 0 && (
-            <p className="warnbox">⚠ 선택된 매체 중 {bulkConflictCount}곳은 이미 겹치는 배치가 있습니다 — 그대로 진행하면 기존 배치의 종료일이 자동으로 단축됩니다.</p>
+          {mode === 'bulk' && bulkConflictCount > 0 && !bulkConfirm && (
+            <p className="warnbox">⚠ 선택된 매체 중 {bulkConflictCount}곳은 이미 걸린 홍보물이 있습니다 — 그대로 진행하면 그 홍보물의 종료일이 앞당겨집니다.</p>
+          )}
+          {mode === 'bulk' && bulkConfirm && (
+            <div className="conflictbox">
+              선택한 {selected.size}곳 중 <b>{bulkConflictCount}곳</b>에 이미 걸린 홍보물이 있습니다.<br />
+              그대로 진행하면 그 홍보물들의 종료일이 <b>{iso(Date.parse(start) - DAY)}</b>로 앞당겨집니다.
+              <div className="conflictbtns">
+                <button className="mini" disabled={saving} onClick={() => setBulkConfirm(false)}>취소</button>
+                <button className="mini ok" disabled={saving} onClick={submitBulk}>{saving ? '배치 중…' : '그대로 진행'}</button>
+              </div>
+            </div>
           )}
 
           {mode === 'bulk' && targets.length > 0 && (

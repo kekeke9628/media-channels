@@ -264,6 +264,15 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
         onPointerUp={onWrapPointerUp}
         onPointerCancel={onWrapPointerUp}
       >
+        {/* 추가 모드에 들어가도 바뀌는 건 멀리 있는 버튼 라벨뿐이라, 모바일에서는 지금이
+            "위치를 고르는 중"인지 알기 어려웠다 — 지도 위에 직접 알려 준다.
+            배너에서 시작된 포인터가 지도 클릭으로 이어지지 않게 전파를 막는다. */}
+        {addMode && (
+          <div className="addhint" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
+            <span>새 매체를 놓을 위치를 눌러 주세요</span>
+            <button onClick={() => setAddMode(false)}>취소</button>
+          </div>
+        )}
         <div className="mapstage" ref={stageRef}>
           {mapImage ? (
             <img src={mapImage} alt="배치도" className="mapbg-img" />

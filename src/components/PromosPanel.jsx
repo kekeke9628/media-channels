@@ -38,14 +38,19 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
       const names = (placementsOf[p.id] || []).map((pl) => mName(pl.mediaId)).join(' ');
       return (p.brand + contentOf(p) + names).toLowerCase().includes(q.toLowerCase());
     })
+    // 미배치가 맨 앞 — 아직 어디에도 안 걸린 것이 조치가 필요한 항목이고, 방금 등록한
+    // 홍보물도 미배치라 목록 맨 아래까지 스크롤해야 찾을 수 있던 문제를 함께 없앤다.
     .sort((a, b) => {
-      const da = placementsOf[a.id]?.length ? 0 : 1, db = placementsOf[b.id]?.length ? 0 : 1;
+      const da = placementsOf[a.id]?.length ? 1 : 0, db = placementsOf[b.id]?.length ? 1 : 0;
       if (da !== db) return da - db;
       return (b.createdAt || '').localeCompare(a.createdAt || '');
     });
 
   return (
     <div>
+      {/* 홍보물과 매체가 분리돼 있다는 게 이 화면의 전제인데 처음 보는 사람은 알 수 없어,
+          한 줄로 관계를 설명한다. */}
+      <p className="hint" style={{ marginBottom: 10 }}>홍보물은 매체와 따로 관리됩니다 — 먼저 등록해 두고, 필요한 매체에 원하는 만큼 <b>배치</b>하세요.</p>
       <div className="toolrow">
         <input className="inp" placeholder="업체명 · 내용 · 매체명 검색" value={q} onChange={(e) => setQ(e.target.value)} />
         <div className="dd right">

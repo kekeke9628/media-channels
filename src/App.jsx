@@ -62,7 +62,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const [selMedia, setSelMedia] = useState(null);
   const [typeFilter, setTypeFilter] = useState(new Set());
   const [zoneFilter, setZoneFilter] = useState('ALL');
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState(null); // { msg, undo? }
   const [narrow, setNarrow] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [addMediaId, setAddMediaId] = useState(null);
@@ -102,7 +102,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     return () => window.removeEventListener('keydown', onKey);
   }, [selMedia]);
 
-  const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 2500); };
+  // undo를 넘기면 토스트에 "되돌리기" 버튼이 붙고, 누를 시간을 주려고 더 오래 떠 있는다.
+  // 철거 완료처럼 되돌리는 경로가 화면에 없던 동작에 실행취소를 주기 위한 것.
+  const flash = (m, undo) => {
+    setToast({ msg: m, undo });
+    setTimeout(() => setToast(null), undo ? 7000 : 2500);
+  };
 
   const T = useMemo(() => Object.fromEntries(types.map((t) => [t.code, t])), [types]);
   const state = useMemo(() => buildState(media, autoClose(placements, refDate), refDate), [media, placements, refDate]);
@@ -169,7 +174,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     try {
       await markPlacementRemoved(id, refDate);
       setPlacements((prev) => prev.map((p) => (p.id === id ? { ...p, removedAt: refDate, removalSource: 'manual' } : p)));
-      flash('철거 완료로 기록했습니다.');
+      flash('철거 완료로 기록했습니다.', () => undoRemoved(id));
     } catch (e) { flash('처리에 실패했습니다: ' + e.message); }
   };
   const undoRemoved = async (id) => {
@@ -298,7 +303,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
               <div className="quickbtns">
                 <button className="btn primary" onClick={() => setAddOpen(true)}>+홍보물 등록</button>
                 <button className={'btn primary' + (addMode ? ' on' : '')} onClick={() => { setAddMode((v) => !v); setEditMode(false); }}>
-                  {addMode ? '추가할 위치 클릭…' : '+매체 관리'}
+                  {addMode ? '위치 선택 중…' : '+매체 추가'}
                 </button>
               </div>
             )}
@@ -322,7 +327,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
             <div className="quickbtns wide">
               <button className="btn primary" onClick={() => setAddOpen(true)}>+홍보물 등록</button>
               <button className={'btn primary' + (addMode ? ' on' : '')} onClick={() => { setAddMode((v) => !v); setEditMode(false); }}>
-                {addMode ? '추가할 위치 클릭…' : '+매체 관리'}
+                {addMode ? '위치 선택 중…' : '+매체 추가'}
               </button>
             </div>
           )}
@@ -397,7 +402,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {...ctx} media={media} placements={placements} initialMediaId={addMediaId}
           onClose={() => { setAddOpen(false); setAddMediaId(null); }}
           onAdd={addPosting} onAssign={addPlacement} onAdjustEnd={adjustEnd}
-          onDone={(placed) => flash(placed ? '홍보물을 등록하고 매체에 배치했습니다.' : '홍보물은 등록했지만 배치에 실패했습니다.')}
+          onDone={({ placed, registeredOnly }) => {
+            // 배치 없이 등록만 하면 방금 만든 홍보물이 어느 화면에도 안 보여서, 다음 할 일이
+            // 있는 홍보물 화면으로 옮겨 주고 무엇을 해야 하는지 문구로 알려준다.
+            if (registeredOnly) { setTab('promos'); flash('홍보물을 등록했습니다. 이제 "배치 추가"로 매체에 걸어 주세요.'); return; }
+            flash(placed ? '홍보물을 등록하고 매체에 배치했습니다.' : '홍보물은 등록했지만 배치에 실패했습니다.');
+          }}
         />
       )}
       {assigningId && isEditor && (
@@ -407,7 +417,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           onDone={(ok, failed) => flash(`${ok}건 배치 완료${failed ? ` · ${failed}건 실패` : ''}`)}
         />
       )}
-      {toast && <div className="toast">{toast}</div>}
+      {toast && (
+        <div className="toast">
+          {toast.msg}
+          {toast.undo && <button className="toast-undo" onClick={() => { toast.undo(); setToast(null); }}>되돌리기</button>}
+        </div>
+      )}
     </div>
   );
 }
