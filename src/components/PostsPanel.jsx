@@ -84,7 +84,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
   return (
     <div>
       <div className="toolrow">
-        <input className="inp" placeholder="매체명 · 유형 · 구역 · 업체명 · 내용 · 상태 검색" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="inp" placeholder="매체 · 업체 · 내용 검색" value={q} onChange={(e) => setQ(e.target.value)} />
         <label className="chk"><input type="checkbox" checked={rangeOn} onChange={(e) => setRangeOn(e.target.checked)} />기간으로 조회</label>
         {rangeOn && (
           <div className="daterange">
@@ -204,10 +204,10 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
               <SortTh label="내용" sortKey="content" sort={sortHist} setSort={setSortHist} />
               <SortTh label="시작일" sortKey="start" sort={sortHist} setSort={setSortHist} />
               <SortTh label="종료일" sortKey="end" sort={sortHist} setSort={setSortHist} />
-              <SortTh label="실제철거" sortKey="removed" sort={sortHist} setSort={setSortHist} />
+              <SortTh label="실제 철거일" sortKey="removed" sort={sortHist} setSort={setSortHist} />
               <SortTh label="기간" sortKey="duration" sort={sortHist} setSort={setSortHist} className="r" />
               <SortTh label="상태" sortKey="status" sort={sortHist} setSort={setSortHist} />
-              {isEditor && <th className="r">조치</th>}
+              {isEditor && <th className="r" />}
             </tr></thead>
             <tbody>
               {sortRows(historyRows, sortHist, (p, key) => {

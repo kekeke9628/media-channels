@@ -77,7 +77,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                           <span className="sub mono">{t.spec || '규격 미정'} · {t.faces}면</span>
                         </div>
                         <div className="mcard-date">
-                          등록 매체 {countOf(t.code)}개{t.movable ? ' · 이동형' : ''}{t.openEnded ? ' · 종료일 미정 기본' : ''}
+                          등록 매체 {countOf(t.code)}개{t.movable ? ' · 이동형' : ''}{t.openEnded ? ' · 종료일 기본 미정' : ''}
                         </div>
                         {isEditor && (
                           <div className="conflictbtns" style={{ marginTop: 9 }}>
@@ -94,7 +94,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
           ) : (
           <div className="scroll" style={{ maxHeight: 340, marginBottom: 16 }}>
             <table>
-              <thead><tr><th>아이콘</th><th>유형</th><th>기본 규격</th><th className="r">면수</th><th>이동형</th><th>종료일</th><th className="r">등록 매체</th><th className="r">관리</th></tr></thead>
+              <thead><tr><th>아이콘</th><th>유형</th><th>기본 규격</th><th className="r">면수</th><th>이동형</th><th>종료일 기본값</th><th className="r">등록 매체</th><th className="r">관리</th></tr></thead>
               <tbody>
                 {types.map((t) => {
                   const isEd = editing === t.code;
@@ -113,7 +113,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                       </td>
                       <td className="r mono">{isEd ? <input className="inp num" type="number" min="1" max="6" value={edit.faces} onChange={(e) => setEdit({ ...edit, faces: +e.target.value })} /> : t.faces}</td>
                       <td className="sub">{t.movable ? '예' : '—'}</td>
-                      <td className="sub">{t.openEnded ? '미정 기본' : '필수'}</td>
+                      <td className="sub">{t.openEnded ? '미정' : '직접 입력'}</td>
                       <td className="r mono">{countOf(t.code)}</td>
                       <td className="r">
                         {!isEditor ? <span className="sub">—</span> : isEd ? (
@@ -141,8 +141,8 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                 <label className="fld"><span>면수</span><input type="number" min="1" max="6" value={nt.faces} onChange={(e) => setNt({ ...nt, faces: +e.target.value })} /></label>
                 <label className="fld"><span>아이콘</span><input className="iconinp" value={nt.glyph} onChange={(e) => setNt({ ...nt, glyph: e.target.value })} maxLength={2} /></label>
                 <label className="fld"><span>색상</span><input className="colorinp" type="color" value={nt.color} onChange={(e) => setNt({ ...nt, color: e.target.value })} /></label>
-                <label className="chk"><input type="checkbox" checked={nt.movable} onChange={(e) => setNt({ ...nt, movable: e.target.checked })} />이동형</label>
-                <label className="chk"><input type="checkbox" checked={nt.openEnded} onChange={(e) => setNt({ ...nt, openEnded: e.target.checked })} />종료일 미정 기본</label>
+                <label className="chk"><input type="checkbox" checked={nt.movable} onChange={(e) => setNt({ ...nt, movable: e.target.checked })} />위치를 자주 옮기는 유형</label>
+                <label className="chk"><input type="checkbox" checked={nt.openEnded} onChange={(e) => setNt({ ...nt, openEnded: e.target.checked })} />종료일을 보통 정하지 않는 유형</label>
                 <button className="btn primary" disabled={!nt.label} onClick={() => {
                   onAddType({
                     label: nt.label, spec: joinSpec(nt.specW, nt.specH), faces: nt.faces, color: nt.color, glyph: nt.glyph,
@@ -172,7 +172,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                     </div>
                     <div className="mcard-meta">
                       <span className="sub">{zoneLabel(m.zone)}</span>
-                      <span className="sub mono">{m.faces}면 · 게시 이력 {hist}건</span>
+                      <span className="sub mono">{m.faces}면 · 지난 배치 {hist}건</span>
                     </div>
                     <div className="mcard-date mono">{m.id}</div>
                     {isEditor && (
@@ -187,7 +187,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
           ) : (
           <div className="scroll tall">
             <table>
-              <thead><tr><th>매체명</th><th>유형</th><th>구역</th><th className="r">면수</th><th className="r">게시 이력</th><th className="r">관리</th></tr></thead>
+              <thead><tr><th>매체명</th><th>유형</th><th>구역</th><th className="r">면수</th><th className="r">지난 배치</th><th className="r">관리</th></tr></thead>
               <tbody>
                 {rows.map((m) => {
                   const t = T[m.type];

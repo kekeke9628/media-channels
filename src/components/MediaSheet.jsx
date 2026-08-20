@@ -80,7 +80,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
         {/* 이력이 없으면 썸네일 줄·표가 빈 채로 자리만 차지해서, 섹션 자체를 접는다. */}
         {past.length > 0 && (
           <>
-            <h4>게시 이력 <span className="sub">{past.length}건</span></h4>
+            <h4>지난 배치 <span className="sub">{past.length}건</span></h4>
             <div className="thumbrow">{past.map((p) => {
               const url = imgUrls.get(p.thumbPath);
               return (
@@ -98,8 +98,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
 
         {isEditor && (
           <>
-            <h4>매체 관리</h4>
-            <button className="btn wide danger" onClick={() => onDelete(o.id)}>{o.history.length ? '이 매체 지도에서 숨기기' : '이 매체 삭제'}</button>
+            <button className="btn wide danger" onClick={() => onDelete(o.id)}>{o.history.length ? '이 매체 보관 (지도에서 내리기)' : '이 매체 삭제'}</button>
           </>
         )}
         </div>

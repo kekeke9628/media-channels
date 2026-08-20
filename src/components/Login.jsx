@@ -11,7 +11,7 @@ export default function Login({ initialError }) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(
-    initialError ? '로그인 링크가 만료되었거나 이미 사용되었습니다. 새 링크를 요청하세요. (' + initialError + ')' : ''
+    initialError ? '로그인에 실패했습니다. 이메일과 비밀번호를 확인해 주세요. (' + initialError + ')' : ''
   );
 
   const email = local && `${local}@${domain === CUSTOM ? customDomain : domain}`;

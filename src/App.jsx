@@ -298,7 +298,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {/* 모바일 전용 — 기준일+홍보물 등록을 브랜드 행 오른쪽 여백에 압축해 넣어 2행을 없앤다.
               데스크톱에서는 숨기고 아래 원래 .side-row2를 그대로 쓴다. */}
           <div className="mobile-quickrow">
-            <label className="reffield">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
+            <label className="reffield" title="이 날짜를 기준으로 게시중·만료 등 상태를 계산합니다. 기본값은 오늘입니다.">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
             {isEditor && (
               <div className="quickbtns">
                 <button className="btn primary" onClick={() => setAddOpen(true)}>+홍보물 등록</button>
@@ -331,7 +331,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
               </button>
             </div>
           )}
-          <label className="reffield">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
+          <label className="reffield" title="이 날짜를 기준으로 게시중·만료 등 상태를 계산합니다. 기본값은 오늘입니다.">기준일<input type="date" value={refDate} onChange={(e) => setRefDate(e.target.value)} /></label>
         </div>
         <div className="sidefoot">
           {admin.name || admin.email} · {isEditor ? '편집자' : '조회자'}
@@ -367,6 +367,15 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           onMoveLocal={moveMediaLocal} onMoveCommit={moveMediaCommit} onCreate={addMediaAt} onRestoreAt={restoreMediaAtLocal}
           mapImage={mapImage} onMapImage={saveMapImage}
         />
+
+        {/* 기준일을 바꿔 놓고 잊으면 "오늘 상태"인 줄 알고 잘못 판단하게 된다 — 오늘이
+            아닐 때만 눈에 띄게 알리고 한 번에 되돌린다. */}
+        {refDate !== getToday() && (
+          <div className="refwarn">
+            <span><b className="mono">{refDate}</b> 기준으로 보는 중 — 오늘 상태가 아닙니다.</span>
+            <button onClick={() => setRefDate(getToday())}>오늘로</button>
+          </div>
+        )}
 
         <div className="tabs" ref={panelTopRef}>
           {tabEntries.map(([k, v]) => (

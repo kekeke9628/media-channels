@@ -183,16 +183,13 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                   <label className="drop">
                     <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && process(e.target.files[0], i)} />
                     <span className="dropbtn">사진 선택</span>
-                    <p>이미지를 올리면 브라우저에서 <b>WebP 2단</b>(1600px / 400px)으로 변환합니다. 원본은 업로드되지 않습니다.</p>
+                    <p>사진은 올릴 때 자동으로 용량을 줄여 저장합니다.</p>
                   </label>
                   {busyFace[i] && <p className="hint">변환 중…</p>}
                   {results[i] && (
                     <div className="rbox">
-                      <div className="rline"><span>원본</span><b className="mono">{results[i].w}×{results[i].h} · {(results[i].orig / 1048576).toFixed(2)}MB</b></div>
-                      <div className="rline"><span>view (1600px)</span><b className="mono">{results[i].view.w}×{results[i].view.h} · {(results[i].view.bytes / 1024).toFixed(0)}KB</b></div>
-                      <div className="rline"><span>thumb (400px)</span><b className="mono">{results[i].thumb.w}×{results[i].thumb.h} · {(results[i].thumb.bytes / 1024).toFixed(0)}KB</b></div>
-                      <div className="rline total"><span>절감</span><b className="mono">{Math.round((1 - results[i].view.bytes / results[i].orig) * 100)}%</b></div>
-                      <div className="rprev"><img src={results[i].thumb.url} alt="" /><i className="sub">썸네일 미리보기</i></div>
+                      <div className="rline total"><span>용량</span><b className="mono">{(results[i].orig / 1048576).toFixed(1)}MB → {(results[i].view.bytes / 1024).toFixed(0)}KB</b></div>
+                      <div className="rprev"><img src={results[i].thumb.url} alt="" /><i className="sub">등록될 이미지</i></div>
                     </div>
                   )}
                 </div>
@@ -203,17 +200,14 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               <label className="drop">
                 <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && process(e.target.files[0])} />
                 <span className="dropbtn">사진 선택</span>
-                <p>이미지를 올리면 브라우저에서 <b>WebP 2단</b>(1600px / 400px)으로 변환합니다. 원본은 업로드되지 않습니다.</p>
+                <p>사진은 올릴 때 자동으로 용량을 줄여 저장합니다.</p>
               </label>
               {busy && <p className="hint">변환 중…</p>}
               {result && (
                 <div className="rbox">
-                  <div className="rline"><span>원본</span><b className="mono">{result.w}×{result.h} · {(result.orig / 1048576).toFixed(2)}MB</b></div>
-                  <div className="rline"><span>view (1600px)</span><b className="mono">{result.view.w}×{result.view.h} · {(result.view.bytes / 1024).toFixed(0)}KB</b></div>
-                  <div className="rline"><span>thumb (400px)</span><b className="mono">{result.thumb.w}×{result.thumb.h} · {(result.thumb.bytes / 1024).toFixed(0)}KB</b></div>
-                  <div className="rline total"><span>절감</span><b className="mono">{Math.round((1 - result.view.bytes / result.orig) * 100)}%</b></div>
-                  {mismatch && <p className="warnbox">⚠ 매체 유형 규격 비율({specRatio.toFixed(2)})과 이미지 비율({result.ratio})이 다릅니다.</p>}
-                  <div className="rprev"><img src={result.thumb.url} alt="" /><i className="sub">썸네일 미리보기</i></div>
+                  <div className="rline total"><span>용량</span><b className="mono">{(result.orig / 1048576).toFixed(1)}MB → {(result.view.bytes / 1024).toFixed(0)}KB</b></div>
+                  {mismatch && <p className="warnbox">⚠ 사진 가로세로 비율이 이 매체 규격({t.spec})과 달라, 실제 인쇄물에서는 잘려 보일 수 있습니다.</p>}
+                  <div className="rprev"><img src={result.thumb.url} alt="" /><i className="sub">등록될 이미지</i></div>
                 </div>
               )}
             </>
@@ -234,7 +228,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                 <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
                 <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
               </div>
-              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일 미정 (미정 상태) — 철거 알람 대상에서 제외됩니다</label>
+              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
 
               <label className="fld"><span>설치 확인 사진 (선택)</span></label>
               <label className="drop">

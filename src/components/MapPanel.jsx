@@ -311,7 +311,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
                   {(hover === o.id || selMedia === o.id) && (
                     <span className="plabel">
                       {o.name}
-                      <i>{o.overdue ? '만료 +' + o.overdueDays + '일' : o.open ? '미정' : o.live ? 'D-' + o.dToRemove : '비어있음'}</i>
+                      <i>{o.overdue ? '만료 +' + o.overdueDays + '일' : o.open ? '게시중' : o.live ? 'D-' + o.dToRemove : '비어있음'}</i>
                     </span>
                   )}
                 </div>
@@ -377,8 +377,8 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
         {types.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
       </select>
       <div className="seg">
-        <button className={source === 'new' ? 'on' : ''} onClick={() => setSource('new')}>신규</button>
-        <button className={source === 'existing' ? 'on' : ''} onClick={() => setSource('existing')}>기존</button>
+        <button className={source === 'new' ? 'on' : ''} onClick={() => setSource('new')}>새로 만들기</button>
+        <button className={source === 'existing' ? 'on' : ''} onClick={() => setSource('existing')}>보관함에서</button>
       </div>
       {source === 'new' ? (
         <>
@@ -390,7 +390,7 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
           {archivedOfType.map((m) => <option key={m.id} value={m.id}>{m.name} · {zoneLabel(m.zone)}</option>)}
         </select>
       ) : (
-        <p className="sub" style={{ padding: '4px 0' }}>보관 중인 {t?.label}이 없습니다.</p>
+        <p className="sub" style={{ padding: '4px 0' }}>보관해 둔 {t?.label}이(가) 없습니다.</p>
       )}
       <div className="addpop-btns">
         <button className="mini" onClick={onCancel}>취소</button>

@@ -5,7 +5,7 @@ import { ALERT_DAYS } from '../constants.js';
 export default function AlertPanel({ alerts, kpi }) {
   return (
     <div className="alertwrap">
-      <p className="hint">매일 09:00 KST · 기준일 D-{ALERT_DAYS} 조건으로 발송</p>
+      <p className="hint">아래 내용이 <b>슬랙</b>으로 자동 발송됩니다 · 매일 오전 9시 · 종료일 {ALERT_DAYS}일 전부터 알림</p>
 
       <section className="block">
         <h3>① 철거 예고 <span>{alerts.soon.length}건</span></h3>
