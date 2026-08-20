@@ -102,7 +102,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                 )}
                 {isEditor && <button className="btn primary wide" style={{ marginTop: 6 }} onClick={() => onAssign(p.id)}>+ 배치 추가</button>}
                 <div className="crow">
-                  {p.driveUrl && p.driveUrl !== '#' && <a className="lnk" href={p.driveUrl} target="_blank" rel="noreferrer">원본(드라이브)</a>}
+                  {p.driveUrl && <a className="lnk" href={p.driveUrl} target="_blank" rel="noreferrer">원본 파일</a>}
                   {isEditor && pls.length === 0 && <button className="mini no" onClick={() => onDeletePosting(p.id)}>홍보물 삭제</button>}
                 </div>
               </div>

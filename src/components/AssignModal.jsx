@@ -132,10 +132,11 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
           {mode === 'single' && (
             <>
               <label className="fld"><span>설치 확인 사진 (선택)</span></label>
-              <div className="drop">
+              <label className="drop">
                 <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
+                <span className="dropbtn">사진 선택</span>
                 <p>현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.</p>
-              </div>
+              </label>
               {installBusy && <p className="hint">변환 중…</p>}
               {installPhoto && <div className="rprev"><img src={installPhoto.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
             </>

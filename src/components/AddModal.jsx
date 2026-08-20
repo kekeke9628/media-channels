@@ -2,6 +2,15 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 
+// 붙여넣은 링크 정리 — 비워 두면 null(예전엔 '#'를 넣어 두고 화면에서 다시 걸러내야 했다),
+// 스킴 없이 "drive.google.com/..."만 붙여넣어도 열리도록 https를 붙여 준다.
+const looksLikeUrl = (v) => /^(https?:\/\/)?[\w-]+(\.[\w-]+)+/.test(v.trim());
+const normalizeUrl = (v) => {
+  const s = v.trim();
+  if (!s) return null;
+  return /^https?:\/\//i.test(s) ? s : 'https://' + s;
+};
+
 // 홍보물 등록 — 매체·일정과 무관하게 브랜드·내용·이미지만 먼저 등록한다. 어느 매체에
 // 언제 걸지는 별도(매체 배치)로 정한다. 다만 흔한 경우인 "등록하면서 바로 한 매체에
 // 걸기"는 "지금 매체에 배치하기"를 켜면 한 화면에서 같이 처리할 수 있다.
@@ -108,7 +117,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const buildPayload = () => {
     const faceResults = faceCount === 2 ? [0, 1].map((i) => ({ direction: directions[i], result: results[i] })) : null;
     return {
-      type: typeCode, brand, title, driveUrl: drive || '#',
+      type: typeCode, brand, title, driveUrl: normalizeUrl(drive),
       singleResult: faceCount === 1 ? result : null, faceResults,
     };
   };
@@ -157,7 +166,8 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
           <label className="fld"><span>업체명</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: 나이키" /></label>
           <label className="fld"><span>내용 (선택)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="비워두면 업체명이 그대로 들어갑니다" /></label>
-          <label className="fld"><span>원본 위치</span><input value={drive} onChange={(e) => setDrive(e.target.value)} placeholder="구글드라이브 링크" /></label>
+          <label className="fld"><span>원본 파일 링크 (선택)</span><input value={drive} onChange={(e) => setDrive(e.target.value)} placeholder="구글드라이브 공유 링크 붙여넣기" inputMode="url" /></label>
+          {drive.trim() && !looksLikeUrl(drive) && <p className="warnbox">링크 형식이 아닌 것 같습니다 — 구글드라이브에서 "링크 복사"로 받은 주소를 붙여넣어 주세요.</p>}
 
           <label className="fld"><span>홍보물 이미지 (선택)</span></label>
           {faceCount === 2 ? (
@@ -167,10 +177,11 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                 <div key={i} className="faceblock">
                   <b className="facelabel">{i === 0 ? '1면 (앞)' : '2면 (뒤)'}</b>
                   <label className="fld"><span>방향</span><input value={directions[i]} onChange={(e) => setDirections((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))} placeholder="예: 정문 방향 / 주차장 방향" /></label>
-                  <div className="drop">
+                  <label className="drop">
                     <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && process(e.target.files[0], i)} />
+                    <span className="dropbtn">사진 선택</span>
                     <p>이미지를 올리면 브라우저에서 <b>WebP 2단</b>(1600px / 400px)으로 변환합니다. 원본은 업로드되지 않습니다.</p>
-                  </div>
+                  </label>
                   {busyFace[i] && <p className="hint">변환 중…</p>}
                   {results[i] && (
                     <div className="rbox">
@@ -186,10 +197,11 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
             </>
           ) : (
             <>
-              <div className="drop">
+              <label className="drop">
                 <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && process(e.target.files[0])} />
+                <span className="dropbtn">사진 선택</span>
                 <p>이미지를 올리면 브라우저에서 <b>WebP 2단</b>(1600px / 400px)으로 변환합니다. 원본은 업로드되지 않습니다.</p>
-              </div>
+              </label>
               {busy && <p className="hint">변환 중…</p>}
               {result && (
                 <div className="rbox">
@@ -222,10 +234,11 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일 미정 (미정 상태) — 철거 알람 대상에서 제외됩니다</label>
 
               <label className="fld"><span>설치 확인 사진 (선택)</span></label>
-              <div className="drop">
+              <label className="drop">
                 <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
+                <span className="dropbtn">사진 선택</span>
                 <p>현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.</p>
-              </div>
+              </label>
               {installBusy && <p className="hint">변환 중…</p>}
               {installPhoto && <div className="rprev"><img src={installPhoto.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
 
