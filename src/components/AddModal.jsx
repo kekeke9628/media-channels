@@ -165,7 +165,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                   <b className="facelabel">{i === 0 ? '1면 (앞)' : '2면 (뒤)'}</b>
                   <label className="fld"><span>방향</span><input value={directions[i]} onChange={(e) => setDirections((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))} placeholder="예: 정문 방향 / 주차장 방향" /></label>
                   <div className="drop">
-                    <input type="file" accept="image/*" capture="environment" onChange={(e) => e.target.files[0] && process(e.target.files[0], i)} />
+                    <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && process(e.target.files[0], i)} />
                     <p>이미지를 올리면 브라우저에서 <b>WebP 2단</b>(1600px / 400px)으로 변환합니다. 원본은 업로드되지 않습니다.</p>
                   </div>
                   {busyFace[i] && <p className="hint">변환 중…</p>}
@@ -184,7 +184,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
           ) : (
             <>
               <div className="drop">
-                <input type="file" accept="image/*" capture="environment" onChange={(e) => e.target.files[0] && process(e.target.files[0])} />
+                <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && process(e.target.files[0])} />
                 <p>이미지를 올리면 브라우저에서 <b>WebP 2단</b>(1600px / 400px)으로 변환합니다. 원본은 업로드되지 않습니다.</p>
               </div>
               {busy && <p className="hint">변환 중…</p>}
@@ -217,7 +217,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
               <label className="fld"><span>설치 확인 사진 (선택)</span></label>
               <div className="drop">
-                <input type="file" accept="image/*" capture="environment" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
+                <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
                 <p>현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.</p>
               </div>
               {installBusy && <p className="hint">변환 중…</p>}
