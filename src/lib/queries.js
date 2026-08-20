@@ -98,7 +98,6 @@ function mapPosting(p) {
     driveUrl: p.origin_url,
     thumbPath: p.thumb_path,
     viewPath: p.view_path,
-    installPhoto: !!p.install_photo_path,
     faces: p.faces || null,
     hue: hueOf(p.id),
     bytesOrig: p.bytes_orig || 0,
@@ -116,6 +115,7 @@ function mapPlacement(pl) {
     end: pl.end_date,
     removedAt: pl.removed_at,
     removalSource: pl.removal_source,
+    installPhoto: !!pl.install_photo_path,
   };
 }
 
@@ -171,7 +171,7 @@ async function uploadPostingImage(path, dataUrl) {
 // 홍보물 등록 — 매체·일정과 무관하게 브랜드·내용·이미지만 먼저 등록한다. 어느 매체에
 // 걸지는 나중에(또는 여러 번) createPlacement로 따로 정한다. faces===2(웨더워리어류)이면
 // face 배열(앞/뒤 방향+변환결과)을 받아 면마다 별도 이미지를 올리고 faces(jsonb)에 담는다.
-export async function createPosting({ type, brand, title, driveUrl, singleResult, faceResults, installPhoto }) {
+export async function createPosting({ type, brand, title, driveUrl, singleResult, faceResults }) {
   const { data: userData } = await supabase.auth.getUser();
   const { data: inserted, error: insertError } = await supabase
     .from('postings')
@@ -208,9 +208,6 @@ export async function createPosting({ type, brand, title, driveUrl, singleResult
     patch.bytes_orig = singleResult.orig;
     patch.bytes_light = singleResult.view.bytes;
   }
-  if (installPhoto) {
-    patch.install_photo_path = await uploadPostingImage(`${id}/install.webp`, installPhoto.url);
-  }
 
   if (Object.keys(patch).length === 0) return mapPosting(inserted);
   const { data: updated, error: updateError } = await supabase.from('postings').update(patch).eq('id', id).select().single();
@@ -226,15 +223,26 @@ export async function deletePosting(id) {
 }
 
 // 등록된 홍보물을 매체에 배치한다 — 처음 배치든, 이미 다른 매체(들)에 걸려 있는 홍보물의
-// 추가 배치든 동일하게 새 placements 행을 하나 만든다.
-export async function createPlacement({ postingId, mediaId, start, end }) {
-  const { data, error } = await supabase
+// 추가 배치든 동일하게 새 placements 행을 하나 만든다. 설치 확인 사진은 "이 배치가 실제로
+// 이 매체에 설치됐다"는 증빙이라 홍보물이 아니라 이 배치 행에 붙는다.
+export async function createPlacement({ postingId, mediaId, start, end, installPhoto }) {
+  const { data: inserted, error: insertError } = await supabase
     .from('placements')
     .insert({ posting_id: postingId, media_id: mediaId, start_date: start, end_date: end })
     .select()
     .single();
-  if (error) throw error;
-  return mapPlacement(data);
+  if (insertError) throw insertError;
+  if (!installPhoto) return mapPlacement(inserted);
+
+  const install_photo_path = await uploadPostingImage(`placements/${inserted.id}/install.webp`, installPhoto.url);
+  const { data: updated, error: updateError } = await supabase
+    .from('placements')
+    .update({ install_photo_path })
+    .eq('id', inserted.id)
+    .select()
+    .single();
+  if (updateError) throw updateError;
+  return mapPlacement(updated);
 }
 
 // 배치를 잘못 만들었을 때(엉뚱한 매체 선택 등) 되돌리는 삭제 — 실제 철거 기록(removed_at)과는

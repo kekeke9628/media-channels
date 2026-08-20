@@ -17,6 +17,26 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
   const [conflict, setConflict] = useState(null);
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState(null);
+  // 설치 확인 사진(선택) — 단일 배치에만 해당. 여러 매체를 한 번에 배치할 땐 물리적으로
+  // 서로 다른 설치라 사진 한 장을 공유시킬 수 없다.
+  const [installPhoto, setInstallPhoto] = useState(null);
+  const [installBusy, setInstallBusy] = useState(false);
+  const processInstallPhoto = (f) => {
+    setInstallBusy(true);
+    const img = new Image();
+    const url = URL.createObjectURL(f);
+    img.onload = () => {
+      const s = Math.min(1, 1200 / Math.max(img.width, img.height));
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      setInstallPhoto({ url: cv.toDataURL('image/webp', 0.75), w: cv.width, h: cv.height });
+      setInstallBusy(false);
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => { setInstallBusy(false); setInstallPhoto(null); };
+    img.src = url;
+  };
 
   const [selected, setSelected] = useState(() => new Set(targets.map((x) => x.id)));
   useEffect(() => { if (mode === 'bulk') setSelected(new Set(targets.map((x) => x.id))); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -42,7 +62,7 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
       const adjusted = await onAdjustEnd(ov.id, iso(Date.parse(start) - DAY));
       if (!adjusted) { setSaving(false); return; }
     }
-    const ok = await onAssign(posting, { mediaId, start, end: noEnd ? null : end });
+    const ok = await onAssign(posting, { mediaId, start, end: noEnd ? null : end, installPhoto });
     setSaving(false);
     if (ok) onClose();
   };
@@ -100,6 +120,18 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
             <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
           </div>
           <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일 미정 (미정 상태) — 철거 알람 대상에서 제외됩니다</label>
+
+          {mode === 'single' && (
+            <>
+              <label className="fld"><span>설치 확인 사진 (선택)</span></label>
+              <div className="drop">
+                <input type="file" accept="image/*" capture="environment" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
+                <p>현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.</p>
+              </div>
+              {installBusy && <p className="hint">변환 중…</p>}
+              {installPhoto && <div className="rprev"><img src={installPhoto.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
+            </>
+          )}
 
           {mode === 'single' && conflict && (
             <div className="conflictbox">

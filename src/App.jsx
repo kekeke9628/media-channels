@@ -197,9 +197,9 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   };
   // 홍보물을 매체에 배치한다 — posting은 이미 state에 있는(또는 방금 등록한) 홍보물 전체
   // 객체를 그대로 받아, placements 목록에 얹을 때 브랜드·이미지 등을 함께 평탄화한다.
-  const addPlacement = async (posting, { mediaId, start, end }, { silent } = {}) => {
+  const addPlacement = async (posting, { mediaId, start, end, installPhoto }, { silent } = {}) => {
     try {
-      const created = await createPlacement({ postingId: posting.id, mediaId, start, end });
+      const created = await createPlacement({ postingId: posting.id, mediaId, start, end, installPhoto });
       setPlacements((prev) => [...prev, { ...posting, ...created }]);
       if (!silent) flash('매체에 배치했습니다.');
       return true;

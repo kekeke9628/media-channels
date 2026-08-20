@@ -110,7 +110,6 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     return {
       type: typeCode, brand, title, driveUrl: drive || '#',
       singleResult: faceCount === 1 ? result : null, faceResults,
-      installPhoto,
     };
   };
 
@@ -125,7 +124,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     const created = await onAdd(buildPayload(), placeNow ? { silent: true } : {});
     if (!created) { setSaving(false); return; }
     if (placeNow) {
-      const placed = await onAssign(created, { mediaId, start, end: noEnd ? null : end });
+      const placed = await onAssign(created, { mediaId, start, end: noEnd ? null : end, installPhoto });
       setSaving(false);
       if (placed) onClose();
       return;
@@ -156,14 +155,6 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
           <label className="fld"><span>업체명</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: 나이키" /></label>
           <label className="fld"><span>내용 (선택)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="비워두면 업체명이 그대로 들어갑니다" /></label>
           <label className="fld"><span>원본 위치</span><input value={drive} onChange={(e) => setDrive(e.target.value)} placeholder="구글드라이브 링크" /></label>
-
-          <label className="fld"><span>설치 확인 사진 (선택)</span></label>
-          <div className="drop">
-            <input type="file" accept="image/*" capture="environment" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
-            <p>현장에 실제로 부착된 모습을 한 장 남겨두면 홍보물 목록에 "설치사진 ✓"로 표시됩니다.</p>
-          </div>
-          {installBusy && <p className="hint">변환 중…</p>}
-          {installPhoto && <div className="rprev"><img src={installPhoto.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
 
           <label className="fld"><span>홍보물 이미지 (선택)</span></label>
           {faceCount === 2 ? (
@@ -223,6 +214,15 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                 <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
               </div>
               <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일 미정 (미정 상태) — 철거 알람 대상에서 제외됩니다</label>
+
+              <label className="fld"><span>설치 확인 사진 (선택)</span></label>
+              <div className="drop">
+                <input type="file" accept="image/*" capture="environment" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
+                <p>현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.</p>
+              </div>
+              {installBusy && <p className="hint">변환 중…</p>}
+              {installPhoto && <div className="rprev"><img src={installPhoto.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
+
               {conflict && (
                 <div className="conflictbox">
                   겹치는 배치가 있습니다 — <b>{conflict.brand}</b> ({conflict.start} ~ {conflict.end || '미정'}).<br />

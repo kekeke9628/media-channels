@@ -69,7 +69,6 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
             <div className="ccard" key={p.id}>
               <div className="cthumb" style={thumbUrls.has(p.thumbPath) ? undefined : { background: `linear-gradient(150deg, hsl(${p.hue} 42% 52%), hsl(${(p.hue + 40) % 360} 38% 38%))` }}>
                 {thumbUrls.has(p.thumbPath) && <img className="cthumb-img" src={thumbUrls.get(p.thumbPath)} alt="" />}
-                {p.installPhoto && <span className="cshot">설치사진 ✓</span>}
               </div>
               <div className="cbody">
                 <b>{p.brand}</b><i className="sub">{contentOf(p)} · {T[p.type]?.label}</i>
@@ -83,7 +82,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                       const s = statusOf(pl, refDate);
                       return (
                         <tr key={pl.id} onClick={() => onPick(pl.mediaId)}>
-                          <td>{mName(pl.mediaId)}</td>
+                          <td>{mName(pl.mediaId)}{pl.installPhoto && <span title="설치 확인 사진 있음"> 📷</span>}</td>
                           <td><StatusChip status={s} /></td>
                           {isEditor && (
                             <td className="r" onClick={(e) => e.stopPropagation()}>
