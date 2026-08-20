@@ -28,7 +28,7 @@ export default function AlertPanel({ alerts, kpi }) {
 
       <section className="block">
         <h3>③ 주간 요약 <span>매주 월 09:00</span></h3>
-        <div className="slack"><b>📋 이번 주 점내 홍보매체</b><span>게시중 {kpi.live + kpi.open}/{kpi.total} · 만료 {kpi.stale} · 미정 {kpi.open}(장기 {kpi.longOpen})</span></div>
+        <div className="slack"><b>📋 이번 주 점내 홍보매체</b><span>게시중 {kpi.live + kpi.open}/{kpi.total} · 만료 {kpi.stale} · 종료일 미정 {kpi.open}건(1년 초과 {kpi.longOpen})</span></div>
       </section>
     </div>
   );

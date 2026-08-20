@@ -6,7 +6,7 @@ import { ZONES } from '../data/seed.js';
 // 언제 걸지는 별도(매체 배치)로 정한다. 다만 흔한 경우인 "등록하면서 바로 한 매체에
 // 걸기"는 "지금 매체에 배치하기"를 켜면 한 화면에서 같이 처리할 수 있다.
 // 이미지는 브라우저 canvas에서 WebP 2단(view 1600px / thumb 400px)으로 변환한다 (사양서 6장).
-export default function AddModal({ T, types, media, placements, refDate, isEditor, initialMediaId, onClose, onAdd, onAssign, onAdjustEnd }) {
+export default function AddModal({ T, types, media, placements, refDate, isEditor, initialMediaId, onClose, onAdd, onAssign, onAdjustEnd, onDone }) {
   const activeTypes = useMemo(() => types.filter((t) => t.active), [types]);
   const initialMedia = initialMediaId ? media.find((x) => x.id === initialMediaId && x.active) : null;
 
@@ -124,8 +124,11 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     const created = await onAdd(buildPayload(), placeNow ? { silent: true } : {});
     if (!created) { setSaving(false); return; }
     if (placeNow) {
-      const placed = await onAssign(created, { mediaId, start, end: noEnd ? null : end, installPhoto });
+      // 등록·배치를 한 번에 했으면 "배치했습니다"만 뜨면 홍보물이 등록됐는지 알 수 없어,
+      // 두 단계를 모두 조용히 처리하고 합친 문구를 여기서 한 번만 띄운다.
+      const placed = await onAssign(created, { mediaId, start, end: noEnd ? null : end, installPhoto }, { silent: true });
       setSaving(false);
+      onDone?.(placed);
       if (placed) onClose();
       return;
     }

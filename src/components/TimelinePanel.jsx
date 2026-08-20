@@ -64,6 +64,12 @@ export default function TimelinePanel({ state, refDate, onPick }) {
               </div>
             ))}
           </div>
+          <div className="tllegend">
+            <span><i style={{ background: '#3C6E9E' }} />게시중</span>
+            <span><i style={{ background: '#7A5AA6' }} />게시예정</span>
+            <span><i style={{ background: '#B4534B' }} />만료</span>
+            <span><i style={{ background: '#B5AFA4' }} />철거완료</span>
+          </div>
         </div>
       ) : (
         <div className="scroll tall">

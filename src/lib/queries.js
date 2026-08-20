@@ -116,6 +116,7 @@ function mapPlacement(pl) {
     removedAt: pl.removed_at,
     removalSource: pl.removal_source,
     installPhoto: !!pl.install_photo_path,
+    installPhotoPath: pl.install_photo_path,
   };
 }
 

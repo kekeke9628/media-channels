@@ -15,7 +15,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
   useEffect(() => {
     let cancelled = false;
     const paths = [
-      cur?.viewPath, cur?.thumbPath,
+      cur?.viewPath, cur?.thumbPath, cur?.installPhotoPath,
       ...(cur?.faces || []).flatMap((f) => [f.viewPath, f.thumbPath]),
       ...past.map((p) => p.thumbPath),
     ];
@@ -29,7 +29,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
         <div className="shead"><div><b>{o.name}</b><i>{zoneLabel} · {t.label} · {o.spec || t.spec} · {o.faces}면</i></div><button onClick={onClose}>✕</button></div>
         <div className="sbody">
         {isEditor && (
-          <button className="btn primary wide" onClick={() => onQuickAdd(o.id)}>📷 이 매체에 사진으로 바로 등록</button>
+          <button className="btn primary wide" onClick={() => onQuickAdd(o.id)}>이 매체에 홍보물 등록</button>
         )}
         <h4>현재 배치</h4>
         {o.overdue && <p className="warnbox">종료일보다 <b>+{o.overdueDays}일</b> 지났습니다.</p>}
@@ -66,25 +66,35 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
               <div><em>시작일</em><b className="mono">{cur.start}</b></div>
               <div><em>종료일</em><b className="mono">{cur.end || '미정'}</b></div>
             </div>
+            {/* 설치 확인 사진은 이 배치에 붙어 있는데, 지금까지 홍보물 목록의 작은 아이콘
+                말고는 실제로 볼 방법이 없었다 — 매체 상세에서 바로 확인하게 한다. */}
+            {imgUrls.get(cur.installPhotoPath) && (
+              <div className="rprev"><img src={imgUrls.get(cur.installPhotoPath)} alt="" /><i className="sub">설치 확인 사진</i></div>
+            )}
             {isEditor && (
               <button className={'btn wide' + (o.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>철거 완료</button>
             )}
           </>
         ) : <p className="empty">비어있습니다 · {o.emptyDays >= 365 ? '365+' : o.emptyDays}일째</p>}
 
-        <h4>게시 이력 <span className="sub">{past.length}건</span></h4>
-        <div className="thumbrow">{past.map((p) => {
-          const url = imgUrls.get(p.thumbPath);
-          return (
-            <div className="tsmall" key={p.id} title={p.brand + ' ' + p.start + '~' + (p.end || '미정')}>
-              {url ? <img src={url} alt="" /> : <i style={{ background: `linear-gradient(150deg, hsl(${p.hue} 40% 55%), hsl(${(p.hue + 40) % 360} 36% 40%))` }} />}
-              <em className="mono">{p.start.slice(2, 7)}</em>
-            </div>
-          );
-        })}</div>
-        <table className="mini-t">
-          <tbody>{past.map((p) => (<tr key={p.id}><td>{p.brand}</td><td className="mono sub">{p.start} ~ {p.end || '미정'}</td><td className="r sub mono">{p.removedAt ? '철거 ' + p.removedAt.slice(5) : '—'}</td></tr>))}</tbody>
-        </table>
+        {/* 이력이 없으면 썸네일 줄·표가 빈 채로 자리만 차지해서, 섹션 자체를 접는다. */}
+        {past.length > 0 && (
+          <>
+            <h4>게시 이력 <span className="sub">{past.length}건</span></h4>
+            <div className="thumbrow">{past.map((p) => {
+              const url = imgUrls.get(p.thumbPath);
+              return (
+                <div className="tsmall" key={p.id} title={p.brand + ' ' + p.start + '~' + (p.end || '미정')}>
+                  {url ? <img src={url} alt="" /> : <i style={{ background: `linear-gradient(150deg, hsl(${p.hue} 40% 55%), hsl(${(p.hue + 40) % 360} 36% 40%))` }} />}
+                  <em className="mono">{p.start.slice(2, 7)}</em>
+                </div>
+              );
+            })}</div>
+            <table className="mini-t">
+              <tbody>{past.map((p) => (<tr key={p.id}><td>{p.brand}</td><td className="mono sub">{p.start} ~ {p.end || '미정'}</td><td className="r sub mono">{p.removedAt ? '철거 ' + p.removedAt.slice(5) : '—'}</td></tr>))}</tbody>
+            </table>
+          </>
+        )}
 
         {isEditor && (
           <>

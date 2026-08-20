@@ -396,6 +396,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {...ctx} media={media} placements={placements} initialMediaId={addMediaId}
           onClose={() => { setAddOpen(false); setAddMediaId(null); }}
           onAdd={addPosting} onAssign={addPlacement} onAdjustEnd={adjustEnd}
+          onDone={(placed) => flash(placed ? '홍보물을 등록하고 매체에 배치했습니다.' : '홍보물은 등록했지만 배치에 실패했습니다.')}
         />
       )}
       {assigningId && isEditor && (
