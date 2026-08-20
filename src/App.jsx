@@ -257,7 +257,8 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     }
   };
 
-  const ctx = { T, types, refDate, isEditor };
+  // narrow는 패널이 표 대신 모바일 카드 목록을 그릴지 정하는 데 쓴다.
+  const ctx = { T, types, refDate, isEditor, narrow };
   const tabEntries = Object.entries(TABS).filter(([k]) => isEditor || !EDITOR_ONLY_TABS.has(k));
   // 사이드바(왼쪽) 탭 버튼은 지도 아래 본문 영역까지 화면을 안 움직여 줘서, 지도를 스크롤해
   // 내려간 상태에서 누르면 바뀐 내용이 화면 밖에 있는 것처럼 보였다 — 탭 바까지 스크롤해준다.

@@ -218,10 +218,13 @@ td.sub{display:table-cell}
 .cropframe{position:relative;width:100%;max-width:640px;aspect-ratio:2/1;margin:0 auto;overflow:hidden;background:#1c1a17;border-radius:8px;touch-action:none;cursor:grab}
 .cropframe:active{cursor:grabbing}
 .cropframe img{position:absolute;top:0;left:0;transform-origin:0 0;pointer-events:none;user-select:none;max-width:none}
-.fld{display:flex;flex-direction:column;gap:5px;font-size:12.5px}
-.fld2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fld{display:flex;flex-direction:column;gap:5px;font-size:12.5px;min-width:0}
+/* grid/flex 자식의 기본 min-width:auto 때문에 숫자 입력칸이 내용 크기 밑으로 줄지 않아,
+   좁은 화면에서 2열 묶음이 화면 밖으로 밀려나갔다(매체 유형 추가 폼에서 53px 넘침). */
+.fld2{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
+.fld2>.fld{min-width:0}
 .fld span{color:var(--ink2);font-weight:600}
-.fld input,.fld select{border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px;font-family:inherit}
+.fld input,.fld select{border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px;font-family:inherit;min-width:0;width:100%;box-sizing:border-box}
 .fld input:disabled{background:#F4F2EE;color:#A79E8D}
 .hint{font-size:11.5px;color:var(--ink2);margin:0;line-height:1.7}
 .conflictbox{font-size:12px;color:#A8781F;background:#FBF6EC;border:1px solid #E7D9BC;border-radius:9px;padding:10px 12px;line-height:1.7}
@@ -351,8 +354,23 @@ td.sub{display:table-cell}
    늘려서, 짧은 헤더 글자와 정렬 화살표 사이에 큰 빈 칸이 생기던 문제 — 컨테이너보다 넓게
    늘어나지 않고 내용 기준(최소 640px)으로만 넓어지게 한다. 좁으면 기존처럼 가로 스크롤. */
 .app.narrow table{width:auto}
+/* 모바일 카드 목록 — 좁은 화면에서 표 대신 쓴다. 표는 컬럼이 8개라 화면 폭의 2/3가
+   잘려 상태·조치 버튼이 아예 보이지 않았다(실측 958px 중 636px 밖). */
+.mlist{display:flex;flex-direction:column;gap:8px}
+.mcard{border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:#fff;cursor:pointer}
+.mcard-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mcard-top b{font-size:13.5px}
+.mcard-meta{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px}
+.mcard-brand{margin-top:7px;font-size:12.5px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.mcard-brand i{font-style:normal}
+.mcard-date{margin-top:3px;font-size:11.5px;color:var(--ink2)}
+.mcard .btn.ok{background:#4B7B58;border-color:#4B7B58;color:#fff}
+
 @media(max-width:600px){
   .cgrid{grid-template-columns:1fr}
+  /* 3:4 세로 이미지라 카드 한 장이 화면의 80%(673px)를 차지해, 10건 훑는 데 10화면을
+     스크롤해야 했다 — 어떤 시안인지 알아보는 데는 이 정도 높이면 충분하다. */
+  .cthumb{aspect-ratio:16/10}
   .side nav button{font-size:12.5px;padding:7px 9px}
   /* 지도 위 클릭 지점에 붙이면 화면 가장자리에서 잘리므로, 모바일에서는 화면 중앙에 띄운다 */
   .addpop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(300px,86vw);max-height:80vh;overflow:auto}

@@ -4,7 +4,7 @@ import { ZONES } from '../data/seed.js';
 const zoneLabel = (z) => ZONES[z]?.label || z;
 
 // 매체 관리 — 매체 유형 CRUD(보관), 매체 보관/복구/삭제. 매체 추가·위치 이동은 지도에서 한다.
-export default function ManagePanel({ T, types, media, postings, isEditor, onAddType, onToggleType, onEditType, onRemoveMedia, onRestoreMedia }) {
+export default function ManagePanel({ T, types, media, postings, isEditor, narrow, onAddType, onToggleType, onEditType, onRemoveMedia, onRestoreMedia }) {
   const [sec, setSec] = useState('media');
   const [editing, setEditing] = useState(null);
   const [edit, setEdit] = useState({});
@@ -45,6 +45,53 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
 
       {sec === 'type' && (
         <>
+          {narrow ? (
+            <div className="mlist" style={{ marginBottom: 16 }}>
+              {types.map((t) => {
+                const isEd = editing === t.code;
+                return (
+                  <div className={'mcard' + (t.active ? '' : ' archived')} key={t.code}>
+                    {isEd ? (
+                      <>
+                        <div className="fld2">
+                          <label className="fld"><span>유형명</span><input value={edit.label} onChange={(e) => setEdit({ ...edit, label: e.target.value })} /></label>
+                          <label className="fld"><span>아이콘</span><input value={edit.glyph} onChange={(e) => setEdit({ ...edit, glyph: e.target.value })} maxLength={2} /></label>
+                        </div>
+                        <div className="fld2" style={{ marginTop: 8 }}>
+                          <label className="fld"><span>가로 (mm)</span><input type="number" min="1" value={edit.specW} onChange={(e) => setEdit({ ...edit, specW: e.target.value })} /></label>
+                          <label className="fld"><span>세로 (mm)</span><input type="number" min="1" value={edit.specH} onChange={(e) => setEdit({ ...edit, specH: e.target.value })} /></label>
+                        </div>
+                        <label className="fld" style={{ marginTop: 8 }}><span>면수</span><input type="number" min="1" max="6" value={edit.faces} onChange={(e) => setEdit({ ...edit, faces: +e.target.value })} /></label>
+                        <div className="conflictbtns" style={{ marginTop: 10 }}>
+                          <button className="btn primary" onClick={saveEdit}>저장</button>
+                          <button className="btn" onClick={() => setEditing(null)}>취소</button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="mcard-top">
+                          <b>{t.label}</b>
+                          <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.glyph}</span>
+                        </div>
+                        <div className="mcard-meta">
+                          <span className="sub mono">{t.spec || '규격 미정'} · {t.faces}면</span>
+                        </div>
+                        <div className="mcard-date">
+                          등록 매체 {countOf(t.code)}개{t.movable ? ' · 이동형' : ''}{t.openEnded ? ' · 종료일 미정 기본' : ''}
+                        </div>
+                        {isEditor && (
+                          <div className="conflictbtns" style={{ marginTop: 9 }}>
+                            <button className="btn" onClick={() => startEdit(t)}>수정</button>
+                            <button className="btn" onClick={() => onToggleType(t.code)}>{t.active ? '보관' : '복구'}</button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
           <div className="scroll" style={{ maxHeight: 340, marginBottom: 16 }}>
             <table>
               <thead><tr><th>아이콘</th><th>유형</th><th>기본 규격</th><th className="r">면수</th><th>이동형</th><th>종료일</th><th className="r">등록 매체</th><th className="r">관리</th></tr></thead>
@@ -81,6 +128,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
               </tbody>
             </table>
           </div>
+          )}
           {isEditor && (
             <section className="block">
               <h3>매체 유형 추가</h3>
@@ -111,6 +159,32 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
       {sec === 'media' && (
         <>
           <div className="toolrow"><input className="inp" placeholder="매체명 · 유형 · 구역 검색" value={q} onChange={(e) => setQ(e.target.value)} /><span className="count mono">{rows.length}건</span></div>
+          {narrow ? (
+            <div className="mlist">
+              {rows.map((m) => {
+                const t = T[m.type];
+                const hist = histOf(m.id);
+                return (
+                  <div className={'mcard' + (m.active ? '' : ' archived')} key={m.id}>
+                    <div className="mcard-top">
+                      <b>{m.name}</b>
+                      {t && <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span>}
+                    </div>
+                    <div className="mcard-meta">
+                      <span className="sub">{zoneLabel(m.zone)}</span>
+                      <span className="sub mono">{m.faces}면 · 게시 이력 {hist}건</span>
+                    </div>
+                    <div className="mcard-date mono">{m.id}</div>
+                    {isEditor && (
+                      m.active
+                        ? <button className="btn wide danger" style={{ marginTop: 8 }} onClick={() => onRemoveMedia(m.id)}>{hist ? '보관' : '삭제'}</button>
+                        : <button className="btn wide" style={{ marginTop: 8 }} onClick={() => onRestoreMedia(m.id)}>복구</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
           <div className="scroll tall">
             <table>
               <thead><tr><th>매체명</th><th>유형</th><th>구역</th><th className="r">면수</th><th className="r">게시 이력</th><th className="r">관리</th></tr></thead>
@@ -132,6 +206,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
               </tbody>
             </table>
           </div>
+          )}
         </>
       )}
     </div>

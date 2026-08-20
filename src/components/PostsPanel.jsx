@@ -13,10 +13,20 @@ const statusCat = (o) => (o.overdue ? 'overdue' : (o.live || o.open) ? 'live' : 
 const STATUS_OPTS = [['live', '게시중', ST.live.color], ['upcoming', ST.upcoming.label, ST.upcoming.color], ['vacant', '비어있음', '#B5AFA4']];
 const STATUS_LABEL = { ...Object.fromEntries(STATUS_OPTS.map(([k, v]) => [k, v])), overdue: '만료' };
 
-// 매체 현황 (기본 화면) — 매체별 현재 배치 상태 표. 만료 건이 맨 앞에 오도록 정렬, 기간
+// 상태 배지 — 표와 모바일 카드가 같은 것을 쓰도록 한 곳에서 만든다.
+const statusTag = (o) => (
+  o.overdue ? <span className="tag over">만료 +{o.overdueDays}일</span>
+    : (o.live || o.open) ? <span className="tag live">게시중</span>
+    : o.next ? <span className="tag upcoming">게시예정</span>
+    : <span className="tag vacant">비어있음</span>
+);
+
+// 매체 현황 (기본 화면) — 매체별 현재 배치 상태. 만료 건이 맨 앞에 오도록 정렬, 기간
 // 조회는 이력 검색으로 전환. postings prop은 배치(placement)가 홍보물 정보와 함께
 // 평탄화된 목록이다(App이 fetchPlacements 결과를 넘긴다).
-export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, onRemove, onUndo, onPick }) {
+// 모바일(narrow)에서는 표가 화면 폭의 2/3를 넘겨 상태·조치 버튼이 아예 안 보였기 때문에
+// 같은 데이터를 카드 목록으로 바꿔 그린다.
+export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, narrow, onRemove, onUndo, onPick }) {
   const [statusSel, setStatusSel] = useState(new Set(STATUS_OPTS.map(([k]) => k)));
   // 홍보물 화면과 달리 기본 ON — 이 화면의 핵심 목적이 만료 건을 놓치지 않고 조치하는
   // 것이라(맨 위 정렬 + 철거 완료 버튼), 기본으로 숨기면 화면 목적과 어긋난다.
@@ -115,7 +125,31 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         <span className="count mono">{(rangeOn ? historyRows.length : currentRows.length)}건</span>
       </div>
 
-      {!rangeOn ? (
+      {!rangeOn && narrow ? (
+        <div className="mlist">
+          {currentRows.map(({ o, p }) => {
+            const t = T[o.type];
+            return (
+              <div className="mcard" key={o.id} onClick={() => onPick(o.id)}>
+                <div className="mcard-top"><b>{o.name}</b>{statusTag(o)}</div>
+                <div className="mcard-meta">
+                  <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span>
+                  <span className="sub">{zoneLabel(o.zone)}</span>
+                </div>
+                {p ? (
+                  <>
+                    <div className="mcard-brand"><b>{p.brand}</b><i className="sub">{contentOf(p)}</i></div>
+                    <div className="mcard-date mono">{p.start} ~ {p.end || '미정'}</div>
+                  </>
+                ) : <div className="sub">걸려 있는 홍보물 없음</div>}
+                {o.overdue && isEditor && (
+                  <button className="btn ok wide" style={{ marginTop: 8 }} onClick={(e) => { e.stopPropagation(); onRemove(o.overdue.id); }}>철거 완료</button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : !rangeOn ? (
         <div className="scroll tall">
           <table>
             <thead><tr>
@@ -152,14 +186,8 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                     <td className="mono">{p ? p.start : '—'}</td>
                     <td className="mono">{p ? (p.end || '미정') : '—'}</td>
                     <td onClick={(e) => o.overdue && e.stopPropagation()}>
-                      {o.overdue ? (
-                        <>
-                          <span className="tag over">만료 +{o.overdueDays}일</span>
-                          {isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>철거 완료</button>}
-                        </>
-                      ) : (o.live || o.open) ? <span className="tag live">게시중</span>
-                        : o.next ? <span className="tag upcoming">게시예정</span>
-                        : <span className="tag vacant">비어있음</span>}
+                      {statusTag(o)}
+                      {o.overdue && isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>철거 완료</button>}
                     </td>
                   </tr>
                 );
