@@ -8,7 +8,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
   const [sec, setSec] = useState('media');
   const [editing, setEditing] = useState(null);
   const [edit, setEdit] = useState({});
-  const [nt, setNt] = useState({ label: '', spec: '', faces: 1, color: '#5E7B8A', glyph: '▪', movable: false, openEnded: false });
+  const [nt, setNt] = useState({ label: '', specW: '', specH: '', faces: 1, color: '#5E7B8A', glyph: '▪', movable: false, openEnded: false });
   const [q, setQ] = useState('');
 
   const countOf = (code) => media.filter((m) => m.type === code && m.active).length;
@@ -20,8 +20,21 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
     return haystack.includes(q.toLowerCase());
   });
 
-  const startEdit = (t) => { setEditing(t.code); setEdit({ label: t.label, spec: t.spec, faces: t.faces, glyph: t.glyph, color: t.color }); };
-  const saveEdit = () => { onEditType(editing, edit); setEditing(null); };
+  // "900×1800mm" 같은 규격 문자열 ↔ 가로/세로 숫자 두 칸. 저장 형식은 기존과 동일한
+  // 문자열이라(AddModal의 비율 검사 정규식 등 다른 곳에서 그대로 읽는다), 입력만 숫자
+  // 두 칸으로 나누고 제출 시 다시 합친다.
+  const parseSpec = (spec) => {
+    const m = (spec || '').match(/(\d+)\D+(\d+)/);
+    return m ? { w: m[1], h: m[2] } : { w: '', h: '' };
+  };
+  const joinSpec = (w, h) => (w && h ? `${w}×${h}mm` : '');
+
+  const startEdit = (t) => {
+    const { w, h } = parseSpec(t.spec);
+    setEditing(t.code);
+    setEdit({ label: t.label, specW: w, specH: h, faces: t.faces, glyph: t.glyph, color: t.color });
+  };
+  const saveEdit = () => { onEditType(editing, { label: edit.label, spec: joinSpec(edit.specW, edit.specH), faces: edit.faces, glyph: edit.glyph, color: edit.color }); setEditing(null); };
 
   return (
     <div>
@@ -42,7 +55,15 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
                     <tr key={t.code}>
                       <td>{isEd ? <input className="iconinp" value={edit.glyph} onChange={(e) => setEdit({ ...edit, glyph: e.target.value })} maxLength={2} /> : <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.glyph}</span>}</td>
                       <td>{isEd ? <input className="inp" value={edit.label} onChange={(e) => setEdit({ ...edit, label: e.target.value })} /> : t.label}</td>
-                      <td className="sub">{isEd ? <input className="inp" value={edit.spec} onChange={(e) => setEdit({ ...edit, spec: e.target.value })} /> : (t.spec || '—')}</td>
+                      <td className="sub">
+                        {isEd ? (
+                          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                            <input className="inp num" type="number" min="1" placeholder="가로" value={edit.specW} onChange={(e) => setEdit({ ...edit, specW: e.target.value })} />
+                            <span>×</span>
+                            <input className="inp num" type="number" min="1" placeholder="세로" value={edit.specH} onChange={(e) => setEdit({ ...edit, specH: e.target.value })} />
+                          </div>
+                        ) : (t.spec || '—')}
+                      </td>
                       <td className="r mono">{isEd ? <input className="inp num" type="number" min="1" max="6" value={edit.faces} onChange={(e) => setEdit({ ...edit, faces: +e.target.value })} /> : t.faces}</td>
                       <td className="sub">{t.movable ? '예' : '—'}</td>
                       <td className="sub">{t.openEnded ? '미정 기본' : '필수'}</td>
@@ -64,14 +85,23 @@ export default function ManagePanel({ T, types, media, postings, isEditor, onAdd
             <section className="block">
               <h3>매체 유형 추가</h3>
               <div className="formrow">
-                <input className="inp" placeholder="유형명" value={nt.label} onChange={(e) => setNt({ ...nt, label: e.target.value })} />
-                <input className="inp" placeholder="기본 규격 (예: 900×1800mm)" value={nt.spec} onChange={(e) => setNt({ ...nt, spec: e.target.value })} />
-                <input className="inp num" type="number" min="1" max="6" title="면수" value={nt.faces} onChange={(e) => setNt({ ...nt, faces: +e.target.value })} />
-                <input className="iconinp" placeholder="아이콘" value={nt.glyph} onChange={(e) => setNt({ ...nt, glyph: e.target.value })} maxLength={2} />
-                <input className="colorinp" type="color" value={nt.color} onChange={(e) => setNt({ ...nt, color: e.target.value })} />
+                <label className="fld"><span>유형명</span><input placeholder="예: 듀라트란스" value={nt.label} onChange={(e) => setNt({ ...nt, label: e.target.value })} /></label>
+                <div className="fld2">
+                  <label className="fld"><span>가로 (mm)</span><input type="number" min="1" placeholder="900" value={nt.specW} onChange={(e) => setNt({ ...nt, specW: e.target.value })} /></label>
+                  <label className="fld"><span>세로 (mm)</span><input type="number" min="1" placeholder="1800" value={nt.specH} onChange={(e) => setNt({ ...nt, specH: e.target.value })} /></label>
+                </div>
+                <label className="fld"><span>면수</span><input type="number" min="1" max="6" value={nt.faces} onChange={(e) => setNt({ ...nt, faces: +e.target.value })} /></label>
+                <label className="fld"><span>아이콘</span><input className="iconinp" value={nt.glyph} onChange={(e) => setNt({ ...nt, glyph: e.target.value })} maxLength={2} /></label>
+                <label className="fld"><span>색상</span><input className="colorinp" type="color" value={nt.color} onChange={(e) => setNt({ ...nt, color: e.target.value })} /></label>
                 <label className="chk"><input type="checkbox" checked={nt.movable} onChange={(e) => setNt({ ...nt, movable: e.target.checked })} />이동형</label>
                 <label className="chk"><input type="checkbox" checked={nt.openEnded} onChange={(e) => setNt({ ...nt, openEnded: e.target.checked })} />종료일 미정 기본</label>
-                <button className="btn primary" disabled={!nt.label} onClick={() => { onAddType({ ...nt, code: 't' + Date.now(), active: true }); setNt({ label: '', spec: '', faces: 1, color: '#5E7B8A', glyph: '▪', movable: false, openEnded: false }); }}>추가</button>
+                <button className="btn primary" disabled={!nt.label} onClick={() => {
+                  onAddType({
+                    label: nt.label, spec: joinSpec(nt.specW, nt.specH), faces: nt.faces, color: nt.color, glyph: nt.glyph,
+                    movable: nt.movable, openEnded: nt.openEnded, code: 't' + Date.now(), active: true,
+                  });
+                  setNt({ label: '', specW: '', specH: '', faces: 1, color: '#5E7B8A', glyph: '▪', movable: false, openEnded: false });
+                }}>추가</button>
               </div>
             </section>
           )}
