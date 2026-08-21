@@ -43,8 +43,10 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
     if (!isPdf) { setPageCount(1); return; }
     let cancelled = false;
     (async () => {
-      const pdfjsLib = await import('pdfjs-dist');
-      const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
+      // legacy 빌드를 쓰는 이유: 기본(modern) 빌드는 Map.prototype.getOrInsertComputed(아주 최신
+      // TC39 제안)를 쓰는데 현재 브라우저에 없어서 page.render()가 터진다. legacy 빌드에만 폴리필이 들어있다.
+      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
       pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
       const buf = await file.arrayBuffer();
       const doc = await pdfjsLib.getDocument({ data: buf }).promise;

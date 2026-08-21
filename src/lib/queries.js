@@ -268,6 +268,28 @@ export async function adjustPlacementEnd(id, newEnd) {
   if (error) throw error;
 }
 
+// 인쇄용 원본 링크에서 파일을 받아온다 — 구글드라이브가 CORS 헤더를 주지 않아 브라우저가
+// 직접 못 가져오므로, Edge Function(fetch-origin)이 서버에서 받아 CORS 헤더를 붙여 넘겨준다.
+// 받은 바이트는 사용자가 직접 올린 파일과 똑같이 브라우저에서 변환한다.
+export async function fetchOriginFile(url) {
+  const { data } = await supabase.auth.getSession();
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-origin`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${data?.session?.access_token ?? ''}`,
+    },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `가져오지 못했습니다 (${res.status}).`);
+  }
+  const type = (res.headers.get('content-type') || '').split(';')[0].trim();
+  return { blob: await res.blob(), type };
+}
+
 export async function fetchAdmins() {
   const { data, error } = await supabase.from('admins').select('user_id, email, name, role').order('created_at');
   if (error) throw error;

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY } from '../constants.js';
 import { ZONES } from '../data/seed.js';
+import { fetchOriginFile } from '../lib/queries.js';
 
 // 붙여넣은 링크 정리 — 비워 두면 null(예전엔 '#'를 넣어 두고 화면에서 다시 걸러내야 했다),
 // 스킴 없이 "drive.google.com/..."만 붙여넣어도 열리도록 https를 붙여 준다.
@@ -46,6 +47,9 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   // 설치 확인 사진(선택) — 홍보물 이미지와 별개로, 실제 현장에 부착됐다는 증빙용 한 장.
   const [installPhoto, setInstallPhoto] = useState(null);
   const [installBusy, setInstallBusy] = useState(false);
+  // 링크에서 원본을 받아오는 중 / 실패 사유
+  const [pulling, setPulling] = useState(false);
+  const [pullError, setPullError] = useState('');
   const result = results[0];
   const busy = busyFace.some(Boolean);
 
@@ -87,6 +91,50 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     };
     img.onerror = () => { setBusyFace((prev) => prev.map((v, i) => (i === faceIdx ? false : v))); setResults((prev) => prev.map((v, i) => (i === faceIdx ? null : v))); };
     img.src = url;
+  };
+
+  const pdfPagesToBlobs = async (blob, maxPages) => {
+    // legacy 빌드를 쓰는 이유: 기본(modern) 빌드는 Map.prototype.getOrInsertComputed(아주 최신
+    // TC39 제안)를 쓰는데 현재 브라우저에 없어서 page.render()가 터진다. legacy 빌드에만 폴리필이 들어있다.
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url')).default;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+    const doc = await pdfjsLib.getDocument({ data: await blob.arrayBuffer() }).promise;
+    const out = [];
+    for (let i = 1; i <= Math.min(doc.numPages, maxPages); i++) {
+      const page = await doc.getPage(i);
+      const base = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale: Math.min(2400 / Math.max(base.width, base.height), 4) });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(viewport.width); canvas.height = Math.round(viewport.height);
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+      out.push(await new Promise((r) => canvas.toBlob(r, 'image/png')));
+    }
+    return out;
+  };
+
+  // "링크에서 가져오기" — 붙여넣은 원본 주소에서 파일을 받아 그대로 홍보물 이미지로 쓴다.
+  // 이미지는 바로, PDF(및 PDF 호환 .ai)는 페이지를 그려서 변환한다.
+  const pullFromLink = async () => {
+    const url = normalizeUrl(drive);
+    if (!url) { setPullError('먼저 원본 링크를 입력해 주세요.'); return; }
+    setPullError(''); setPulling(true);
+    try {
+      const { blob, type } = await fetchOriginFile(url);
+      if (type === 'application/pdf' || type === 'application/postscript') {
+        const pages = await pdfPagesToBlobs(blob, faceCount);
+        if (!pages.length) throw new Error('PDF에서 페이지를 읽지 못했습니다.');
+        pages.forEach((b, i) => process(b, i));
+        if (faceCount === 2 && pages.length === 1) setPullError('PDF가 1페이지라 1면만 채웠습니다. 2면은 따로 올려 주세요.');
+      } else {
+        process(blob, 0);
+        if (faceCount === 2) setPullError('링크의 이미지를 1면에 넣었습니다. 2면은 따로 올려 주세요.');
+      }
+    } catch (e) {
+      setPullError(e.message);
+    } finally {
+      setPulling(false);
+    }
   };
 
   const processInstallPhoto = (f) => {
@@ -173,6 +221,12 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
           {/* 이 칸이 무엇인지 아무 설명이 없어 만든 사람조차 헷갈렸다 — 앱이 인쇄용 원본을
               보관하지 않는다는 전제(사양서 9장)를 여기서 한 줄로 밝힌다. */}
           <p className="hint">이 앱에는 가벼운 이미지만 저장됩니다. 나중에 다시 인쇄를 맡길 때 필요한 원본(AI·PSD 등)은 구글드라이브에 두고 링크만 붙여넣어 주세요.</p>
+          {/* 링크가 이미지·PDF면 여기서 바로 끌어와 아래 "홍보물 이미지"를 채운다 — 같은
+              파일을 링크로 한 번, 사진으로 또 한 번 올리는 이중 작업을 없애기 위한 것. */}
+          <button className="btn wide" style={{ marginTop: 0 }} disabled={!drive.trim() || pulling} onClick={pullFromLink}>
+            {pulling ? '가져오는 중…' : '이 링크에서 이미지 가져오기'}
+          </button>
+          {pullError && <p className="warnbox">{pullError}</p>}
           {drive.trim() && !looksLikeUrl(drive) && <p className="warnbox">링크 형식이 아닌 것 같습니다 — 구글드라이브에서 "링크 복사"로 받은 주소를 붙여넣어 주세요.</p>}
 
           <label className="fld"><span>홍보물 이미지 (선택)</span></label>
