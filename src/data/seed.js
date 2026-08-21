@@ -94,7 +94,6 @@ export function buildPostings(ref) {
         start: iso(T0 - (120 + Math.floor(R() * 700)) * DAY), end: null,
         removedAt: null, removalSource: null,
         hue: 210, bytesOrig: Math.round((3 + R() * 8) * 1048576), bytesLight: Math.round((140 + R() * 180) * 1024),
-        driveUrl: 'https://drive.google.com/file/d/' + Math.random().toString(36).slice(2, 12),
         installPhoto: R() > 0.4,
       });
       return;
@@ -115,7 +114,6 @@ export function buildPostings(ref) {
         removalSource: ended ? 'manual' : null,
         hue: Math.floor(R() * 360),
         bytesOrig: Math.round((2.4 + R() * 9) * 1048576), bytesLight: Math.round((120 + R() * 190) * 1024),
-        driveUrl: 'https://drive.google.com/file/d/' + Math.random().toString(36).slice(2, 12),
         installPhoto: R() > 0.35,
       });
       if (!ended) break;

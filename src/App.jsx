@@ -5,7 +5,7 @@ import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
-  createPlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd,
+  createPlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, setPostingImage,
 } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
 import { useAuth, OWNER_EMAIL, resetAdminPassword } from './lib/useAuth.js';
@@ -209,7 +209,21 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const addPlacement = async (posting, { mediaId, start, end, installPhoto }, { silent } = {}) => {
     try {
       const created = await createPlacement({ postingId: posting.id, mediaId, start, end, installPhoto });
-      setPlacements((prev) => [...prev, { ...posting, ...created }]);
+      // 인쇄 시안 없이 등록해 둔 홍보물에 현장 사진이 처음 올라오면, 그 사진을 홍보물
+      // 이미지로도 채운다 — 그러지 않으면 목록이 계속 빈 칸이라 무엇이 걸려 있는지 모른다.
+      // 이미 이미지가 있으면 덮지 않는다. 여기서 실패해도 배치 자체는 이미 저장됐으므로
+      // 되돌리지 않고 이미지만 비운 채 넘어간다.
+      let p = posting;
+      if (installPhoto && !posting.thumbPath) {
+        try {
+          p = await setPostingImage(posting, installPhoto);
+          setPostings((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...p } : x)));
+          setPlacements((prev) => prev.map((pl) => (pl.postingId === p.id
+            ? { ...pl, thumbPath: p.thumbPath, viewPath: p.viewPath, faces: p.faces, bytesOrig: p.bytesOrig, bytesLight: p.bytesLight }
+            : pl)));
+        } catch { p = posting; }
+      }
+      setPlacements((prev) => [...prev, { ...p, ...created }]);
       if (!silent) flash('매체에 배치했습니다.');
       return true;
     } catch (e) { if (!silent) flash('배치에 실패했습니다: ' + e.message); return false; }
@@ -391,7 +405,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {tab === 'posts' && <PostsPanel {...ctx} state={state} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
           {tab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
-              onPick={setSelMedia} onAssign={setAssigningId} onRemove={markRemoved} onUndo={undoRemoved} onDeletePosting={deletePostingItem} onNotice={flash} />
+              onPick={setSelMedia} onAssign={setAssigningId} onRemove={markRemoved} onUndo={undoRemoved} onDeletePosting={deletePostingItem} />
           )}
           {tab === 'timeline' && <TimelinePanel {...ctx} state={state} onPick={setSelMedia} />}
           {tab === 'manage' && (

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY } from '../constants.js';
 import { ZONES } from '../data/seed.js';
+import { convertImage } from '../lib/convertImage.js';
 
 // 매체 배치 — 이미 등록된 홍보물(posting)을 매체에 건다. 처음 배치든, 이미 다른 매체(들)에
 // 걸려 있는 홍보물에 추가로 배치하는 것이든 동일하게 다룬다. 홍보물의 이미지가 이미
@@ -21,22 +22,15 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
   // 서로 다른 설치라 사진 한 장을 공유시킬 수 없다.
   const [installPhoto, setInstallPhoto] = useState(null);
   const [installBusy, setInstallBusy] = useState(false);
-  const processInstallPhoto = (f) => {
+  const processInstallPhoto = async (f) => {
     setInstallBusy(true);
-    const img = new Image();
-    const url = URL.createObjectURL(f);
-    img.onload = () => {
-      const s = Math.min(1, 1200 / Math.max(img.width, img.height));
-      const cv = document.createElement('canvas');
-      cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
-      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-      setInstallPhoto({ url: cv.toDataURL('image/webp', 0.75), w: cv.width, h: cv.height });
-      setInstallBusy(false);
-      URL.revokeObjectURL(url);
-    };
-    img.onerror = () => { setInstallBusy(false); setInstallPhoto(null); };
-    img.src = url;
+    const r = await convertImage(f);
+    setInstallPhoto(r);
+    setInstallBusy(false);
   };
+  // 이미지 없이 등록된 홍보물이면 이 현장 사진이 홍보물 이미지도 겸한다 — 실제 반영은
+  // 배치 저장 쪽(App.addPlacement)에서 하고, 여기서는 그렇게 된다는 안내만 미리 보여준다.
+  const willFillPostingImage = !!installPhoto && !posting.thumbPath;
 
   const [selected, setSelected] = useState(() => new Set(targets.map((x) => x.id)));
   const [bulkConfirm, setBulkConfirm] = useState(false);
@@ -138,7 +132,8 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
                 <p>현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.</p>
               </label>
               {installBusy && <p className="hint">변환 중…</p>}
-              {installPhoto && <div className="rprev"><img src={installPhoto.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
+              {installPhoto && <div className="rprev"><img src={installPhoto.thumb.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
+              {willFillPostingImage && <p className="hint">이 홍보물에는 아직 이미지가 없어, 이 사진을 홍보물 이미지로도 함께 등록합니다.</p>}
             </>
           )}
 

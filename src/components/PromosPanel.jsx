@@ -7,11 +7,8 @@ import StatusChip from './StatusChip.jsx';
 // 홍보물 — 매체·일정과 무관하게 홍보물(브랜드·내용·이미지) 자체를 관리하는 화면.
 // 매체 배치는 홍보물에 딸린 부가 정보로 아래 미니 표에서 보여주고, "+ 배치 추가"로 몇 곳이든
 // 추가할 수 있다(동시에 여러 매체에 걸거나, 시간차를 두고 다시 거는 것 모두 여기서 시작).
-// 예전 데이터에는 링크가 없을 때 '#'가 저장돼 있어(지금은 null), 그대로 링크로 만들면
-// 눌렀을 때 아무 데도 못 가고 화면 맨 위로 튕긴다 — 실제 주소일 때만 링크로 취급한다.
-const realUrl = (u) => (u && u !== '#' && /^https?:\/\//i.test(u) ? u : null);
 
-export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRemove, onUndo, onDeletePosting, onNotice }) {
+export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRemove, onUndo, onDeletePosting }) {
   const [typeSel, setTypeSel] = useState(new Set(types.map((t) => t.code)));
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
@@ -112,12 +109,9 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                   </table>
                 )}
                 {isEditor && <button className="btn primary wide" style={{ marginTop: 6 }} onClick={() => onAssign(p.id)}>+ 배치 추가</button>}
-                <div className="crow">
-                  {realUrl(p.driveUrl)
-                    ? <a className="lnk" href={realUrl(p.driveUrl)} target="_blank" rel="noreferrer">인쇄용 원본</a>
-                    : <button className="lnk asbtn" onClick={() => onNotice?.('이 홍보물에는 인쇄용 원본 링크가 등록되어 있지 않습니다.')}>인쇄용 원본 없음</button>}
-                  {isEditor && pls.length === 0 && <button className="mini no" onClick={() => onDeletePosting(p.id)}>홍보물 삭제</button>}
-                </div>
+                {isEditor && pls.length === 0 && (
+                  <div className="crow"><button className="mini no" onClick={() => onDeletePosting(p.id)}>홍보물 삭제</button></div>
+                )}
               </div>
             </div>
           );

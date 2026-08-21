@@ -95,7 +95,6 @@ function mapPosting(p) {
     type: p.type,
     brand: p.brand,
     title: p.title || '',
-    driveUrl: p.origin_url,
     thumbPath: p.thumb_path,
     viewPath: p.view_path,
     faces: p.faces || null,
@@ -172,7 +171,7 @@ async function uploadPostingImage(path, dataUrl) {
 // 홍보물 등록 — 매체·일정과 무관하게 브랜드·내용·이미지만 먼저 등록한다. 어느 매체에
 // 걸지는 나중에(또는 여러 번) createPlacement로 따로 정한다. faces===2(웨더워리어류)이면
 // face 배열(앞/뒤 방향+변환결과)을 받아 면마다 별도 이미지를 올리고 faces(jsonb)에 담는다.
-export async function createPosting({ type, brand, title, driveUrl, singleResult, faceResults }) {
+export async function createPosting({ type, brand, title, singleResult, faceResults }) {
   const { data: userData } = await supabase.auth.getUser();
   const { data: inserted, error: insertError } = await supabase
     .from('postings')
@@ -180,7 +179,6 @@ export async function createPosting({ type, brand, title, driveUrl, singleResult
       type,
       brand,
       title: title || null,
-      origin_url: driveUrl || null,
       created_by: userData?.user?.id || null,
     })
     .select()
@@ -235,7 +233,7 @@ export async function createPlacement({ postingId, mediaId, start, end, installP
   if (insertError) throw insertError;
   if (!installPhoto) return mapPlacement(inserted);
 
-  const install_photo_path = await uploadPostingImage(`placements/${inserted.id}/install.webp`, installPhoto.url);
+  const install_photo_path = await uploadPostingImage(`placements/${inserted.id}/install.webp`, installPhoto.view.url);
   const { data: updated, error: updateError } = await supabase
     .from('placements')
     .update({ install_photo_path })
@@ -244,6 +242,27 @@ export async function createPlacement({ postingId, mediaId, start, end, installP
     .single();
   if (updateError) throw updateError;
   return mapPlacement(updated);
+}
+
+// 현장 사진을 홍보물 이미지로 채운다 — 인쇄 시안 파일 없이 등록해 둔 홍보물이 흔한데,
+// 그러면 홍보물 목록이 계속 빈 칸이라 무엇이 걸려 있는지 알 수 없었다. 설치 확인 사진과
+// 홍보물 이미지는 같은 변환 결과 모양을 쓰므로 그대로 돌려쓴다. 이미 이미지가 있는
+// 홍보물은 덮지 않는다(호출 쪽에서 판단).
+export async function setPostingImage(posting, result) {
+  const id = posting.id;
+  // 2면 유형은 목록·상세가 faces(jsonb)에서 면별 이미지를 읽으므로 1면 자리를 채운다.
+  const two = Array.isArray(posting.faces);
+  const viewPath = await uploadPostingImage(two ? `${id}/face1-view.webp` : `${id}/view.webp`, result.view.url);
+  const thumbPath = await uploadPostingImage(two ? `${id}/face1-thumb.webp` : `${id}/thumb.webp`, result.thumb.url);
+  const patch = { view_path: viewPath, thumb_path: thumbPath, bytes_orig: result.orig, bytes_light: result.view.bytes };
+  if (two) {
+    patch.faces = posting.faces.map((f, i) => (i === 0
+      ? { ...f, thumbPath, viewPath, bytesOrig: result.orig, bytesLight: result.view.bytes }
+      : f));
+  }
+  const { data, error } = await supabase.from('postings').update(patch).eq('id', id).select().single();
+  if (error) throw error;
+  return mapPosting(data);
 }
 
 // 배치를 잘못 만들었을 때(엉뚱한 매체 선택 등) 되돌리는 삭제 — 실제 철거 기록(removed_at)과는
@@ -266,28 +285,6 @@ export async function undoPlacementRemoval(id) {
 export async function adjustPlacementEnd(id, newEnd) {
   const { error } = await supabase.from('placements').update({ end_date: newEnd }).eq('id', id);
   if (error) throw error;
-}
-
-// 인쇄용 원본 링크에서 파일을 받아온다 — 구글드라이브가 CORS 헤더를 주지 않아 브라우저가
-// 직접 못 가져오므로, Edge Function(fetch-origin)이 서버에서 받아 CORS 헤더를 붙여 넘겨준다.
-// 받은 바이트는 사용자가 직접 올린 파일과 똑같이 브라우저에서 변환한다.
-export async function fetchOriginFile(url) {
-  const { data } = await supabase.auth.getSession();
-  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-origin`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${data?.session?.access_token ?? ''}`,
-    },
-    body: JSON.stringify({ url }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `가져오지 못했습니다 (${res.status}).`);
-  }
-  const type = (res.headers.get('content-type') || '').split(';')[0].trim();
-  return { blob: await res.blob(), type };
 }
 
 export async function fetchAdmins() {
