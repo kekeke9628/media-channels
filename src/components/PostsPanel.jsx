@@ -125,7 +125,14 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         <span className="count mono">{(rangeOn ? historyRows.length : currentRows.length)}건</span>
       </div>
 
-      {!rangeOn && narrow ? (
+      {/* 아무것도 없을 때 빈 화면만 나와서 처음 쓰는 사람이 다음에 뭘 할지 알 수 없었다. */}
+      {!rangeOn && currentRows.length === 0 ? (
+        <p className="empty">
+          {state.length === 0
+            ? '아직 등록된 매체가 없습니다. 위 지도에서 "+매체 추가"로 매체를 먼저 등록하세요.'
+            : '조건에 맞는 매체가 없습니다. 위의 검색어나 필터를 확인해 보세요.'}
+        </p>
+      ) : !rangeOn && narrow ? (
         <div className="mlist">
           {currentRows.map(({ o, p }) => {
             const t = T[o.type];
@@ -143,7 +150,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                   </>
                 ) : <div className="sub">걸려 있는 홍보물 없음</div>}
                 {o.overdue && isEditor && (
-                  <button className="btn ok wide" style={{ marginTop: 8 }} onClick={(e) => { e.stopPropagation(); onRemove(o.overdue.id); }}>철거 완료</button>
+                  <button className="btn ok wide" style={{ marginTop: 8 }} onClick={(e) => { e.stopPropagation(); onRemove(o.overdue.id); }}>철거 처리</button>
                 )}
               </div>
             );
@@ -187,7 +194,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                     <td className="mono">{p ? (p.end || '미정') : '—'}</td>
                     <td onClick={(e) => o.overdue && e.stopPropagation()}>
                       {statusTag(o)}
-                      {o.overdue && isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>철거 완료</button>}
+                      {o.overdue && isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>철거 처리</button>}
                     </td>
                   </tr>
                 );

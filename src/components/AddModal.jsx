@@ -5,6 +5,9 @@ import { ZONES } from '../data/seed.js';
 // 붙여넣은 링크 정리 — 비워 두면 null(예전엔 '#'를 넣어 두고 화면에서 다시 걸러내야 했다),
 // 스킴 없이 "drive.google.com/..."만 붙여넣어도 열리도록 https를 붙여 준다.
 const looksLikeUrl = (v) => /^(https?:\/\/)?[\w-]+(\.[\w-]+)+/.test(v.trim());
+// 4.2MB처럼 큰 사진이 보통이지만 작은 파일은 "0.0MB"로 표시돼 어색했다.
+const fileSize = (bytes) => (bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(bytes / 1024)) + 'KB');
+
 const normalizeUrl = (v) => {
   const s = v.trim();
   if (!s) return null;
@@ -188,7 +191,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                   {busyFace[i] && <p className="hint">변환 중…</p>}
                   {results[i] && (
                     <div className="rbox">
-                      <div className="rline total"><span>용량</span><b className="mono">{(results[i].orig / 1048576).toFixed(1)}MB → {(results[i].view.bytes / 1024).toFixed(0)}KB</b></div>
+                      <div className="rline total"><span>용량</span><b className="mono">{fileSize(results[i].orig)} → {fileSize(results[i].view.bytes)}</b></div>
                       <div className="rprev"><img src={results[i].thumb.url} alt="" /><i className="sub">등록될 이미지</i></div>
                     </div>
                   )}
@@ -205,7 +208,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               {busy && <p className="hint">변환 중…</p>}
               {result && (
                 <div className="rbox">
-                  <div className="rline total"><span>용량</span><b className="mono">{(result.orig / 1048576).toFixed(1)}MB → {(result.view.bytes / 1024).toFixed(0)}KB</b></div>
+                  <div className="rline total"><span>용량</span><b className="mono">{fileSize(result.orig)} → {fileSize(result.view.bytes)}</b></div>
                   {mismatch && <p className="warnbox">⚠ 사진 가로세로 비율이 이 매체 규격({t.spec})과 달라, 실제 인쇄물에서는 잘려 보일 수 있습니다.</p>}
                   <div className="rprev"><img src={result.thumb.url} alt="" /><i className="sub">등록될 이미지</i></div>
                 </div>

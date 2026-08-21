@@ -7,7 +7,11 @@ import StatusChip from './StatusChip.jsx';
 // 홍보물 — 매체·일정과 무관하게 홍보물(브랜드·내용·이미지) 자체를 관리하는 화면.
 // 매체 배치는 홍보물에 딸린 부가 정보로 아래 미니 표에서 보여주고, "+ 배치 추가"로 몇 곳이든
 // 추가할 수 있다(동시에 여러 매체에 걸거나, 시간차를 두고 다시 거는 것 모두 여기서 시작).
-export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRemove, onUndo, onDeletePosting }) {
+// 예전 데이터에는 링크가 없을 때 '#'가 저장돼 있어(지금은 null), 그대로 링크로 만들면
+// 눌렀을 때 아무 데도 못 가고 화면 맨 위로 튕긴다 — 실제 주소일 때만 링크로 취급한다.
+const realUrl = (u) => (u && u !== '#' && /^https?:\/\//i.test(u) ? u : null);
+
+export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRemove, onUndo, onDeletePosting, onNotice }) {
   const [typeSel, setTypeSel] = useState(new Set(types.map((t) => t.code)));
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
@@ -67,6 +71,13 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
         <label className="chk"><input type="checkbox" checked={draftOnly} onChange={(e) => setDraftOnly(e.target.checked)} />미배치만 보기</label>
         <span className="count mono">{rows.length}건</span>
       </div>
+      {rows.length === 0 && (
+        <p className="empty">
+          {postings.length === 0
+            ? '아직 등록된 홍보물이 없습니다. 왼쪽 위 "+홍보물 등록"으로 시안을 먼저 등록하세요.'
+            : '조건에 맞는 홍보물이 없습니다. 검색어나 필터를 확인해 보세요.'}
+        </p>
+      )}
       <div className="cgrid">
         {rows.slice(0, 60).map((p) => {
           const pls = placementsOf[p.id] || [];
@@ -91,7 +102,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                           <td><StatusChip status={s} /></td>
                           {isEditor && (
                             <td className="r" onClick={(e) => e.stopPropagation()}>
-                              {s !== 'upcoming' && s !== 'removed' && <button className="mini ok" onClick={() => onRemove(pl.id)}>철거 완료</button>}
+                              {s !== 'upcoming' && s !== 'removed' && <button className="mini ok" onClick={() => onRemove(pl.id)}>철거 처리</button>}
                               {s === 'removed' && pl.removalSource === 'manual' && <button className="mini" onClick={() => onUndo(pl.id)}>되돌리기</button>}
                             </td>
                           )}
@@ -102,7 +113,9 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                 )}
                 {isEditor && <button className="btn primary wide" style={{ marginTop: 6 }} onClick={() => onAssign(p.id)}>+ 배치 추가</button>}
                 <div className="crow">
-                  {p.driveUrl && <a className="lnk" href={p.driveUrl} target="_blank" rel="noreferrer">인쇄용 원본</a>}
+                  {realUrl(p.driveUrl)
+                    ? <a className="lnk" href={realUrl(p.driveUrl)} target="_blank" rel="noreferrer">인쇄용 원본</a>
+                    : <button className="lnk asbtn" onClick={() => onNotice?.('이 홍보물에는 인쇄용 원본 링크가 등록되어 있지 않습니다.')}>인쇄용 원본 없음</button>}
                   {isEditor && pls.length === 0 && <button className="mini no" onClick={() => onDeletePosting(p.id)}>홍보물 삭제</button>}
                 </div>
               </div>

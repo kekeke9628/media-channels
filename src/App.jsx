@@ -103,10 +103,14 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   }, [selMedia]);
 
   // undo를 넘기면 토스트에 "되돌리기" 버튼이 붙고, 누를 시간을 주려고 더 오래 떠 있는다.
-  // 철거 완료처럼 되돌리는 경로가 화면에 없던 동작에 실행취소를 주기 위한 것.
+  // 철거처럼 되돌리는 경로가 화면에 없던 동작에 실행취소를 주기 위한 것.
+  // 타이머를 ref로 잡아 두고 매번 취소한다 — 그러지 않으면 연달아 동작했을 때 앞선
+  // 토스트의 타이머가 방금 띄운 토스트를 지워 버려 결과가 안 보였다(보관→복구에서 발생).
+  const toastTimer = useRef(null);
   const flash = (m, undo) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast({ msg: m, undo });
-    setTimeout(() => setToast(null), undo ? 7000 : 2500);
+    toastTimer.current = setTimeout(() => setToast(null), undo ? 7000 : 2500);
   };
 
   const T = useMemo(() => Object.fromEntries(types.map((t) => [t.code, t])), [types]);
@@ -174,7 +178,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     try {
       await markPlacementRemoved(id, refDate);
       setPlacements((prev) => prev.map((p) => (p.id === id ? { ...p, removedAt: refDate, removalSource: 'manual' } : p)));
-      flash('철거 완료로 기록했습니다.', () => undoRemoved(id));
+      flash('철거한 것으로 기록했습니다.', () => undoRemoved(id));
     } catch (e) { flash('처리에 실패했습니다: ' + e.message); }
   };
   const undoRemoved = async (id) => {
@@ -230,7 +234,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       if (used) {
         await archiveMedia(id);
         setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, active: false } : m)));
-        flash('게시 이력이 있어 보관 처리했습니다.');
+        flash('배치 기록이 있어 삭제 대신 보관 처리했습니다.');
       } else {
         await deleteMedia(id);
         setMedia((prev) => prev.filter((m) => m.id !== id));
@@ -387,7 +391,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {tab === 'posts' && <PostsPanel {...ctx} state={state} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
           {tab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
-              onPick={setSelMedia} onAssign={setAssigningId} onRemove={markRemoved} onUndo={undoRemoved} onDeletePosting={deletePostingItem} />
+              onPick={setSelMedia} onAssign={setAssigningId} onRemove={markRemoved} onUndo={undoRemoved} onDeletePosting={deletePostingItem} onNotice={flash} />
           )}
           {tab === 'timeline' && <TimelinePanel {...ctx} state={state} onPick={setSelMedia} />}
           {tab === 'manage' && (

@@ -42,7 +42,10 @@ export default function TimelinePanel({ state, refDate, onPick }) {
         <button className={'btn' + (asTable ? ' on' : '')} onClick={() => setAsTable((v) => !v)}>{asTable ? '그래프로 보기' : '표로 보기'}</button>
       </div>
 
-      {!asTable ? (
+      {rows.length === 0 && (
+        <p className="empty">보여줄 배치 기록이 없습니다. 홍보물을 매체에 배치하면 여기에 기간이 그려집니다.</p>
+      )}
+      {rows.length === 0 ? null : !asTable ? (
         <div className="scroll tall">
           <div className="tl">
             <div className="tlhead"><span /><div className="tlticks">{ticks.map((d) => <i key={d} style={{ left: (d / effSpan) * 100 + '%' }}>{md(start + d * DAY)}</i>)}{!rangeOn && <b className="tlnow" style={{ left: (30 / effSpan) * 100 + '%' }} />}</div></div>

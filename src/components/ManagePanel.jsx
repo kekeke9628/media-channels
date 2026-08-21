@@ -159,7 +159,13 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
       {sec === 'media' && (
         <>
           <div className="toolrow"><input className="inp" placeholder="매체명 · 유형 · 구역 검색" value={q} onChange={(e) => setQ(e.target.value)} /><span className="count mono">{rows.length}건</span></div>
-          {narrow ? (
+          {rows.length === 0 ? (
+            <p className="empty">
+              {media.length === 0
+                ? '아직 등록된 매체가 없습니다. 위 지도에서 "+매체 추가"로 등록하세요.'
+                : '조건에 맞는 매체가 없습니다.'}
+            </p>
+          ) : narrow ? (
             <div className="mlist">
               {rows.map((m) => {
                 const t = T[m.type];

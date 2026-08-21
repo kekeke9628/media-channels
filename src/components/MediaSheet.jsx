@@ -72,7 +72,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
               <div className="rprev"><img src={imgUrls.get(cur.installPhotoPath)} alt="" /><i className="sub">설치 확인 사진</i></div>
             )}
             {isEditor && (
-              <button className={'btn wide' + (o.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>철거 완료</button>
+              <button className={'btn wide' + (o.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>철거 처리</button>
             )}
           </>
         ) : <p className="empty">비어있습니다 · {o.emptyDays >= 365 ? '365+' : o.emptyDays}일째</p>}
