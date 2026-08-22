@@ -178,9 +178,9 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                     </div>
                     <div className="mcard-meta">
                       <span className="sub">{zoneLabel(m.zone)}</span>
-                      <span className="sub mono">{m.faces}면 · 지난 배치 {hist}건</span>
+                      <span className="sub mono">{m.spec || T[m.type]?.spec || '규격 미정'} · {m.faces}면</span>
                     </div>
-                    <div className="mcard-date mono">{m.id}</div>
+                    <div className="mcard-date">지난 배치 {hist}건</div>
                     {isEditor && (
                       m.active
                         ? <button className="btn wide danger" style={{ marginTop: 8 }} onClick={() => onRemoveMedia(m.id)}>{hist ? '보관' : '삭제'}</button>
@@ -200,7 +200,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                   const hist = histOf(m.id);
                   return (
                     <tr key={m.id} className={m.active ? '' : 'archived'}>
-                      <td><b>{m.name}</b><i className="sub mono">{m.id}</i></td>
+                      <td><b>{m.name}</b></td>
                       <td>{t && <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span>}</td>
                       <td>{zoneLabel(m.zone)}</td>
                       <td className="r mono">{m.faces}</td>

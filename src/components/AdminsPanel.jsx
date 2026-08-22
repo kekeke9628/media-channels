@@ -3,7 +3,7 @@ import { fetchAdmins, findUserIdByEmail, addAdmin, updateAdminRole, removeAdmin 
 
 // 관리자 관리 — admins 테이블 CRUD. auth.users를 직접 못 보므로, 이메일로 로그인 시도한
 // 적 있는지(user_id 존재) 먼저 조회한 뒤에만 admins에 추가할 수 있다(012 마이그레이션).
-export default function AdminsPanel({ meId }) {
+export default function AdminsPanel({ meId, narrow }) {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -73,14 +73,35 @@ export default function AdminsPanel({ meId }) {
 
       {err && <p className="warnbox">{err}</p>}
 
-      <div className="scroll" style={{ maxHeight: 340, marginBottom: 16 }}>
-        <table>
-          <thead><tr><th>이메일</th><th>이름</th><th>권한</th><th className="r">관리</th></tr></thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={4} className="sub">불러오는 중…</td></tr>
-            ) : (
-              admins.map((a) => {
+      {/* 좁은 화면에서 이메일 주소가 든 4열 표는 옆으로 밀어야만 권한·제거가 보였다 —
+          다른 화면들과 같이 카드 목록으로 바꾼다. */}
+      {loading ? (
+        <p className="sub">불러오는 중…</p>
+      ) : narrow ? (
+        <div className="mlist" style={{ marginBottom: 16 }}>
+          {admins.map((a) => {
+            const self = a.user_id === meId;
+            return (
+              <div className="mcard" key={a.user_id}>
+                <div className="mcard-top"><b>{a.email}</b>{self && <span className="sub">(나)</span>}</div>
+                <div className="mcard-meta"><span className="sub">{a.name || '이름 없음'}</span></div>
+                <label className="fld"><span>권한</span>
+                  <select value={a.role} onChange={(e) => changeRole(a.user_id, e.target.value)}>
+                    <option value="editor">편집자</option>
+                    <option value="viewer">조회자</option>
+                  </select>
+                </label>
+                {!self && <button className="btn wide danger" onClick={() => remove(a.user_id)}>이 관리자 제거</button>}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="scroll" style={{ maxHeight: 340, marginBottom: 16 }}>
+          <table>
+            <thead><tr><th>이메일</th><th>이름</th><th>권한</th><th className="r">관리</th></tr></thead>
+            <tbody>
+              {admins.map((a) => {
                 const self = a.user_id === meId;
                 return (
                   <tr key={a.user_id}>
@@ -97,11 +118,11 @@ export default function AdminsPanel({ meId }) {
                     </td>
                   </tr>
                 );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <section className="block">
         <h3>관리자 추가</h3>

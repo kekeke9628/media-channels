@@ -397,7 +397,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
 
         <div className="tabs" ref={panelTopRef}>
           {tabEntries.map(([k, v]) => (
-            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{v}{k === 'posts' && kpi.stale > 0 && <em>{kpi.stale}</em>}</button>
+            <button key={k} className={tab === k ? 'on' : ''} onClick={() => goTab(k)}>{v}{k === 'posts' && kpi.stale > 0 && <em>{kpi.stale}</em>}</button>
           ))}
         </div>
 
@@ -414,7 +414,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
               onRemoveMedia={removeMedia} onRestoreMedia={restoreMediaItem} />
           )}
           {tab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} />}
-          {tab === 'admins' && isEditor && <AdminsPanel meId={meId} />}
+          {tab === 'admins' && isEditor && <AdminsPanel meId={meId} narrow={narrow} />}
         </div>
       </main>
 

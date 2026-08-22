@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { contentOf } from '../constants.js';
+import { contentOf, subOf } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
@@ -84,7 +84,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                 {thumbUrls.has(p.thumbPath) && <img className="cthumb-img" src={thumbUrls.get(p.thumbPath)} alt="" />}
               </div>
               <div className="cbody">
-                <b>{p.brand}</b><i className="sub">{contentOf(p)} · {T[p.type]?.label}</i>
+                <b>{p.brand}</b><i className="sub">{[subOf(p), T[p.type]?.label].filter(Boolean).join(' · ')}</i>
                 <div className="crow">
                   {pls.length === 0 ? <span className="tag vacant">미배치</span> : <span className="sub mono">{pls.length}곳에 배치</span>}
                   {p.bytesLight > 0 && <span className="sub mono">{(p.bytesLight / 1024).toFixed(0)}KB</span>}

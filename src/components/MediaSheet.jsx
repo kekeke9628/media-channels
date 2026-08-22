@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LONG_OPEN, contentOf } from '../constants.js';
+import { LONG_OPEN, subOf } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 
@@ -54,15 +54,14 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
                 const url = imgUrls.get(cur.viewPath) || imgUrls.get(cur.thumbPath);
                 return (
                   <div className="bigthumb" style={url ? undefined : { background: `linear-gradient(150deg, hsl(${cur.hue} 42% 52%), hsl(${(cur.hue + 40) % 360} 38% 38%))` }}>
-                    {url && <img className="bigthumb-img" src={url} alt="" />}
-                    <span>{cur.brand}</span>
+                    {url ? <img className="bigthumb-img" src={url} alt="" /> : <span>등록된 이미지 없음</span>}
                   </div>
                 );
               })()
             )}
             <div className="statgrid">
               <div><em>업체명</em><b>{cur.brand}</b></div>
-              <div><em>내용</em><b>{contentOf(cur)}</b></div>
+              {subOf(cur) && <div><em>내용</em><b>{subOf(cur)}</b></div>}
               <div><em>시작일</em><b className="mono">{cur.start}</b></div>
               <div><em>종료일</em><b className="mono">{cur.end || '미정'}</b></div>
             </div>

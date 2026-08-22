@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { contentOf, days, ST } from '../constants.js';
+import { contentOf, subOf, days, ST } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
@@ -145,7 +145,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                 </div>
                 {p ? (
                   <>
-                    <div className="mcard-brand"><b>{p.brand}</b><i className="sub">{contentOf(p)}</i></div>
+                    <div className="mcard-brand"><b>{p.brand}</b>{subOf(p) && <i className="sub">{subOf(p)}</i>}</div>
                     <div className="mcard-date mono">{p.start} ~ {p.end || '미정'}</div>
                   </>
                 ) : <div className="sub">걸려 있는 홍보물 없음</div>}
@@ -189,7 +189,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                     <td><span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span></td>
                     <td>{zoneLabel(o.zone)}</td>
                     <td>{p ? p.brand : <span className="sub">—</span>}</td>
-                    <td className="sub">{p ? contentOf(p) : '—'}</td>
+                    <td className="sub">{(p && subOf(p)) || '—'}</td>
                     <td className="mono">{p ? p.start : '—'}</td>
                     <td className="mono">{p ? (p.end || '미정') : '—'}</td>
                     <td onClick={(e) => o.overdue && e.stopPropagation()}>
@@ -233,7 +233,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                   <tr key={p.id} onClick={() => onPick(p.mediaId)}>
                     <td>{mName(p.mediaId)}</td>
                     <td><b>{p.brand}</b></td>
-                    <td className="sub">{contentOf(p)}</td>
+                    <td className="sub">{subOf(p) || '—'}</td>
                     <td className="mono">{p.start}</td>
                     <td className="mono">{p.end || '미정'}</td>
                     <td className="mono">{p.removedAt || <span className="sub">—</span>}{p.removalSource === 'auto' && <span className="autotag">자동</span>}</td>

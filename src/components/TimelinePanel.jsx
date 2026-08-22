@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { iso, DAY, diffDays, md, clamp, contentOf, days } from '../constants.js';
+import { iso, DAY, diffDays, md, clamp, contentOf, subOf, days } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
@@ -102,7 +102,7 @@ export default function TimelinePanel({ state, refDate, onPick }) {
                 <tr key={p.id} onClick={() => onPick(o.id)}>
                   <td>{o.name}<i className="sub">{zoneLabel(o.zone)}</i></td>
                   <td><b>{p.brand}</b></td>
-                  <td className="sub">{contentOf(p)}</td>
+                  <td className="sub">{subOf(p) || '—'}</td>
                   <td className="mono">{p.start}</td>
                   <td className="mono">{p.end || '미정'}</td>
                   <td className="mono">{p.removedAt || <span className="sub">—</span>}{p.removalSource === 'auto' && <span className="autotag">자동</span>}</td>
