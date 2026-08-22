@@ -144,8 +144,12 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .iconinp{width:52px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:7px 4px;font-size:14px;font-family:inherit}
 .colorinp{width:38px;height:34px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff}
 .chk{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2)}
-.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex-wrap:wrap}
-.seg button{border:0;background:#fff;padding:7px 12px;font-size:12.5px;cursor:pointer;border-right:1px solid var(--line);color:var(--ink2)}
+/* flex + flex:1로는 컨테이너 폭이 내용에 맞춰지는 데스크톱에서 여전히 글자 수대로 폭이
+   갈렸다(매체 55px / 매체 유형 84px) — 균등 컬럼 그리드면 어느 폭에서든 똑같이 나뉜다. */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+/* 글자 수에 따라 "매체"(2자)와 "매체 유형"(5자) 버튼 폭이 제각각이라 토글로 안 보였다 —
+   같은 폭으로 나눠 갖게 한다. */
+.seg button{border:0;background:#fff;padding:8px 14px;font-size:13px;cursor:pointer;border-right:1px solid var(--line);color:var(--ink2);white-space:nowrap}
 .seg button:last-child{border-right:0}
 .seg button.on{background:#23211E;color:#fff;font-weight:600}
 /* iOS Safari가 flex 컨테이너의 overflow:hidden+border-radius 클리핑을 가끔 놓쳐서,
@@ -210,7 +214,10 @@ td.sub{display:table-cell}
 .mbox{background:#fff;border-radius:15px;width:min(520px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
 .mhead{display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid var(--line)}
 .mhead b{font-size:15px}
-.mhead button{border:0;background:none;font-size:17px;cursor:pointer;color:var(--ink2)}
+/* 닫기(✕)가 29×22라 모바일에서 누르기 어려웠다 — 글자 크기는 두고 누를 면적만 넓힌다.
+   오른쪽·위 여백을 음수 마진으로 되돌려 헤더 높이와 정렬은 그대로 둔다. */
+.mhead button{border:0;background:none;font-size:19px;cursor:pointer;color:var(--ink2);
+  width:44px;height:44px;margin:-11px -13px -11px 0;display:grid;place-items:center}
 .mbody{padding:16px 18px;overflow:auto;display:flex;flex-direction:column;gap:11px}
 .mfoot{padding:13px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
 .cropbox{width:min(720px,100%)}
@@ -227,6 +234,10 @@ td.sub{display:table-cell}
 .fld2>.fld{min-width:0}
 .fld span{color:var(--ink2);font-weight:600}
 .fld input,.fld select{border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px;font-family:inherit;min-width:0;width:100%;box-sizing:border-box}
+/* iOS 사파리는 input[type=date]에 "2026. 8. 22." 전체가 들어갈 만큼의 고유 폭을 강제로
+   잡아서, width:100%·min-width:0을 줘도 두 칸짜리 그리드를 밀고 나갔다 — 팝업 안이 옆으로
+   밀려 오른쪽 글자가 잘렸다. -webkit-appearance:none이 그 고유 폭 계산을 끈다. */
+.fld input[type=date]{-webkit-appearance:none;appearance:none}
 .fld input:disabled{background:#F4F2EE;color:#A79E8D}
 .hint{font-size:11.5px;color:var(--ink2);margin:0;line-height:1.7}
 .conflictbox{font-size:12px;color:#A8781F;background:#FBF6EC;border:1px solid #E7D9BC;border-radius:9px;padding:10px 12px;line-height:1.7}
@@ -395,6 +406,17 @@ td.sub{display:table-cell}
      스크롤해야 했다 — 어떤 시안인지 알아보는 데는 이 정도 높이면 충분하다. */
   .cthumb{aspect-ratio:16/10}
   .side nav button{font-size:12.5px;padding:7px 9px}
+  /* 팝업이 화면을 거의 꽉 채워서 ✕가 브라우저 주소창 바로 밑에 붙었다 — 손이 닿는 곳으로
+     내려오도록 조금 줄이고 위쪽 여백을 더 준다. 100vh는 iOS에서 주소창을 뺀 실제 높이보다
+     크게 잡히므로 dvh를 쓰고, dvh를 모르는 브라우저를 위해 vh 값을 먼저 둔다. */
+  .modal{padding:64px 12px 20px;align-content:center}
+  .mbox{max-height:76vh;max-height:76dvh}
+  /* 어떤 이유로든 안쪽 내용이 넓어져도 팝업이 옆으로 밀리지는 않게 한다. */
+  .mbody{overflow-x:hidden}
+  /* 매체/매체 유형 같은 토글은 좁은 화면에서 폭을 다 쓰는 편이 누르기 쉽다. */
+  .seg{width:100%}
+  .seg button{padding:11px 12px}
+
   /* 지도 위 클릭 지점에 붙이면 화면 가장자리에서 잘리므로, 모바일에서는 화면 중앙에 띄운다 */
   .addpop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(300px,86vw);max-height:80vh;overflow:auto}
   /* 손가락으로 쓰는 화면인데 실측해 보니 "+홍보물 등록"이 24px, 체크박스 라벨이 19px,
