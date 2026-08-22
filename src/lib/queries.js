@@ -160,9 +160,12 @@ export async function getPostingImageUrls(paths) {
 }
 
 async function uploadPostingImage(path, dataUrl) {
-  const { error } = await supabase.storage.from(POSTING_BUCKET).upload(path, dataUrlToBlob(dataUrl), {
+  // contentType을 'image/webp'로 못박아 뒀는데 브라우저가 실제로는 PNG를 만들어 준
+  // 적이 있어(convertImage 주석 참고) 기록된 형식과 내용이 어긋났다 — 만들어진 그대로 쓴다.
+  const blob = dataUrlToBlob(dataUrl);
+  const { error } = await supabase.storage.from(POSTING_BUCKET).upload(path, blob, {
     upsert: true,
-    contentType: 'image/webp',
+    contentType: blob.type,
   });
   if (error) throw error;
   return path;
@@ -285,6 +288,14 @@ export async function undoPlacementRemoval(id) {
 export async function adjustPlacementEnd(id, newEnd) {
   const { error } = await supabase.from('placements').update({ end_date: newEnd }).eq('id', id);
   if (error) throw error;
+}
+
+// 저장 공간 사용량 — 무료 요금제는 파일 저장이 1GB까지라, 남은 여유를 볼 수 있게 한다.
+export const STORAGE_LIMIT = 1024 * 1024 * 1024;
+export async function fetchStorageUsage() {
+  const { data, error } = await supabase.rpc('storage_usage');
+  if (error) throw error;
+  return (data || []).map((r) => ({ bucket: r.bucket, files: Number(r.files), bytes: Number(r.bytes) }));
 }
 
 export async function fetchAdmins() {

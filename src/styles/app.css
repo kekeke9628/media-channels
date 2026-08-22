@@ -407,3 +407,7 @@ td.sub{display:table-cell}
   .chk{min-height:44px}
   .chk input[type=checkbox]{width:18px;height:18px}
 }
+
+/* 저장 공간 게이지 — 남은 여유를 한눈에 보여주는 용도라 숫자보다 막대가 빠르다. */
+.gauge{height:10px;border-radius:6px;background:var(--brass-soft);overflow:hidden}
+.gauge i{display:block;height:100%;background:var(--brass);border-radius:6px}

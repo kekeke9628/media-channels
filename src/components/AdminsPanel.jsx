@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { fetchAdmins, findUserIdByEmail, addAdmin, updateAdminRole, removeAdmin } from '../lib/queries.js';
+import { fetchAdmins, findUserIdByEmail, addAdmin, updateAdminRole, removeAdmin, fetchStorageUsage, STORAGE_LIMIT } from '../lib/queries.js';
 
 // 관리자 관리 — admins 테이블 CRUD. auth.users를 직접 못 보므로, 이메일로 로그인 시도한
 // 적 있는지(user_id 존재) 먼저 조회한 뒤에만 admins에 추가할 수 있다(012 마이그레이션).
+const mb = (b) => (b >= 1073741824 ? (b / 1073741824).toFixed(2) + 'GB' : (b / 1048576).toFixed(1) + 'MB');
+
 export default function AdminsPanel({ meId, narrow }) {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ email: '', name: '', role: 'editor' });
+  // 저장 공간 — 사진이 쌓이면 언젠가 한도에 닿으므로 지금 얼마나 쓰는지 보이게 한다.
+  const [usage, setUsage] = useState(null);
+  useEffect(() => { fetchStorageUsage().then(setUsage).catch(() => setUsage(null)); }, []);
 
   const load = () => {
     setLoading(true);
@@ -70,6 +75,23 @@ export default function AdminsPanel({ meId, narrow }) {
       <div className="toolrow">
         <span className="count mono">{admins.length}명</span>
       </div>
+
+      {usage && (() => {
+        const used = usage.reduce((n, u) => n + u.bytes, 0);
+        const files = usage.reduce((n, u) => n + u.files, 0);
+        const pct = Math.min(100, (used / STORAGE_LIMIT) * 100);
+        return (
+          <section className="block" style={{ marginBottom: 16 }}>
+            <h3>저장 공간</h3>
+            <div className="gauge"><i style={{ width: Math.max(pct, 0.6) + '%' }} /></div>
+            <p className="hint" style={{ marginTop: 8 }}>
+              사진 {files}개로 <b className="mono">{mb(used)}</b> 사용 중 · 전체 <b className="mono">1.0GB</b>
+              {pct < 1 ? ' (1%도 안 씀)' : ` (${pct.toFixed(pct < 10 ? 1 : 0)}%)`}
+            </p>
+            <p className="hint">한도에 가까워지면 요금제를 올리거나 오래된 홍보물의 사진을 지우면 됩니다.</p>
+          </section>
+        );
+      })()}
 
       {err && <p className="warnbox">{err}</p>}
 

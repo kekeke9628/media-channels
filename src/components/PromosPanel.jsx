@@ -87,7 +87,6 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                 <b>{p.brand}</b><i className="sub">{[subOf(p), T[p.type]?.label].filter(Boolean).join(' · ')}</i>
                 <div className="crow">
                   {pls.length === 0 ? <span className="tag vacant">미배치</span> : <span className="sub mono">{pls.length}곳에 배치</span>}
-                  {p.bytesLight > 0 && <span className="sub mono">{(p.bytesLight / 1024).toFixed(0)}KB</span>}
                 </div>
                 {pls.length > 0 && (
                   <table className="mini-t">
