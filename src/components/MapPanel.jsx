@@ -364,13 +364,17 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
   const [type, setType] = useState(types[0]?.code || '');
   const t = types.find((x) => x.code === type);
   const [name, setName] = useState('');
-  const [faces, setFaces] = useState('');
+  // 면수를 빈 칸으로 시작하면 2면 유형(웨더워리어 등)을 추가할 때 깜빡 잊고 1을 넣기
+  // 쉽다 — 그러면 그 매체만 조용히 1면짜리가 돼서, 나중에 배치할 때 면 선택이 아예 안
+  // 뜨는 걸 보고서야 알아챈다. 유형의 기본 면수로 미리 채워 두고, 필요하면 고치게 한다.
+  const [faces, setFaces] = useState(types[0]?.faces || 1);
   const archivedOfType = archived.filter((m) => m.type === type);
   const [existingId, setExistingId] = useState(archivedOfType[0]?.id || '');
 
   useEffect(() => {
     const list = archived.filter((m) => m.type === type);
     setExistingId(list[0]?.id || '');
+    setFaces(types.find((x) => x.code === type)?.faces || 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
