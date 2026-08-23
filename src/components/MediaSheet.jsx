@@ -15,7 +15,7 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd 
       {faceCount > 1 && <h4 className="facesheet-h">{slot.faceLabel}</h4>}
       {isEditor && (
         <button className="btn primary wide" onClick={() => onQuickAdd(slot.mediaId, slot.face)}>
-          {faceCount > 1 ? `${slot.faceLabel}에 홍보물 등록` : '이 매체에 홍보물 등록'}
+          {faceCount > 1 ? `${slot.faceLabel}에 홍보물 배치` : '이 매체에 홍보물 배치'}
         </button>
       )}
       {slot.overdue && <p className="warnbox">종료일보다 <b>+{slot.overdueDays}일</b> 지났습니다.</p>}

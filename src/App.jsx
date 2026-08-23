@@ -24,6 +24,7 @@ import AdminsPanel from './components/AdminsPanel.jsx';
 import MediaSheet from './components/MediaSheet.jsx';
 import AddModal from './components/AddModal.jsx';
 import AssignModal from './components/AssignModal.jsx';
+import PlaceOnMediaModal from './components/PlaceOnMediaModal.jsx';
 
 const TABS = { posts: '매체 현황', promos: '홍보물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
 const EDITOR_ONLY_TABS = new Set(['alert', 'admins']);
@@ -67,6 +68,8 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const [addOpen, setAddOpen] = useState(false);
   const [addMediaId, setAddMediaId] = useState(null);
   const [addFace, setAddFace] = useState(null);
+  const [placingMediaId, setPlacingMediaId] = useState(null);
+  const [placingFace, setPlacingFace] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [addMode, setAddMode] = useState(false);
@@ -428,7 +431,21 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       {selMedia && byId[selMedia] && (
         <MediaSheet
           {...ctx} o={byId[selMedia]} onClose={() => setSelMedia(null)} onRemove={markRemoved} onDelete={removeMedia}
-          onQuickAdd={(id, face) => { setAddMediaId(id); setAddFace(face || null); setAddOpen(true); }}
+          onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}
+        />
+      )}
+      {placingMediaId && isEditor && media.find((m) => m.id === placingMediaId) && (
+        <PlaceOnMediaModal
+          {...ctx} media={media.find((m) => m.id === placingMediaId)} postings={postings} placements={placements}
+          initialFace={placingFace}
+          onClose={() => { setPlacingMediaId(null); setPlacingFace(null); }}
+          onAssign={addPlacement} onAdjustEnd={adjustEnd}
+          onCreateNew={() => {
+            // 원하는 홍보물이 목록에 없으면, 이 매체를 고정한 채로 등록 화면(AddModal)의
+            // "특정 매체용" 경로로 넘어가 등록과 동시에 배치한다.
+            setAddMediaId(placingMediaId); setAddFace(placingFace); setAddOpen(true);
+            setPlacingMediaId(null); setPlacingFace(null);
+          }}
         />
       )}
       {addOpen && isEditor && (
@@ -436,10 +453,11 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {...ctx} media={media} placements={placements} initialMediaId={addMediaId} initialFace={addFace}
           onClose={() => { setAddOpen(false); setAddMediaId(null); setAddFace(null); }}
           onAdd={addPosting} onAssign={addPlacement} onAdjustEnd={adjustEnd}
-          onDone={({ placed, registeredOnly }) => {
+          onDone={({ placed, registeredOnly, bulk }) => {
             // 배치 없이 등록만 하면 방금 만든 홍보물이 어느 화면에도 안 보여서, 다음 할 일이
             // 있는 홍보물 화면으로 옮겨 주고 무엇을 해야 하는지 문구로 알려준다.
             if (registeredOnly) { setTab('promos'); flash('홍보물을 등록했습니다. 이제 "배치 추가"로 매체에 걸어 주세요.'); return; }
+            if (bulk) { flash(`홍보물을 등록하고 ${bulk.ok}곳에 배치했습니다.${bulk.failed ? ` · ${bulk.failed}곳 실패` : ''}`); return; }
             flash(placed ? '홍보물을 등록하고 매체에 배치했습니다.' : '홍보물은 등록했지만 배치에 실패했습니다.');
           }}
         />
