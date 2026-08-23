@@ -243,8 +243,15 @@ td.sub{display:table-cell}
 .fld input,.fld select{border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px;font-family:inherit;min-width:0;width:100%;box-sizing:border-box}
 /* iOS 사파리는 input[type=date]에 "2026. 8. 22." 전체가 들어갈 만큼의 고유 폭을 강제로
    잡아서, width:100%·min-width:0을 줘도 두 칸짜리 그리드를 밀고 나갔다 — 팝업 안이 옆으로
-   밀려 오른쪽 글자가 잘렸다. -webkit-appearance:none이 그 고유 폭 계산을 끈다. */
-.fld input[type=date]{-webkit-appearance:none;appearance:none}
+   밀려 오른쪽 글자가 잘렸다. -webkit-appearance:none이 그 고유 폭 계산을 끈다.
+   PC(Windows Chrome 등)에도 그대로 적용했더니 반대로 문제였다 — appearance:none이 데스크톱
+   date input의 내부 렌더링을 깨서 날짜 자리에 빈 네모만 보였다. @supports
+   (-webkit-touch-callout: none)는 iOS 계열 브라우저에서만 참이 되는(다 WebKit이라 브라우저
+   종류와 무관하게 iOS 자체를 가려낸다) 표준적인 방법이라, 이걸로 감싸 데스크톱은 브라우저
+   기본 렌더링을 그대로 쓰게 한다. */
+@supports (-webkit-touch-callout: none) {
+  .fld input[type=date]{-webkit-appearance:none;appearance:none}
+}
 .fld input:disabled{background:#F4F2EE;color:#A79E8D}
 .hint{font-size:11.5px;color:var(--ink2);margin:0;line-height:1.7}
 .conflictbox{font-size:12px;color:#A8781F;background:#FBF6EC;border:1px solid #E7D9BC;border-radius:9px;padding:10px 12px;line-height:1.7}
@@ -270,8 +277,13 @@ td.sub{display:table-cell}
 .medialist-item{display:flex;align-items:center;gap:8px;padding:7px 11px;font-size:12.5px;border-bottom:1px solid #F0ECE4;cursor:pointer}
 .medialist-item:last-child{border-bottom:0}
 .medialist-item:hover{background:#FAF8F4}
+/* 체크박스는 flex-basis:auto인 채로 두면 Windows Chrome 등 일부 환경에서 폭을 자기
+   크기가 아니라 남는 공간만큼(실측 318px) 잡아, 뒤에 오는 "겹침" 태그가 밀려나면서
+   두 글자가 세로로 쪼개져 보였다(폭이 28px까지 눌림). 체크박스는 원래 크기 그대로,
+   늘거나 줄지 않게 고정한다. */
+.medialist-item input[type=checkbox]{flex:none;width:14px;height:14px;margin:0}
 .medialist-all{background:#F7F5F1;font-weight:600;position:sticky;top:0}
-.conflicttag{margin-left:auto;background:#F4E5E3;color:#B4534B;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px}
+.conflicttag{margin-left:auto;flex:none;white-space:nowrap;background:#F4E5E3;color:#B4534B;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px}
 
 /* overflow:hidden — "오늘" 세로선(.tlnow)이 실제 행 개수와 무관하게 항상 600px
    고정 높이라, 행이 몇 개 안 될 때 카드 아래로 삐져나와 보이던 문제. 이 박스
