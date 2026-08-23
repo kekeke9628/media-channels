@@ -157,6 +157,34 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
           </label>
           {t && <p className="hint">규격 <b>{t.spec}</b> · {t.faces}면{t.movable ? ' · 이동형' : ''}</p>}
 
+          <label className="chk"><input type="checkbox" checked={placeNow} onChange={(e) => { setPlaceNow(e.target.checked); setConflict(null); }} />지금 매체에 배치하기 (한 곳)</label>
+          {/* 여기서는 매체를 하나만 고를 수 있는데, 처음 쓰는 사람은 "여러 곳에 거는 법"을
+              못 찾고 이 화면에서 막힌다 — 경로를 미리 알려 준다. */}
+          <p className="hint">여러 매체에 한 번에 걸려면 그냥 등록만 하세요. 등록 후 홍보물 화면의 <b>+ 배치 추가</b>에서 여러 곳을 한꺼번에 고를 수 있습니다.</p>
+          {placeNow && (
+            targets.length === 0 ? (
+              <p className="sub" style={{ padding: '8px 0' }}>이 유형의 매체가 없습니다. 등록만 먼저 하고, 나중에 홍보물 화면에서 배치할 수 있습니다.</p>
+            ) : (
+              <>
+                <label className="fld"><span>매체</span><select value={mediaId} onChange={(e) => { setMediaId(e.target.value); setConflict(null); }}>{targets.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+                {/* 이 매체가 면을 여러 개 가지면(웨더워리어 등) 어느 면에 걸지 고른다 — 면마다
+                    완전히 다른 업체가 걸릴 수 있어서, 매체를 고르는 것만으론 부족하다. */}
+                {mediaFaces > 1 && (
+                  <>
+                    <label className="fld"><span>면 선택</span></label>
+                    <div className="seg">
+                      {Array.from({ length: mediaFaces }, (_, i) => i + 1).map((f) => {
+                        const occupied = mediaPlacements(mediaId, f).some((pl) => statusOf(pl, refDate) === 'live' || statusOf(pl, refDate) === 'open');
+                        return <button key={f} type="button" className={face === f ? 'on' : ''} onClick={() => setFace(f)}>{f}면{occupied ? ' · 사용중' : ''}</button>;
+                      })}
+                    </div>
+                    <label className="fld"><span>방향 (선택)</span><input value={faceLabel} onChange={(e) => { setFaceLabel(e.target.value); setLabelTouched(true); }} placeholder={`비워두면 "${face}면"으로 저장됩니다`} /></label>
+                  </>
+                )}
+              </>
+            )
+          )}
+
           <label className="fld"><span>업체명</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: 나이키" /></label>
           <label className="fld"><span>내용 (선택)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="비워두면 업체명이 그대로 들어갑니다" /></label>
           <label className="fld"><span>홍보물 이미지 (선택)</span></label>
@@ -174,37 +202,8 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
             </div>
           )}
 
-          <label className="chk"><input type="checkbox" checked={placeNow} onChange={(e) => { setPlaceNow(e.target.checked); setConflict(null); }} />지금 매체에 배치하기 (한 곳)</label>
-          {/* 여기서는 매체를 하나만 고를 수 있는데, 처음 쓰는 사람은 "여러 곳에 거는 법"을
-              못 찾고 이 화면에서 막힌다 — 경로를 미리 알려 준다. */}
-          <p className="hint">여러 매체에 한 번에 걸려면 그냥 등록만 하세요. 등록 후 홍보물 화면의 <b>+ 배치 추가</b>에서 여러 곳을 한꺼번에 고를 수 있습니다.</p>
-          {placeNow && (
+          {placeNow && targets.length > 0 && (
             <>
-              {targets.length === 0 ? (
-                <p className="sub" style={{ padding: '8px 0' }}>이 유형의 매체가 없습니다. 등록만 먼저 하고, 나중에 홍보물 화면에서 배치할 수 있습니다.</p>
-              ) : (
-                <label className="fld"><span>매체</span><select value={mediaId} onChange={(e) => { setMediaId(e.target.value); setConflict(null); }}>{targets.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-              )}
-              {/* 이 매체가 면을 여러 개 가지면(웨더워리어 등) 어느 면에 걸지 고른다 — 면마다
-                  완전히 다른 업체가 걸릴 수 있어서, 매체를 고르는 것만으론 부족하다. */}
-              {mediaFaces > 1 && (
-                <>
-                  <label className="fld"><span>면 선택</span></label>
-                  <div className="seg">
-                    {Array.from({ length: mediaFaces }, (_, i) => i + 1).map((f) => {
-                      const occupied = mediaPlacements(mediaId, f).some((pl) => statusOf(pl, refDate) === 'live' || statusOf(pl, refDate) === 'open');
-                      return <button key={f} type="button" className={face === f ? 'on' : ''} onClick={() => setFace(f)}>{f}면{occupied ? ' · 사용중' : ''}</button>;
-                    })}
-                  </div>
-                  <label className="fld"><span>방향 (선택)</span><input value={faceLabel} onChange={(e) => { setFaceLabel(e.target.value); setLabelTouched(true); }} placeholder={`비워두면 "${face}면"으로 저장됩니다`} /></label>
-                </>
-              )}
-              <div className="fld2">
-                <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
-                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
-              </div>
-              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
-
               <label className="fld"><span>설치 확인 사진 (선택)</span></label>
               <label className="drop">
                 <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
@@ -214,6 +213,12 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               {installBusy && <p className="hint">변환 중…</p>}
               {installPhoto && <div className="rprev"><img src={installPhoto.thumb.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
               {syncedFromInstall && <p className="hint">홍보물 이미지가 비어 있어, 이 사진을 홍보물 이미지로도 함께 등록합니다. 인쇄 시안이 따로 있으면 위에서 올려 주세요.</p>}
+
+              <div className="fld2">
+                <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
+                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
+              </div>
+              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
 
               {conflict && (
                 <div className="conflictbox">

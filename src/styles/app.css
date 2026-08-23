@@ -219,6 +219,13 @@ td.sub{display:table-cell}
 .mhead button{border:0;background:none;font-size:19px;cursor:pointer;color:var(--ink2);
   width:44px;height:44px;margin:-11px -13px -11px 0;display:grid;place-items:center}
 .mbody{padding:16px 18px;overflow:auto;display:flex;flex-direction:column;gap:11px}
+/* .mbody가 .mbox의 90vh 예산 안에 맞추려 줄어들 때, flex-shrink 기본값(1) 때문에
+   자식들이 짜부라들 수 있다 — 특히 overflow:hidden인 .seg(테두리 둥글리기용)는 자동
+   최소 높이가 0으로 계산돼(스펙상 overflow≠visible이면 그렇다) 다른 필드보다 훨씬 먼저,
+   훨씬 심하게 눌린다. 폼이 길어지면 면 선택 버튼이 2px로 짜부라들어 안 보이던 게 이
+   경우였다 — 내용이 넘치면 그냥 스크롤되게(overflow:auto가 원래 하려던 일) 자식들이
+   줄어들지 않도록 막는다. */
+.mbody > *{flex-shrink:0}
 .mfoot{padding:13px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
 .cropbox{width:min(720px,100%)}
 .mhead .pagepick{display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:12px;font-size:12px;color:var(--ink2)}
