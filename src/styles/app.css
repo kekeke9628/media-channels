@@ -259,10 +259,6 @@ td.sub{display:table-cell}
 .rprev{margin-top:10px;text-align:center}
 .rprev img{max-width:130px;border-radius:8px;border:1px solid var(--line)}
 .movebox{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F8F1E4;border:1px solid #E7D9BC;border-radius:10px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:#8A6A20}
-.faceblock{border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:12px;background:#FCFBF8}
-.faceblock .fld{margin-bottom:9px}
-.faceblock .drop{background:#fff}
-.facelabel{display:block;font-size:12px;color:var(--brass);margin-bottom:9px}
 .medialist{border:1px solid var(--line);border-radius:9px;max-height:220px;overflow:auto;margin-top:6px}
 .medialist-item{display:flex;align-items:center;gap:8px;padding:7px 11px;font-size:12.5px;border-bottom:1px solid #F0ECE4;cursor:pointer}
 .medialist-item:last-child{border-bottom:0}
@@ -321,11 +317,11 @@ td.sub{display:table-cell}
 .mtxt i{font-style:normal;font-size:11px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 /* max-height에 걸려 폭이 줄면 왼쪽에 붙고 오른쪽에 빈 칸만 남았다 — 가운데로 모은다. */
 .bigthumb{aspect-ratio:3/4;max-height:220px;margin-inline:auto;border-radius:11px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:600;padding:14px;text-align:center;position:relative;overflow:hidden}
-.bigthumb span,.bigthumb .facedir{position:relative;text-shadow:0 1px 4px rgba(0,0,0,.65)}
+.bigthumb span{position:relative;text-shadow:0 1px 4px rgba(0,0,0,.65)}
 .bigthumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.facegrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.bigthumb.face{aspect-ratio:3/4;max-height:180px;position:relative;gap:6px}
-.bigthumb.face .facedir{font-size:10.5px;font-weight:600;opacity:.85}
+/* 매체 상세에서 면(face)마다 한 구획씩 — 2면 이상일 때만 사이에 구분선이 보인다. */
+.facesheet + .facesheet{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
+.facesheet-h{font-size:12.5px;font-weight:700;color:var(--brass);margin:0 0 8px}
 .thumbrow{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .tsmall{flex:0 0 54px;text-align:center}
 .tsmall i,.tsmall img{display:block;width:54px;height:72px;border-radius:7px;object-fit:cover}

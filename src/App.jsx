@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ALERT_DAYS, LONG_OPEN, getToday } from './constants.js';
-import { autoClose, buildState } from './lib/status.js';
+import { autoClose, buildState, flattenSlots } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, createMedia,
@@ -66,6 +66,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const [narrow, setNarrow] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [addMediaId, setAddMediaId] = useState(null);
+  const [addFace, setAddFace] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [addMode, setAddMode] = useState(false);
@@ -114,7 +115,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   };
 
   const T = useMemo(() => Object.fromEntries(types.map((t) => [t.code, t])), [types]);
+  // state = 매체 단위(지도 핀·상세시트가 씀, 매체당 항목 1개 · .slots에 면별 detail).
+  // slots = 면(face) 단위로 펼친 것(매체 현황·타임라인·알람이 씀 — 2면 매체는 항목 2개).
+  // 진짜 재고 단위는 매체가 아니라 면이라, 카운트·알람도 면 기준이 맞다 — 웨더워리어처럼
+  // 2면인 매체는 앞/뒤가 서로 다른 광고주로 독립적으로 걸릴 수 있기 때문이다.
   const state = useMemo(() => buildState(media, autoClose(placements, refDate), refDate), [media, placements, refDate]);
+  const slots = useMemo(() => flattenSlots(state), [state]);
   const byId = useMemo(() => Object.fromEntries(state.map((o) => [o.id, o])), [state]);
 
   const visible = useMemo(
@@ -123,18 +129,18 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   );
 
   const kpi = useMemo(() => {
-    const live = state.filter((o) => o.live).length;
-    const open = state.filter((o) => o.open).length;
-    const stale = state.filter((o) => o.overdue).length;
-    const longOpen = state.filter((o) => o.open && o.openDays >= LONG_OPEN).length;
-    const week = state.filter((o) => o.live && o.dToRemove >= 0 && o.dToRemove <= 7).length;
-    return { total: state.length, live, open, stale, longOpen, week };
-  }, [state]);
+    const live = slots.filter((o) => o.live).length;
+    const open = slots.filter((o) => o.open).length;
+    const stale = slots.filter((o) => o.overdue).length;
+    const longOpen = slots.filter((o) => o.open && o.openDays >= LONG_OPEN).length;
+    const week = slots.filter((o) => o.live && o.dToRemove >= 0 && o.dToRemove <= 7).length;
+    return { total: slots.length, live, open, stale, longOpen, week };
+  }, [slots]);
 
   const alerts = useMemo(() => ({
-    soon: state.filter((o) => o.live && o.dToRemove >= 0 && o.dToRemove <= ALERT_DAYS).sort((a, b) => a.dToRemove - b.dToRemove),
-    stale: state.filter((o) => o.overdue).sort((a, b) => b.overdueDays - a.overdueDays),
-  }), [state]);
+    soon: slots.filter((o) => o.live && o.dToRemove >= 0 && o.dToRemove <= ALERT_DAYS).sort((a, b) => a.dToRemove - b.dToRemove),
+    stale: slots.filter((o) => o.overdue).sort((a, b) => b.overdueDays - a.overdueDays),
+  }), [slots]);
 
   // 지도 드래그 중 실시간 시각 피드백(로컬만, 서버 호출 없음)
   const moveMediaLocal = (id, x, y) => {
@@ -206,9 +212,10 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   };
   // 홍보물을 매체에 배치한다 — posting은 이미 state에 있는(또는 방금 등록한) 홍보물 전체
   // 객체를 그대로 받아, placements 목록에 얹을 때 브랜드·이미지 등을 함께 평탄화한다.
-  const addPlacement = async (posting, { mediaId, start, end, installPhoto }, { silent } = {}) => {
+  // face/faceLabel은 여러 면을 가진 매체에서 어느 면에 거는지(단일 면 매체는 생략해도 1).
+  const addPlacement = async (posting, { mediaId, start, end, installPhoto, face, faceLabel }, { silent } = {}) => {
     try {
-      const created = await createPlacement({ postingId: posting.id, mediaId, start, end, installPhoto });
+      const created = await createPlacement({ postingId: posting.id, mediaId, start, end, installPhoto, face, faceLabel });
       // 인쇄 시안 없이 등록해 둔 홍보물에 현장 사진이 처음 올라오면, 그 사진을 홍보물
       // 이미지로도 채운다 — 그러지 않으면 목록이 계속 빈 칸이라 무엇이 걸려 있는지 모른다.
       // 이미 이미지가 있으면 덮지 않는다. 여기서 실패해도 배치 자체는 이미 저장됐으므로
@@ -219,7 +226,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           p = await setPostingImage(posting, installPhoto);
           setPostings((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...p } : x)));
           setPlacements((prev) => prev.map((pl) => (pl.postingId === p.id
-            ? { ...pl, thumbPath: p.thumbPath, viewPath: p.viewPath, faces: p.faces, bytesOrig: p.bytesOrig, bytesLight: p.bytesLight }
+            ? { ...pl, thumbPath: p.thumbPath, viewPath: p.viewPath, bytesOrig: p.bytesOrig, bytesLight: p.bytesLight }
             : pl)));
         } catch { p = posting; }
       }
@@ -402,12 +409,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         </div>
 
         <div className="panel">
-          {tab === 'posts' && <PostsPanel {...ctx} state={state} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
+          {tab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
           {tab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
               onPick={setSelMedia} onAssign={setAssigningId} onRemove={markRemoved} onUndo={undoRemoved} onDeletePosting={deletePostingItem} />
           )}
-          {tab === 'timeline' && <TimelinePanel {...ctx} state={state} onPick={setSelMedia} />}
+          {tab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={setSelMedia} />}
           {tab === 'manage' && (
             <ManagePanel {...ctx} media={media} postings={placements}
               onAddType={addType} onToggleType={toggleType} onEditType={editType}
@@ -421,13 +428,13 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       {selMedia && byId[selMedia] && (
         <MediaSheet
           {...ctx} o={byId[selMedia]} onClose={() => setSelMedia(null)} onRemove={markRemoved} onDelete={removeMedia}
-          onQuickAdd={(id) => { setAddMediaId(id); setAddOpen(true); }}
+          onQuickAdd={(id, face) => { setAddMediaId(id); setAddFace(face || null); setAddOpen(true); }}
         />
       )}
       {addOpen && isEditor && (
         <AddModal
-          {...ctx} media={media} placements={placements} initialMediaId={addMediaId}
-          onClose={() => { setAddOpen(false); setAddMediaId(null); }}
+          {...ctx} media={media} placements={placements} initialMediaId={addMediaId} initialFace={addFace}
+          onClose={() => { setAddOpen(false); setAddMediaId(null); setAddFace(null); }}
           onAdd={addPosting} onAssign={addPlacement} onAdjustEnd={adjustEnd}
           onDone={({ placed, registeredOnly }) => {
             // 배치 없이 등록만 하면 방금 만든 홍보물이 어느 화면에도 안 보여서, 다음 할 일이

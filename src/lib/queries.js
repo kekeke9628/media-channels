@@ -97,7 +97,6 @@ function mapPosting(p) {
     title: p.title || '',
     thumbPath: p.thumb_path,
     viewPath: p.view_path,
-    faces: p.faces || null,
     hue: hueOf(p.id),
     bytesOrig: p.bytes_orig || 0,
     bytesLight: p.bytes_light || 0,
@@ -116,6 +115,10 @@ function mapPlacement(pl) {
     removalSource: pl.removal_source,
     installPhoto: !!pl.install_photo_path,
     installPhotoPath: pl.install_photo_path,
+    // 매체가 여러 면(face)을 가질 때 이 배치가 어느 면인지 — 1부터 시작. 라벨이 비어
+    // 있으면(직접 입력 안 함) 화면에서 "N면"으로 채운다(lib/status.js flattenSlots 등).
+    face: pl.face || 1,
+    faceLabel: pl.face_label || null,
   };
 }
 
@@ -171,10 +174,12 @@ async function uploadPostingImage(path, dataUrl) {
   return path;
 }
 
-// 홍보물 등록 — 매체·일정과 무관하게 브랜드·내용·이미지만 먼저 등록한다. 어느 매체에
-// 걸지는 나중에(또는 여러 번) createPlacement로 따로 정한다. faces===2(웨더워리어류)이면
-// face 배열(앞/뒤 방향+변환결과)을 받아 면마다 별도 이미지를 올리고 faces(jsonb)에 담는다.
-export async function createPosting({ type, brand, title, singleResult, faceResults }) {
+// 홍보물 등록 — 매체·일정과 무관하게 브랜드·내용·이미지 한 장만 먼저 등록한다. 어느
+// 매체의 어느 면에 걸지는 나중에(또는 여러 번) createPlacement로 따로 정한다. 예전에는
+// 2면 매체용으로 앞/뒤 이미지 한 쌍을 홍보물 하나에 묶어 두었지만, 그러면 앞/뒤가 항상
+// 같은 업체·같은 기간으로만 걸릴 수 있었다 — 실제로는 면마다 다른 광고주가 흔해서,
+// 이제 홍보물은 언제나 단일 이미지고 "어느 면"은 배치(placements.face) 쪽 개념이다.
+export async function createPosting({ type, brand, title, singleResult }) {
   const { data: userData } = await supabase.auth.getUser();
   const { data: inserted, error: insertError } = await supabase
     .from('postings')
@@ -188,30 +193,14 @@ export async function createPosting({ type, brand, title, singleResult, faceResu
     .single();
   if (insertError) throw insertError;
   const id = inserted.id;
+  if (!singleResult) return mapPosting(inserted);
 
-  const patch = {};
-  if (faceResults) {
-    const faces = [];
-    for (let i = 0; i < faceResults.length; i++) {
-      const f = faceResults[i];
-      if (!f.result) { faces.push({ direction: f.direction || '', thumbPath: null, viewPath: null, bytesOrig: 0, bytesLight: 0 }); continue; }
-      const viewPath = await uploadPostingImage(`${id}/face${i + 1}-view.webp`, f.result.view.url);
-      const thumbPath = await uploadPostingImage(`${id}/face${i + 1}-thumb.webp`, f.result.thumb.url);
-      faces.push({ direction: f.direction || '', thumbPath, viewPath, bytesOrig: f.result.orig, bytesLight: f.result.view.bytes });
-    }
-    patch.faces = faces;
-    patch.bytes_orig = faces.reduce((s, f) => s + f.bytesOrig, 0);
-    patch.bytes_light = faces.reduce((s, f) => s + f.bytesLight, 0);
-    patch.thumb_path = faces[0]?.thumbPath || null;
-    patch.view_path = faces[0]?.viewPath || null;
-  } else if (singleResult) {
-    patch.view_path = await uploadPostingImage(`${id}/view.webp`, singleResult.view.url);
-    patch.thumb_path = await uploadPostingImage(`${id}/thumb.webp`, singleResult.thumb.url);
-    patch.bytes_orig = singleResult.orig;
-    patch.bytes_light = singleResult.view.bytes;
-  }
-
-  if (Object.keys(patch).length === 0) return mapPosting(inserted);
+  const patch = {
+    view_path: await uploadPostingImage(`${id}/view.webp`, singleResult.view.url),
+    thumb_path: await uploadPostingImage(`${id}/thumb.webp`, singleResult.thumb.url),
+    bytes_orig: singleResult.orig,
+    bytes_light: singleResult.view.bytes,
+  };
   const { data: updated, error: updateError } = await supabase.from('postings').update(patch).eq('id', id).select().single();
   if (updateError) throw updateError;
   return mapPosting(updated);
@@ -226,11 +215,15 @@ export async function deletePosting(id) {
 
 // 등록된 홍보물을 매체에 배치한다 — 처음 배치든, 이미 다른 매체(들)에 걸려 있는 홍보물의
 // 추가 배치든 동일하게 새 placements 행을 하나 만든다. 설치 확인 사진은 "이 배치가 실제로
-// 이 매체에 설치됐다"는 증빙이라 홍보물이 아니라 이 배치 행에 붙는다.
-export async function createPlacement({ postingId, mediaId, start, end, installPhoto }) {
+// 이 매체에 설치됐다"는 증빙이라 홍보물이 아니라 이 배치 행에 붙는다. face는 여러 면을
+// 가진 매체에서 어느 면인지(1부터) — 단일 면 매체는 항상 1이라 호출 쪽에서 생략해도 된다.
+export async function createPlacement({ postingId, mediaId, start, end, installPhoto, face, faceLabel }) {
   const { data: inserted, error: insertError } = await supabase
     .from('placements')
-    .insert({ posting_id: postingId, media_id: mediaId, start_date: start, end_date: end })
+    .insert({
+      posting_id: postingId, media_id: mediaId, start_date: start, end_date: end,
+      face: face || 1, face_label: (faceLabel || '').trim() || null,
+    })
     .select()
     .single();
   if (insertError) throw insertError;
@@ -253,16 +246,12 @@ export async function createPlacement({ postingId, mediaId, start, end, installP
 // 홍보물은 덮지 않는다(호출 쪽에서 판단).
 export async function setPostingImage(posting, result) {
   const id = posting.id;
-  // 2면 유형은 목록·상세가 faces(jsonb)에서 면별 이미지를 읽으므로 1면 자리를 채운다.
-  const two = Array.isArray(posting.faces);
-  const viewPath = await uploadPostingImage(two ? `${id}/face1-view.webp` : `${id}/view.webp`, result.view.url);
-  const thumbPath = await uploadPostingImage(two ? `${id}/face1-thumb.webp` : `${id}/thumb.webp`, result.thumb.url);
-  const patch = { view_path: viewPath, thumb_path: thumbPath, bytes_orig: result.orig, bytes_light: result.view.bytes };
-  if (two) {
-    patch.faces = posting.faces.map((f, i) => (i === 0
-      ? { ...f, thumbPath, viewPath, bytesOrig: result.orig, bytesLight: result.view.bytes }
-      : f));
-  }
+  const patch = {
+    view_path: await uploadPostingImage(`${id}/view.webp`, result.view.url),
+    thumb_path: await uploadPostingImage(`${id}/thumb.webp`, result.thumb.url),
+    bytes_orig: result.orig,
+    bytes_light: result.view.bytes,
+  };
   const { data, error } = await supabase.from('postings').update(patch).eq('id', id).select().single();
   if (error) throw error;
   return mapPosting(data);

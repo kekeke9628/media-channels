@@ -2,10 +2,13 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
+import { statusOf } from '../lib/status.js';
 
 // 매체 배치 — 이미 등록된 홍보물(posting)을 매체에 건다. 처음 배치든, 이미 다른 매체(들)에
-// 걸려 있는 홍보물에 추가로 배치하는 것이든 동일하게 다룬다. 홍보물의 이미지가 이미
-// 유형(면수)에 맞춰 등록돼 있으므로, 대상 매체는 그 유형의 매체로만 한정한다.
+// 걸려 있는 홍보물에 추가로 배치하는 것이든 동일하게 다룬다. 대상 매체는 홍보물과 같은
+// 유형의 매체로만 한정한다. 매체가 여러 면을 가지면(웨더워리어 등) 단일 배치에서는 어느
+// 면에 걸지 고르고, 여러 매체를 한 번에 배치할 때는 각 매체의 1면에 건다(매체마다 다른
+// 면을 따로 고르는 건 복잡도만 커지고 실제로도 드문 경우라, 필요하면 단일 배치를 쓴다).
 export default function AssignModal({ posting, T, media, placements, refDate, onClose, onAssign, onAdjustEnd, onDone }) {
   const t = T[posting.type];
   const [mode, setMode] = useState('single'); // 'single' | 'bulk'
@@ -32,34 +35,58 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
   // 배치 저장 쪽(App.addPlacement)에서 하고, 여기서는 그렇게 된다는 안내만 미리 보여준다.
   const willFillPostingImage = !!installPhoto && !posting.thumbPath;
 
+  // 단일 배치에서 고를 면 — 매체를 바꾸면 그 매체의 면수·현재 비어있는 면에 맞춰 다시 정한다.
+  const selectedMedia = targets.find((x) => x.id === mediaId);
+  const mediaFaces = selectedMedia?.faces || 1;
+  const [face, setFace] = useState(1);
+  const [faceLabel, setFaceLabel] = useState('');
+  const [labelTouched, setLabelTouched] = useState(false);
+
   const [selected, setSelected] = useState(() => new Set(targets.map((x) => x.id)));
   const [bulkConfirm, setBulkConfirm] = useState(false);
   useEffect(() => { if (mode === 'bulk') setSelected(new Set(targets.map((x) => x.id))); }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
   // 조건이 하나라도 바뀌면 확인을 다시 받는다(확인 후 날짜만 고치고 진행하는 걸 막는다).
   useEffect(() => { setBulkConfirm(false); }, [start, end, noEnd, selected, mode]);
 
-  const mediaPlacements = (id) => placements.filter((pl) => pl.mediaId === id).sort((a, b) => b.start.localeCompare(a.start));
-  const findOverlap = (id) => {
+  const mediaPlacements = (id, f) => placements.filter((pl) => pl.mediaId === id && (pl.face || 1) === f).sort((a, b) => b.start.localeCompare(a.start));
+  const findOverlap = (id, f = 1) => {
     const newEndEff = noEnd ? '9999-12-31' : end;
-    return mediaPlacements(id).find((pl) => {
+    return mediaPlacements(id, f).find((pl) => {
       const plEndEff = pl.end || '9999-12-31';
       return start <= plEndEff && pl.start <= newEndEff;
     });
   };
+
+  // 매체를 바꾸면(단일 모드) 비어 있는 면을 자동으로 고른다 — 이미 걸려 있는 면을 실수로
+  // 또 고르는 일을 줄인다.
+  useEffect(() => {
+    if (mode !== 'single' || !mediaId) return;
+    const faces = Array.from({ length: mediaFaces }, (_, i) => i + 1);
+    const vacant = faces.find((f) => !mediaPlacements(mediaId, f).some((pl) => statusOf(pl, refDate) === 'live' || statusOf(pl, refDate) === 'open'));
+    setFace(vacant || 1);
+    setLabelTouched(false);
+    setConflict(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mediaId, mode]);
+  useEffect(() => {
+    if (!labelTouched) setFaceLabel(face + '면');
+    setConflict(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [face]);
 
   const toggleOne = (id) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleAll = () => setSelected((prev) => (prev.size === targets.length ? new Set() : new Set(targets.map((x) => x.id))));
   const bulkConflictCount = [...selected].filter((id) => findOverlap(id)).length;
 
   const submitSingle = async () => {
-    const ov = findOverlap(mediaId);
+    const ov = findOverlap(mediaId, face);
     if (ov && !conflict) { setConflict(ov); return; }
     setSaving(true);
     if (ov && conflict) {
       const adjusted = await onAdjustEnd(ov.id, iso(Date.parse(start) - DAY));
       if (!adjusted) { setSaving(false); return; }
     }
-    const ok = await onAssign(posting, { mediaId, start, end: noEnd ? null : end, installPhoto });
+    const ok = await onAssign(posting, { mediaId, start, end: noEnd ? null : end, installPhoto, face, faceLabel: faceLabel || face + '면' });
     setSaving(false);
     if (ok) onClose();
   };
@@ -112,9 +139,28 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
           {targets.length === 0 ? (
             <p className="sub" style={{ padding: '8px 0' }}>이 유형({t?.label})의 매체가 없습니다. 먼저 매체 관리에서 매체를 추가하세요.</p>
           ) : mode === 'single' ? (
-            <label className="fld"><span>매체</span><select value={mediaId} onChange={(e) => { setMediaId(e.target.value); setConflict(null); }}>{targets.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+            <>
+              <label className="fld"><span>매체</span><select value={mediaId} onChange={(e) => { setMediaId(e.target.value); setConflict(null); }}>{targets.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+              {/* 이 매체가 면을 여러 개 가지면(웨더워리어 등) 어느 면에 걸지 고른다 — 면마다
+                  완전히 다른 업체가 걸릴 수 있어서, 매체를 고르는 것만으론 부족하다. */}
+              {mediaFaces > 1 && (
+                <>
+                  <label className="fld"><span>면 선택</span></label>
+                  <div className="seg">
+                    {Array.from({ length: mediaFaces }, (_, i) => i + 1).map((f) => {
+                      const occupied = mediaPlacements(mediaId, f).some((pl) => statusOf(pl, refDate) === 'live' || statusOf(pl, refDate) === 'open');
+                      return <button key={f} type="button" className={face === f ? 'on' : ''} onClick={() => setFace(f)}>{f}면{occupied ? ' · 사용중' : ''}</button>;
+                    })}
+                  </div>
+                  <label className="fld"><span>방향 (선택)</span><input value={faceLabel} onChange={(e) => { setFaceLabel(e.target.value); setLabelTouched(true); }} placeholder={`비워두면 "${face}면"으로 저장됩니다`} /></label>
+                </>
+              )}
+            </>
           ) : (
-            <p className="hint">기간을 한 번만 입력하고, 이 유형의 매체 중 원하는 곳을 체크하면 그 개수만큼 배치가 한 번에 등록됩니다.</p>
+            <p className="hint">
+              기간을 한 번만 입력하고, 이 유형의 매체 중 원하는 곳을 체크하면 그 개수만큼 배치가 한 번에 등록됩니다.
+              {targets.some((x) => (x.faces || 1) > 1) && ' 면이 여러 개인 매체는 항상 1면에 걸립니다 — 다른 면에 걸려면 단일 매체로 따로 배치하세요.'}
+            </p>
           )}
 
           <div className="fld2">

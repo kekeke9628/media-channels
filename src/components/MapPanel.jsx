@@ -311,7 +311,16 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
                   {(hover === o.id || selMedia === o.id) && (
                     <span className="plabel">
                       {o.name}
-                      <i>{o.overdue ? '만료 +' + o.overdueDays + '일' : o.open ? '게시중' : o.live ? 'D-' + o.dToRemove : '비어있음'}</i>
+                      {/* 면이 여러 개면 값 하나로는 "일부만 비었다" 같은 걸 담을 수 없어서
+                          (o.overdue/o.live 등은 여러 면 중 가장 급한 것의 대표값이다),
+                          면별로 한 줄씩 정확히 보여준다. 단일 면은 지금까지와 동일하다. */}
+                      {o.faces > 1 ? (
+                        o.slots.map((s) => (
+                          <i key={s.face}>{s.faceLabel} {s.overdue ? '만료 +' + s.overdueDays + '일' : s.open ? '게시중' : s.live ? 'D-' + s.dToRemove : '비어있음'}</i>
+                        ))
+                      ) : (
+                        <i>{o.overdue ? '만료 +' + o.overdueDays + '일' : o.open ? '게시중' : o.live ? 'D-' + o.dToRemove : '비어있음'}</i>
+                      )}
                     </span>
                   )}
                 </div>

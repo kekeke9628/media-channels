@@ -59,7 +59,7 @@ export default function TimelinePanel({ state, refDate, onPick }) {
                     if (e <= 0 || s >= effSpan) return null;
                     return (
                       <i key={p.id} className={'seg-' + statusOf(p, refDate)} style={{ left: (s / effSpan) * 100 + '%', width: ((e - s) / effSpan) * 100 + '%' }} title={p.brand + ' ' + p.start + '~' + (p.end || '미정')}>
-                        <b onClick={(e2) => { e2.stopPropagation(); onPick(o.id); }}>{p.brand}</b>
+                        <b onClick={(e2) => { e2.stopPropagation(); onPick(o.mediaId); }}>{p.brand}</b>
                       </i>
                     );
                   })}
@@ -99,7 +99,7 @@ export default function TimelinePanel({ state, refDate, onPick }) {
                 if (key === 'status') return statusOf(p, refDate);
                 return '';
               }).map(({ o, p }) => (
-                <tr key={p.id} onClick={() => onPick(o.id)}>
+                <tr key={p.id} onClick={() => onPick(o.mediaId)}>
                   <td>{o.name}<i className="sub">{zoneLabel(o.zone)}</i></td>
                   <td><b>{p.brand}</b></td>
                   <td className="sub">{subOf(p) || '—'}</td>

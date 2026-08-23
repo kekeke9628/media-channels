@@ -41,6 +41,12 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
   const [sortCur, setSortCur] = useState({ key: null, dir: null });
   const [sortHist, setSortHist] = useState({ key: null, dir: null });
   const mName = (id) => media.find((m) => m.id === id)?.name || '-';
+  // 이력 표는 원본 placements를 그대로 쓰므로(면 단위로 이미 갈려 있지 않다), 매체가 여러
+  // 면을 가지면 어느 면인지 이름 옆에 붙여 구분한다. 단일 면 매체는 지금까지와 동일하다.
+  const pLabel = (p) => {
+    const m = media.find((x) => x.id === p.mediaId);
+    return mName(p.mediaId) + ((m?.faces || 1) > 1 ? ` · ${p.faceLabel || (p.face || 1) + '면'}` : '');
+  };
 
   const toggleType = (c) => setTypeSel((prev) => { const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n; });
   const toggleStatus = (c) => setStatusSel((prev) => { const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n; });
@@ -52,7 +58,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       .filter((p) => (p.end || '9999-12-31') >= from && p.start <= to)
       .filter((p) => {
         if (!q) return true;
-        const haystack = [mName(p.mediaId), p.brand, contentOf(p), p.start, p.end, p.removedAt, ST[statusOf(p, refDate)]?.label].join(' ').toLowerCase();
+        const haystack = [pLabel(p), p.brand, contentOf(p), p.start, p.end, p.removedAt, ST[statusOf(p, refDate)]?.label].join(' ').toLowerCase();
         return haystack.includes(q.toLowerCase());
       })
       .sort((a, b) => b.start.localeCompare(a.start));
@@ -137,7 +143,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
           {currentRows.map(({ o, p }) => {
             const t = T[o.type];
             return (
-              <div className="mcard" key={o.id} onClick={() => onPick(o.id)}>
+              <div className="mcard" key={o.id} onClick={() => onPick(o.mediaId)}>
                 <div className="mcard-top"><b>{o.name}</b>{statusTag(o)}</div>
                 <div className="mcard-meta">
                   <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span>
@@ -184,7 +190,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
               }).map(({ o, p }) => {
                 const t = T[o.type];
                 return (
-                  <tr key={o.id} onClick={() => onPick(o.id)}>
+                  <tr key={o.id} onClick={() => onPick(o.mediaId)}>
                     <td><b>{o.name}</b></td>
                     <td><span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span></td>
                     <td>{zoneLabel(o.zone)}</td>
@@ -218,7 +224,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
             </tr></thead>
             <tbody>
               {sortRows(historyRows, sortHist, (p, key) => {
-                if (key === 'media') return mName(p.mediaId);
+                if (key === 'media') return pLabel(p);
                 if (key === 'brand') return p.brand;
                 if (key === 'content') return contentOf(p);
                 if (key === 'start') return p.start;
@@ -231,7 +237,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                 const s = statusOf(p, refDate);
                 return (
                   <tr key={p.id} onClick={() => onPick(p.mediaId)}>
-                    <td>{mName(p.mediaId)}</td>
+                    <td>{pLabel(p)}</td>
                     <td><b>{p.brand}</b></td>
                     <td className="sub">{subOf(p) || '—'}</td>
                     <td className="mono">{p.start}</td>

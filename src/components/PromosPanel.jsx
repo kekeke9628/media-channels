@@ -15,6 +15,8 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
   const [q, setQ] = useState('');
   const [thumbUrls, setThumbUrls] = useState(new Map());
   const mName = (id) => media.find((m) => m.id === id)?.name || '-';
+  // 매체가 여러 면을 가지면(웨더워리어 등) 어느 면에 걸렸는지 이름 옆에 붙인다.
+  const pLabel = (pl) => mName(pl.mediaId) + ((media.find((m) => m.id === pl.mediaId)?.faces || 1) > 1 ? ` · ${pl.faceLabel || (pl.face || 1) + '면'}` : '');
 
   useEffect(() => {
     let cancelled = false;
@@ -36,7 +38,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
     .filter((p) => !draftOnly || !(placementsOf[p.id]?.length))
     .filter((p) => {
       if (!q) return true;
-      const names = (placementsOf[p.id] || []).map((pl) => mName(pl.mediaId)).join(' ');
+      const names = (placementsOf[p.id] || []).map((pl) => pLabel(pl)).join(' ');
       return (p.brand + contentOf(p) + names).toLowerCase().includes(q.toLowerCase());
     })
     // 미배치가 맨 앞 — 아직 어디에도 안 걸린 것이 조치가 필요한 항목이고, 방금 등록한
@@ -94,7 +96,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                       const s = statusOf(pl, refDate);
                       return (
                         <tr key={pl.id} onClick={() => onPick(pl.mediaId)}>
-                          <td>{mName(pl.mediaId)}{pl.installPhoto && <span title="설치 확인 사진 있음"> 📷</span>}</td>
+                          <td>{pLabel(pl)}{pl.installPhoto && <span title="설치 확인 사진 있음"> 📷</span>}</td>
                           <td><StatusChip status={s} /></td>
                           {isEditor && (
                             <td className="r" onClick={(e) => e.stopPropagation()}>
