@@ -77,16 +77,20 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
   // 실제 업로드된 게시물 사진이 있으면 그라데이션 대신 그걸 보여준다 — 큰 카드는 view(1600px),
   // 이력의 작은 점은 thumb(400px)를 쓴다.
   const [imgUrls, setImgUrls] = useState(new Map());
+  const paths = o.slots.flatMap((s) => {
+    const cur = s.overdue || s.current;
+    return [cur?.viewPath, cur?.thumbPath, cur?.installPhotoPath, ...s.history.map((p) => p.thumbPath)];
+  });
+  // o.id(매체 id)만 의존하면, 시트를 닫지 않은 채로(예: "이 매체에 홍보물 배치") 같은
+  // 매체에 새로 배치해도 매체 id는 그대로라 다시 안 불러왔다 — 방금 건 이미지가 안 보이던
+  // 원인. 실제로 걸린 경로들이 바뀌었는지로 다시 판단한다.
+  const pathsKey = paths.filter(Boolean).join('|');
   useEffect(() => {
     let cancelled = false;
-    const paths = o.slots.flatMap((s) => {
-      const cur = s.overdue || s.current;
-      return [cur?.viewPath, cur?.thumbPath, cur?.installPhotoPath, ...s.history.map((p) => p.thumbPath)];
-    });
     getPostingImageUrls(paths).then((m) => { if (!cancelled) setImgUrls(m); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [o.id]);
+  }, [pathsKey]);
 
   return (
     <div className="modal" onClick={onClose}>
