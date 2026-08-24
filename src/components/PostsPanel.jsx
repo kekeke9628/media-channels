@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { contentOf, subOf, days, ST } from '../constants.js';
+import { contentOf, subOf, days, ST, typeChipStyle } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
@@ -146,7 +146,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
               <div className="mcard" key={o.id} onClick={() => onPick(o.mediaId)}>
                 <div className="mcard-top"><b>{o.name}</b>{statusTag(o)}</div>
                 <div className="mcard-meta">
-                  <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span>
+                  <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>
                   <span className="sub">{zoneLabel(o.zone)}</span>
                 </div>
                 {p ? (
@@ -192,7 +192,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                 return (
                   <tr key={o.id} onClick={() => onPick(o.mediaId)}>
                     <td><b>{o.name}</b></td>
-                    <td><span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span></td>
+                    <td><span className="chip" style={typeChipStyle(t.color)}>{t.label}</span></td>
                     <td>{zoneLabel(o.zone)}</td>
                     <td>{p ? p.brand : <span className="sub">—</span>}</td>
                     <td className="sub">{(p && subOf(p)) || '—'}</td>

@@ -5,7 +5,7 @@
    없어서 재현이 안 됐다. */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0}
-.app{--bg:#F5F2EA;--card:#fff;--line:#E2DBCC;--ink:#26241F;--ink2:#7A7263;--brass:#A67F3A;--brass-soft:#EFE6D3;
+.app{--bg:#F5F2EA;--card:#fff;--line:#E2DBCC;--ink:#26241F;--ink2:#726A5C;--brass:#A67F3A;--brass-soft:#EFE6D3;
   display:flex;min-height:100vh;background:var(--bg);color:var(--ink);
   font-family:'Noto Sans KR',-apple-system,sans-serif;font-size:14px;line-height:1.55}
 .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
@@ -29,7 +29,9 @@ body{margin:0}
 .side nav em{font-style:normal;margin-left:auto;background:#B4534B;color:#fff;font-size:10.5px;padding:1px 7px;border-radius:10px;font-family:'IBM Plex Mono'}
 .reffield{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#C3BCB1;background:#2C2A26;border-radius:9px;padding:8px 10px}
 .reffield input{border:1px solid #454138;background:#1c1a17;color:#EFEBE3;border-radius:6px;padding:4px 7px;font-size:12px;font-family:inherit}
-.sidefoot{margin-top:auto;font-size:11px;color:#777064;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* 어두운 사이드바에서는 --ink2(어두운 회색)가 배경에 묻힌다 — 이 영역만 밝은 쪽으로 */
+.side .sub{color:#938A7D}
+.sidefoot{margin-top:auto;font-size:11px;color:#938A7D;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .sidefoot .signout{margin-left:auto;border:1px solid #3A362E;background:none;color:#C3BCB1;font-size:10.5px;padding:3px 9px;border-radius:20px;cursor:pointer}
 .sidefoot .signout:hover{border-color:#A67F3A;color:#fff}
 
@@ -104,7 +106,9 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .app.narrow .pdot::after{display:none}
 .pin.full .pdot{background:#4B7B58}
 .pin.stale .pdot{background:#B4534B;box-shadow:0 0 0 3px rgba(180,83,75,.2),0 2px 6px rgba(0,0,0,.22)}
-.pin.vacant .pdot{background:#A79E8D}
+/* 흰 글자(유형 약자)가 2.65:1로 거의 안 보였다 — 무채색이라 게시중 초록·만료 빨강보다
+   덜 튀는 성질은 그대로 두고 명도만 낮춰 4.56:1로 올린다. 아래 범례 색도 같이 맞춘다. */
+.pin.vacant .pdot{background:#7D7565}
 .pin.sel .pdot{outline:2.5px solid var(--brass);outline-offset:2px}
 .plabel{position:absolute;left:50%;top:calc(100% + 7px);transform:translateX(-50%);background:#23211E;color:#fff;padding:6px 10px;border-radius:8px;font-size:11.5px;white-space:nowrap;z-index:25;pointer-events:none}
 .plabel i{display:block;font-style:normal;color:#B5AC9E;font-size:10.5px;margin-top:2px}
@@ -115,14 +119,14 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .legend{display:flex;gap:16px;align-items:center;padding:10px 18px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink2);flex-wrap:wrap}
 .legend span{display:flex;align-items:center;gap:6px}
 .lg{width:10px;height:12px;display:inline-block;clip-path:polygon(50% 0%,100% 22%,100% 100%,0% 100%,0% 22%)}
-.lg.full{background:#4B7B58}.lg.stale{background:#B4534B}.lg.vacant{background:#B5AFA4}
+.lg.full{background:#4B7B58}.lg.stale{background:#B4534B}.lg.vacant{background:#7D7565}
 
 /* touch-action:pan-x — 가로 스크롤 영역인데 세로 스크롤 페이지 안에 중첩돼 있어서,
    모바일에서 탭을 톡 누르기만 해도 브라우저가 제스처를 세로 스크롤로 착각해
    화면이 위아래로 살짝 튕기던 문제(overflow-anchor로는 못 잡았음). 이 영역은
    가로 방향으로만 반응하게 명시해 세로 스크롤 체이닝을 막는다. */
 .tabs{display:flex;gap:3px;border-bottom:1px solid var(--line);overflow-x:auto;touch-action:pan-x;overscroll-behavior-x:contain}
-.tabs button{border:0;background:none;padding:10px 12px;font-weight:600;font-size:13.5px;color:var(--ink2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;display:flex;gap:6px;align-items:center}
+.tabs button{border:0;background:none;padding:10px 12px;font-weight:600;font-size:13.5px;color:#726A5C;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;display:flex;gap:6px;align-items:center}
 .tabs button.on{color:var(--ink);border-bottom-color:var(--brass)}
 .tabs em{font-style:normal;background:#B4534B;color:#fff;font-size:10.5px;padding:1px 7px;border-radius:10px;font-family:'IBM Plex Mono'}
 
@@ -177,6 +181,13 @@ thead th.sortable:hover{color:var(--brass)}
 tbody td{padding:9px 12px;border-bottom:1px solid #F0ECE4;vertical-align:middle;white-space:nowrap}
 tbody tr:hover{background:#FBF9F5}
 tbody tr.archived{opacity:.45}
+/* 마지막 열(상태·관리)은 표가 가로로 넘쳐도 항상 보이도록 오른쪽에 고정한다.
+   1280~1440px 노트북에서는 표가 컨테이너보다 넓어져서, 정작 가장 급한 조치인 만료 건의
+   "철거 처리" 버튼이 오른쪽으로 65~225px 잘려 나갔다 — 가로 스크롤을 해야만 누를 수
+   있었다. 헤더는 이미 top으로 고정돼 있으니(thead th) 같은 방식으로 오른쪽을 고정한다. */
+.scroll tbody td:last-child{position:sticky;right:0;background:#fff;box-shadow:-6px 0 6px -6px rgba(0,0,0,.12)}
+.scroll tbody tr:hover td:last-child{background:#FBF9F5}
+.scroll thead th:last-child{position:sticky;right:0;z-index:3;box-shadow:-6px 0 6px -6px rgba(0,0,0,.12)}
 .r{text-align:right}
 .sub{color:var(--ink2);font-style:normal;font-size:11.5px;display:block}
 /* .sub의 display:block이 <td className="sub">에 그대로 적용되면 그 셀만
@@ -188,8 +199,8 @@ td.sub{display:table-cell}
 .chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
 .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
 .tag.live{background:#E4EDF4;color:#3C6E9E}
-.tag.vacant{background:#EFEDE9;color:#777064}
-.tag.over{background:#F4E5E3;color:#B4534B}
+.tag.vacant{background:#EFEDE9;color:#716A5F}
+.tag.over{background:#F4E5E3;color:#A74D46}
 .tag.upcoming{background:#EEE8F4;color:#7A5AA6}
 .empty{color:var(--ink2);font-size:13px;padding:18px;text-align:center}
 .mini{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap}
@@ -271,7 +282,7 @@ td.sub{display:table-cell}
 .rline span{color:var(--ink2)}
 .rline.total{border-top:1px solid var(--line);margin-top:5px;padding-top:7px}
 .rline.total b{color:#4B7B58;font-weight:700}
-.warnbox{font-size:11.5px;color:#A8781F;background:#FBF6EC;border-radius:7px;padding:8px 10px;margin:8px 0 0;line-height:1.7}
+.warnbox{font-size:11.5px;color:#8A6114;background:#FBF6EC;border-radius:7px;padding:8px 10px;margin:8px 0 0;line-height:1.7}
 .okbox{font-size:11.5px;color:#3E6449;background:#E7F0EA;border-radius:7px;padding:8px 10px;margin:0 0 10px;line-height:1.7}
 .rprev{margin-top:10px;text-align:center}
 .rprev img{max-width:130px;border-radius:8px;border:1px solid var(--line)}
@@ -286,7 +297,7 @@ td.sub{display:table-cell}
    늘거나 줄지 않게 고정한다. */
 .medialist-item input[type=checkbox]{flex:none;width:14px;height:14px;margin:0}
 .medialist-all{background:#F7F5F1;font-weight:600;position:sticky;top:0}
-.conflicttag{margin-left:auto;flex:none;white-space:nowrap;background:#F4E5E3;color:#B4534B;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px}
+.conflicttag{margin-left:auto;flex:none;white-space:nowrap;background:#F4E5E3;color:#9C453E;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px}
 
 /* overflow:hidden — "오늘" 세로선(.tlnow)이 실제 행 개수와 무관하게 항상 600px
    고정 높이라, 행이 몇 개 안 될 때 카드 아래로 삐져나와 보이던 문제. 이 박스
@@ -324,7 +335,24 @@ td.sub{display:table-cell}
 .shead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
 .shead b{font-size:15px;display:block}
 .shead i{font-style:normal;font-size:11.5px;color:var(--ink2)}
-.shead button{border:0;background:none;font-size:17px;cursor:pointer;color:var(--ink2)}
+/* 이 규칙은 오른쪽 ✕(닫기) 버튼용이다. 제목 옆 "면수 수정" 같은 .mini 버튼까지 잡아서
+   테두리가 사라지고 17px로 커지는 바람에, 작은 조작 버튼이 아니라 소제목처럼 보였다. */
+.shead > button{border:0;background:none;font-size:17px;cursor:pointer;color:var(--ink2)}
+/* 제목 줄에 들어가는 보조 조작(면수 수정 등)은 한 줄 안에서 자연스럽게 흐르게 한다. */
+.shead .headline{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-style:normal;font-size:11.5px;color:var(--ink2)}
+.shead .headline .inp.num{padding:4px 6px}
+
+/* 이 면에 잡혀 있는 다음 예약 — 비어 보여도 예약이 있으면 겹쳐 잡지 않도록 눈에 띄게 */
+.nextbox{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;
+  background:#F3F6FA;border:1px solid #DCE6F0;border-radius:9px;padding:9px 11px;font-size:12.5px}
+.nextbox em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--ink2)}
+
+/* 면이 많은 매체에서 비어 있는 면을 한 줄로 접어 둔 행 */
+.facerow{display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;
+  border:1px solid var(--line);background:#FAF8F4;border-radius:9px;padding:10px 12px;font-family:inherit}
+.facerow:hover{background:#F4F1EA}
+.facerow b{font-size:12.5px;color:#8E6B2C}
+.facerow em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--ink2)}
 .sbody{padding:16px 18px;overflow:auto;flex:1;min-height:0}
 .sbody h4{font-size:12.5px;margin:18px 0 8px;color:var(--ink2)}
 .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
@@ -343,13 +371,21 @@ td.sub{display:table-cell}
 .bigthumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 /* 매체 상세에서 면(face)마다 한 구획씩 — 2면 이상일 때만 사이에 구분선이 보인다. */
 .facesheet + .facesheet{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
-.facesheet-h{font-size:12.5px;font-weight:700;color:var(--brass);margin:0 0 8px}
+.facesheet-h{font-size:12.5px;font-weight:700;color:#8E6B2C;margin:0 0 8px}
 .thumbrow{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .tsmall{flex:0 0 54px;text-align:center}
 .tsmall i,.tsmall img{display:block;width:54px;height:72px;border-radius:7px;object-fit:cover}
 .tsmall em{font-style:normal;font-size:10px;color:var(--ink2);display:block;margin-top:3px}
-.mini-t{font-size:12px;margin-top:10px;min-width:0}
+/* 홍보물 카드·매체 상세 안의 작은 표. 셀이 nowrap이라 "중앙광장 듀라트란스 10연동 · 7번
+   판넬"처럼 매체명이 길면 표가 카드(271px)보다 넓은 384px까지 자라면서, 상태 칩과 "철거
+   처리" 버튼이 카드 밖으로 밀려나 잘렸다. 첫 칸(이름)만 말줄임으로 줄이고 나머지 칸은
+   내용 폭을 지키게 해, 조작 요소는 이름이 아무리 길어도 항상 보이게 한다. */
+.mini-t{font-size:12px;margin-top:10px;min-width:0;width:100%}
 .mini-t td{padding:6px 4px;border-bottom:1px solid #F0ECE4}
+/* 첫 칸(매체명)만 줄바꿈을 허용한다. tbody td의 nowrap 때문에 긴 이름이 한 줄을 고집해서,
+   표가 카드보다 넓어지고 상태 칩·"철거 처리" 버튼이 카드 밖으로 밀려나 잘렸다. 이름이
+   두 줄이 되더라도 조작 요소가 항상 보이는 쪽이 낫다. */
+.mini-t td:first-child{white-space:normal;word-break:break-word}
 
 /* 한글이 음절 중간에서 끊기지 않도록 단어 단위로 줄바꿈한다. */
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#23211E;color:#fff;padding:10px 18px;border-radius:22px;font-size:13px;z-index:80;display:flex;align-items:center;gap:12px;max-width:min(92vw,460px);word-break:keep-all;line-height:1.5}

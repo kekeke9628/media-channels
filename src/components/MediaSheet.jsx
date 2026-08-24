@@ -6,13 +6,39 @@ import { getPostingImageUrls } from '../lib/queries.js';
 // 면(face) 하나의 "현재 배치 + 지난 배치" — 단일 면 매체는 이 컴포넌트가 정확히 하나만
 // 그려지고 라벨도 안 붙어서, 지금까지와 완전히 같은 화면으로 보인다. 2면 이상이면 면마다
 // 따로 그려서, 앞/뒤가 서로 다른 업체·기간으로 걸린 것도 각자 정확히 보여줄 수 있다.
-function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd }) {
+function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd, collapsible }) {
   const cur = slot.overdue || slot.current;
-  const past = slot.history.filter((p) => p.id !== cur?.id).slice().reverse();
+  // 아직 시작하지 않은(게시예정) 배치는 "지난 배치"가 아니다 — 예전에는 cur만 빼고 나머지를
+  // 전부 지난 배치로 묶어서, 다음 달에 걸릴 예약이 이력 표에 "지난 배치"로 들어가 있었다.
+  // 게다가 그 면은 "비어있습니다"로 보여서, 비었다고 알고 겹쳐 예약하게 되는 문제가 있었다.
+  const upcoming = slot.next;
+  const past = slot.history.filter((p) => p.id !== cur?.id && p.id !== upcoming?.id).slice().reverse();
+
+  // 면이 많은 매체(듀라트란스 10연동 등)는 모든 면을 다 펼치면 모바일에서 5화면을 스크롤해야
+  // 7면에 닿는다. 비어 있는 면은 볼 것이 "비어있음" 한 줄뿐이라 접어 두고, 눌러서 펼치게 한다.
+  // 걸린 것·예정된 것이 있는 면은 처음부터 펼쳐 둔다 — 확인할 내용이 있는 쪽이라.
+  const [open, setOpen] = useState(!collapsible || !!cur || !!upcoming);
+  if (collapsible && !open) {
+    return (
+      <div className="facesheet">
+        <button className="facerow" onClick={() => setOpen(true)}>
+          <b>{slot.faceLabel}</b>
+          <span className="tag vacant">비어있음</span>
+          <i className="sub">{slot.emptyDays >= 365 ? '365+' : slot.emptyDays}일째</i>
+          <em>펼치기</em>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="facesheet">
-      {faceCount > 1 && <h4 className="facesheet-h">{slot.faceLabel}</h4>}
+      {faceCount > 1 && (
+        <h4 className="facesheet-h">
+          {slot.faceLabel}
+          {collapsible && <button className="mini" style={{ marginLeft: 8 }} onClick={() => setOpen(false)}>접기</button>}
+        </h4>
+      )}
       {isEditor && (
         <button className="btn primary wide" onClick={() => onQuickAdd(slot.mediaId, slot.face)}>
           {faceCount > 1 ? `${slot.faceLabel}에 홍보물 배치` : '이 매체에 홍보물 배치'}
@@ -45,7 +71,18 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd 
             <button className={'btn wide' + (slot.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>철거 처리</button>
           )}
         </>
-      ) : <p className="empty">비어있습니다 · {slot.emptyDays >= 365 ? '365+' : slot.emptyDays}일째</p>}
+      ) : !upcoming && <p className="empty">비어있습니다 · {slot.emptyDays >= 365 ? '365+' : slot.emptyDays}일째</p>}
+
+      {/* 게시예정 — 지금은 비어 있어도 이미 잡힌 예약이 있으면 반드시 보여야 한다. 현재
+          게시 중인 면에도 다음 예약이 있으면 함께 알려 준다(언제 교체되는지). */}
+      {upcoming && (
+        <div className="nextbox">
+          <span className="tag upcoming">게시예정</span>
+          <b>{upcoming.brand}</b>
+          {subOf(upcoming) && <i className="sub">{subOf(upcoming)}</i>}
+          <em className="mono">{upcoming.start} ~ {upcoming.end || '미정'}</em>
+        </div>
+      )}
 
       {/* 이력이 없으면 썸네일 줄·표가 빈 채로 자리만 차지해서, 섹션 자체를 접는다. */}
       {past.length > 0 && (
@@ -76,8 +113,10 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
 
   // 면수 수정 — 듀라트란스처럼 자리마다 판 개수가 다른 매체를 잘못된 면수로 등록했을 때
   // 매체 관리 화면까지 안 가고 여기서 바로 고칠 수 있게 한다. 줄이는 쪽은, 줄어들 면에
-  // 아직 비어있지 않은(현재/만료) 배치가 있으면 그 배치가 화면에서 통째로 사라져 버리므로
+  // 아직 철거하지 않은 배치가 하나라도 있으면 그 배치가 화면에서 통째로 사라져 버리므로
   // (슬롯은 media.faces 개수만큼만 계산됨, lib/status.js) 막고 이유를 보여준다.
+  // 판정은 반드시 "철거 기록이 없는 모든 배치"로 해야 한다 — 현재/만료만 보면 아직 시작
+  // 안 한 게시예정 예약이 걸린 면을 그냥 숨겨 버린다(매체 관리 쪽과 같은 기준).
   const [editingFaces, setEditingFaces] = useState(false);
   const [facesInput, setFacesInput] = useState(o.faces);
   const [facesErr, setFacesErr] = useState('');
@@ -85,7 +124,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
   const saveFaces = () => {
     const n = +facesInput;
     if (!n || n < 1) return;
-    const blocked = o.slots.filter((s) => s.face > n && (s.current || s.overdue));
+    const blocked = o.slots.filter((s) => s.face > n && s.history.some((p) => !p.removedAt));
     if (blocked.length > 0) {
       setFacesErr(`${Math.max(...blocked.map((s) => s.face))}면에 아직 철거하지 않은 배치가 있어 줄일 수 없습니다.`);
       return;
@@ -119,16 +158,16 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
           <div>
             <b>{o.name}</b>
             {editingFaces ? (
-              <i style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                {zoneLabel} · {t.label} · {o.spec || t.spec} ·
-                <input className="inp num" type="number" min="1" style={{ width: 56 }} value={facesInput} onChange={(e) => setFacesInput(e.target.value)} />면
+              <i className="headline">
+                <span>{zoneLabel} · {t.label} · {o.spec || t.spec} ·</span>
+                <input className="inp num" type="number" min="1" value={facesInput} onChange={(e) => setFacesInput(e.target.value)} />면
                 <button className="mini ok" onClick={saveFaces}>저장</button>
                 <button className="mini" onClick={() => setEditingFaces(false)}>취소</button>
               </i>
             ) : (
-              <i>
-                {zoneLabel} · {t.label} · {o.spec || t.spec} · {o.faces}면
-                {isEditor && <button className="mini" style={{ marginLeft: 6 }} onClick={startEditFaces}>면수 수정</button>}
+              <i className="headline">
+                <span>{zoneLabel} · {t.label} · {o.spec || t.spec} · {o.faces}면</span>
+                {isEditor && <button className="mini" onClick={startEditFaces}>면수 수정</button>}
               </i>
             )}
             {editingFaces && facesErr && <p className="warnbox" style={{ marginTop: 6 }}>{facesErr}</p>}
@@ -136,8 +175,9 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
           <button onClick={onClose}>✕</button>
         </div>
         <div className="sbody">
+        {/* 면이 4개 이상일 때만 접기를 켠다 — 1~2면(웨더워리어 등)은 지금까지처럼 전부 펼친 채. */}
         {o.slots.map((slot) => (
-          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} />
+          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} collapsible={o.faces >= 4} />
         ))}
 
         {isEditor && (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ZONES } from '../data/seed.js';
+import { typeChipStyle } from '../constants.js';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
 
@@ -91,7 +92,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                       <>
                         <div className="mcard-top">
                           <b>{t.label}</b>
-                          <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.glyph}</span>
+                          <span className="chip" style={typeChipStyle(t.color)}>{t.glyph}</span>
                         </div>
                         <div className="mcard-meta">
                           <span className="sub mono">{t.spec || '규격 미정'} · {t.faces}면</span>
@@ -120,7 +121,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                   const isEd = editing === t.code;
                   return (
                     <tr key={t.code}>
-                      <td>{isEd ? <input className="iconinp" value={edit.glyph} onChange={(e) => setEdit({ ...edit, glyph: e.target.value })} maxLength={2} /> : <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.glyph}</span>}</td>
+                      <td>{isEd ? <input className="iconinp" value={edit.glyph} onChange={(e) => setEdit({ ...edit, glyph: e.target.value })} maxLength={2} /> : <span className="chip" style={typeChipStyle(t.color)}>{t.glyph}</span>}</td>
                       <td>{isEd ? <input className="inp" value={edit.label} onChange={(e) => setEdit({ ...edit, label: e.target.value })} /> : t.label}</td>
                       <td className="sub">
                         {isEd ? (
@@ -194,7 +195,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                   <div className={'mcard' + (m.active ? '' : ' archived')} key={m.id}>
                     <div className="mcard-top">
                       <b>{m.name}</b>
-                      {t && <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span>}
+                      {t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}
                     </div>
                     <div className="mcard-meta">
                       <span className="sub">{zoneLabel(m.zone)}</span>
@@ -238,7 +239,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                   return (
                     <tr key={m.id} className={m.active ? '' : 'archived'}>
                       <td><b>{m.name}</b></td>
-                      <td>{t && <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span>}</td>
+                      <td>{t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}</td>
                       <td>{zoneLabel(m.zone)}</td>
                       <td className="r mono">
                         {editingMediaId === m.id ? (
