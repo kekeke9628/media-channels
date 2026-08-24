@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { iso, DAY, diffDays, md, clamp, contentOf, subOf, days } from '../constants.js';
+import { iso, DAY, diffDays, md, clamp, contentOf, subOf, days, matches } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
@@ -10,6 +10,11 @@ const zoneLabel = (z) => ZONES[z]?.label || z;
 // 타임라인 — 과거의 '이력 조회'를 흡수. 검색·표/그래프 전환·업체명 클릭 상세이동을 한 화면에서 처리
 export default function TimelinePanel({ state, refDate, onPick }) {
   const [span, setSpan] = useState(120);
+  // 그래프 시작점을 "오늘 기준 며칠 전"으로 잡는다. 예전에는 -30일 고정이라 기간 버튼을
+  // 아무리 키워도 왼쪽 끝(과거)은 그대로고 미래만 늘어나서, 지난 이력을 그래프로 볼 수가
+  // 없었다("기간으로 조회"를 따로 켜야만 했다). 앞/뒤 버튼으로 창을 통째로 옮긴다.
+  const [offset, setOffset] = useState(0); // 일 단위, +면 미래로 이동
+  const [limit, setLimit] = useState(60);
   const [q, setQ] = useState('');
   const [asTable, setAsTable] = useState(false);
   const [rangeOn, setRangeOn] = useState(false);
@@ -17,14 +22,14 @@ export default function TimelinePanel({ state, refDate, onPick }) {
   const [to, setTo] = useState(refDate);
   const [sort, setSort] = useState({ key: null, dir: null });
   const T0 = Date.parse(refDate);
-  const start = rangeOn ? Date.parse(from) : T0 - 30 * DAY;
+  const start = rangeOn ? Date.parse(from) : T0 - 30 * DAY + offset * DAY;
   const effSpan = rangeOn ? Math.max(1, diffDays(from, to)) : span;
   const ticks = []; for (let d = 0; d <= effSpan; d += Math.max(15, Math.round(effSpan / 8))) ticks.push(d);
 
-  const rows = state
-    .filter((o) => !q || (o.name + o.history.map((p) => p.brand + contentOf(p)).join(' ')).toLowerCase().includes(q.toLowerCase()))
-    .filter((o) => !rangeOn || o.history.some((p) => (p.end || '9999-12-31') >= from && p.start <= to))
-    .slice(0, 60);
+  const matched = state
+    .filter((o) => !q || matches(o.name + o.history.map((p) => p.brand + contentOf(p)).join(' '), q))
+    .filter((o) => !rangeOn || o.history.some((p) => (p.end || '9999-12-31') >= from && p.start <= to));
+  const rows = matched.slice(0, limit);
   const flatRows = rows.flatMap((o) => o.history.map((p) => ({ o, p })))
     .filter(({ p }) => !rangeOn || ((p.end || '9999-12-31') >= from && p.start <= to))
     .sort((a, b) => b.p.start.localeCompare(a.p.start));
@@ -39,7 +44,15 @@ export default function TimelinePanel({ state, refDate, onPick }) {
         ) : (
           !asTable && <div className="seg">{[60, 120, 240].map((s) => <button key={s} className={span === s ? 'on' : ''} onClick={() => setSpan(s)}>{s}일</button>)}</div>
         )}
+        {!asTable && !rangeOn && (
+          <div className="quickbtns">
+            <button className="btn" onClick={() => setOffset((o) => o - Math.round(span / 2))} title="과거로 이동">◀ 이전</button>
+            <button className="btn" disabled={offset === 0} onClick={() => setOffset(0)}>오늘</button>
+            <button className="btn" onClick={() => setOffset((o) => o + Math.round(span / 2))} title="미래로 이동">다음 ▶</button>
+          </div>
+        )}
         <button className={'btn' + (asTable ? ' on' : '')} onClick={() => setAsTable((v) => !v)}>{asTable ? '그래프로 보기' : '표로 보기'}</button>
+        <span className="count mono">{matched.length}건</span>
       </div>
 
       {rows.length === 0 && (
@@ -48,7 +61,7 @@ export default function TimelinePanel({ state, refDate, onPick }) {
       {rows.length === 0 ? null : !asTable ? (
         <div className="scroll tall">
           <div className="tl">
-            <div className="tlhead"><span /><div className="tlticks">{ticks.map((d) => <i key={d} style={{ left: (d / effSpan) * 100 + '%' }}>{md(start + d * DAY)}</i>)}{!rangeOn && <b className="tlnow" style={{ left: (30 / effSpan) * 100 + '%' }} />}</div></div>
+            <div className="tlhead"><span /><div className="tlticks">{ticks.map((d) => <i key={d} style={{ left: (d / effSpan) * 100 + '%' }}>{md(start + d * DAY)}</i>)}{(() => { const d = diffDays(iso(start), refDate); return d >= 0 && d <= effSpan ? <b className="tlnow" style={{ left: (d / effSpan) * 100 + '%' }} /> : null; })()}</div></div>
             {rows.map((o) => (
               <div className="tlrow" key={o.id}>
                 <span className="tlname" title={o.name}>{o.name}</span>
@@ -67,6 +80,9 @@ export default function TimelinePanel({ state, refDate, onPick }) {
               </div>
             ))}
           </div>
+          {matched.length > limit && (
+            <button className="btn wide" onClick={() => setLimit((n) => n + 60)}>더 보기 · {matched.length - limit}건 남음</button>
+          )}
           <div className="tllegend">
             <span><i style={{ background: '#3C6E9E' }} />게시중</span>
             <span><i style={{ background: '#7A5AA6' }} />게시예정</span>

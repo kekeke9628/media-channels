@@ -52,3 +52,8 @@ export const contentOf = (p) => p.title || p.brand;
 // 화면에 업체명과 나란히 찍을 때 쓰는 "내용". contentOf는 비었을 때 업체명으로 대신하는데,
 // 그대로 옆에 두면 "스타벅스 / 스타벅스"처럼 같은 말이 두 번 나온다 — 다를 때만 돌려준다.
 export const subOf = (p) => (p.title && p.title !== p.brand ? p.title : '');
+
+// 검색 비교용 정규화 — 소문자화 + 공백 제거. "웨더 워리어"로 쳐도 "웨더워리어"가 걸리게 한다.
+// 한글은 띄어쓰기가 사람마다 달라서(웨더워리어/웨더 워리어), 공백을 그대로 두면 0건이 나온다.
+export const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
+export const matches = (haystack, query) => norm(haystack).includes(norm(query));

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { contentOf, subOf } from '../constants.js';
+import { contentOf, subOf, matches } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
@@ -8,12 +8,15 @@ import StatusChip from './StatusChip.jsx';
 // 매체 배치는 홍보물에 딸린 부가 정보로 아래 미니 표에서 보여주고, "+ 배치 추가"로 몇 곳이든
 // 추가할 수 있다(동시에 여러 매체에 걸거나, 시간차를 두고 다시 거는 것 모두 여기서 시작).
 
-export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRemove, onUndo, onCancel, onDeletePosting }) {
+export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRepeat, onRemove, onUndo, onCancel, onDeletePosting }) {
   const [typeSel, setTypeSel] = useState(new Set(types.map((t) => t.code)));
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
   const [q, setQ] = useState('');
   const [thumbUrls, setThumbUrls] = useState(new Map());
+  // 카드는 이미지가 붙어 무거워서 한 번에 다 그리지 않는다. 다만 예전에는 그냥 60개에서
+  // 잘라 버리고 아무 표시도 없어서, 위 "N건"과 실제로 보이는 개수가 달라도 알 수 없었다.
+  const [limit, setLimit] = useState(60);
   const mName = (id) => media.find((m) => m.id === id)?.name || '-';
   // 매체가 여러 면을 가지면(웨더워리어 등) 어느 면에 걸렸는지 이름 옆에 붙인다.
   const pLabel = (pl) => mName(pl.mediaId) + ((media.find((m) => m.id === pl.mediaId)?.faces || 1) > 1 ? ` · ${pl.faceLabel || (pl.face || 1) + '면'}` : '');
@@ -27,6 +30,8 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
     getPostingImageUrls(postings.map((p) => p.thumbPath)).then((m) => { if (!cancelled) setThumbUrls(m); });
     return () => { cancelled = true; };
   }, [postings]);
+
+  useEffect(() => { setLimit(60); }, [q, draftOnly, typeSel]); // 조건이 바뀌면 처음부터 다시
 
   const toggleType = (c) => setTypeSel((prev) => { const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n; });
 
@@ -43,7 +48,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
     .filter((p) => {
       if (!q) return true;
       const names = (placementsOf[p.id] || []).map((pl) => pLabel(pl)).join(' ');
-      return (p.brand + contentOf(p) + names).toLowerCase().includes(q.toLowerCase());
+      return matches(p.brand + contentOf(p) + names, q);
     })
     // 미배치가 맨 앞 — 아직 어디에도 안 걸린 것이 조치가 필요한 항목이고, 방금 등록한
     // 홍보물도 미배치라 목록 맨 아래까지 스크롤해야 찾을 수 있던 문제를 함께 없앤다.
@@ -82,7 +87,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
         </p>
       )}
       <div className="cgrid">
-        {rows.slice(0, 60).map((p) => {
+        {rows.slice(0, limit).map((p) => {
           const pls = placementsOf[p.id] || [];
           return (
             <div className="ccard" key={p.id}>
@@ -110,6 +115,9 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                                   철거로 처리하면 걸린 적도 없는 업체가 그 매체 이력에 남는다. */}
                               {s === 'upcoming' && <button className="mini no" onClick={() => onCancel(pl.id)}>배치 취소</button>}
                               {s === 'removed' && pl.removalSource === 'manual' && <button className="mini" onClick={() => onUndo(pl.id)}>되돌리기</button>}
+                              {/* 매달 같은 업체를 같은 자리에 다시 거는 일이 잦다 — 끝난 배치는
+                                  그 매체·면을 미리 채운 채로 배치 화면을 열어 준다. */}
+                              {(s === 'removed' || s === 'overdue') && !archived && <button className="mini" onClick={() => onRepeat(pl)}>다시 걸기</button>}
                             </td>
                           )}
                         </tr>
@@ -126,6 +134,11 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
           );
         })}
       </div>
+      {rows.length > limit && (
+        <button className="btn wide" onClick={() => setLimit((n) => n + 60)}>
+          더 보기 · {rows.length - limit}건 남음
+        </button>
+      )}
     </div>
   );
 }

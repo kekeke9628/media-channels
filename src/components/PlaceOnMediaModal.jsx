@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { iso, DAY, contentOf, subOf } from '../constants.js';
+import { iso, DAY, contentOf, subOf, matches } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { statusOf } from '../lib/status.js';
@@ -24,7 +24,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
   const [q, setQ] = useState('');
   const rows = useMemo(() => {
     return options
-      .filter((p) => !q || (p.brand + contentOf(p)).toLowerCase().includes(q.toLowerCase()))
+      .filter((p) => !q || matches(p.brand + contentOf(p), q))
       .sort((a, b) => {
         const da = placementsOf[a.id]?.length ? 1 : 0, db = placementsOf[b.id]?.length ? 1 : 0;
         if (da !== db) return da - db;

@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { LONG_OPEN, subOf } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { getPostingImageUrls } from '../lib/queries.js';
+import { convertImage } from '../lib/convertImage.js';
 
 // 면(face) 하나의 "현재 배치 + 지난 배치" — 단일 면 매체는 이 컴포넌트가 정확히 하나만
 // 그려지고 라벨도 안 붙어서, 지금까지와 완전히 같은 화면으로 보인다. 2면 이상이면 면마다
 // 따로 그려서, 앞/뒤가 서로 다른 업체·기간으로 걸린 것도 각자 정확히 보여줄 수 있다.
-function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd, collapsible }) {
+function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd, onAttachPhoto, collapsible }) {
   const cur = slot.overdue || slot.current;
   // 아직 시작하지 않은(게시예정) 배치는 "지난 배치"가 아니다 — 예전에는 cur만 빼고 나머지를
   // 전부 지난 배치로 묶어서, 다음 달에 걸릴 예약이 이력 표에 "지난 배치"로 들어가 있었다.
@@ -18,6 +19,7 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
   // 7면에 닿는다. 비어 있는 면은 볼 것이 "비어있음" 한 줄뿐이라 접어 두고, 눌러서 펼치게 한다.
   // 걸린 것·예정된 것이 있는 면은 처음부터 펼쳐 둔다 — 확인할 내용이 있는 쪽이라.
   const [open, setOpen] = useState(!collapsible || !!cur || !!upcoming);
+  const [photoBusy, setPhotoBusy] = useState(false);
   if (collapsible && !open) {
     return (
       <div className="facesheet">
@@ -67,6 +69,24 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
           {imgUrls.get(cur.installPhotoPath) && (
             <div className="rprev"><img src={imgUrls.get(cur.installPhotoPath)} alt="" /><i className="sub">설치 확인 사진</i></div>
           )}
+          {/* 실제 업무는 "사무실에서 배치 등록 → 현장에서 부착 → 그 자리에서 촬영" 순서라,
+              사진을 나중에 붙일 수 있어야 한다. 예전에는 배치를 만드는 순간에만 첨부할 수
+              있어서, 현장 사진을 넣으려면 배치를 지우고 다시 만들어야 했다. */}
+          {isEditor && onAttachPhoto && (
+            <label className="drop compact">
+              <input type="file" accept="image/*" capture="environment" disabled={photoBusy}
+                onChange={async (e) => {
+                  const f = e.target.files[0];
+                  if (!f) return;
+                  setPhotoBusy(true);
+                  const r = await convertImage(f);
+                  await onAttachPhoto(cur.id, r);
+                  setPhotoBusy(false);
+                  e.target.value = '';
+                }} />
+              <span className="dropbtn">{photoBusy ? '올리는 중…' : (cur.installPhotoPath ? '설치 사진 다시 찍기' : '설치 확인 사진 찍기')}</span>
+            </label>
+          )}
           {isEditor && (
             <button className={'btn wide' + (slot.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>철거 처리</button>
           )}
@@ -106,7 +126,7 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
   );
 }
 
-export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces }) {
+export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces, onAttachPhoto }) {
   const t = T[o.type];
   const zoneLabel = ZONES[o.zone]?.label || o.zone;
   const hasHistory = o.slots.some((s) => s.history.length > 0);
@@ -177,7 +197,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
         <div className="sbody">
         {/* 면이 4개 이상일 때만 접기를 켠다 — 1~2면(웨더워리어 등)은 지금까지처럼 전부 펼친 채. */}
         {o.slots.map((slot) => (
-          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} collapsible={o.faces >= 4} />
+          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} collapsible={o.faces >= 4} />
         ))}
 
         {isEditor && (

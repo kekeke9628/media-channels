@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ZONES } from '../data/seed.js';
-import { typeChipStyle } from '../constants.js';
+import { typeChipStyle, matches } from '../constants.js';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
 
@@ -37,8 +37,8 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
   const rows = media.filter((m) => {
     if (!q) return true;
     const t = T[m.type];
-    const haystack = [m.name, m.id, zoneLabel(m.zone), t?.label, m.faces, histOf(m.id) + '건'].join(' ').toLowerCase();
-    return haystack.includes(q.toLowerCase());
+    const haystack = [m.name, m.id, zoneLabel(m.zone), t?.label, m.faces, histOf(m.id) + '건'].join(' ');
+    return matches(haystack, q);
   });
 
   // "900×1800mm" 같은 규격 문자열 ↔ 가로/세로 숫자 두 칸. 저장 형식은 기존과 동일한

@@ -6,6 +6,7 @@ import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, updateMediaFaces, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
   createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, setPostingImage,
+  setPlacementInstallPhoto,
 } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
 import { useAuth, OWNER_EMAIL, resetAdminPassword } from './lib/useAuth.js';
@@ -71,6 +72,9 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const [placingMediaId, setPlacingMediaId] = useState(null);
   const [placingFace, setPlacingFace] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
+  // "다시 걸기" — 지난 배치와 같은 매체·면을 미리 채운 채로 배치 화면을 연다. 매달 같은
+  // 업체를 같은 자리에 다시 거는 일이 잦은데, 지금까지는 매번 목록에서 매체를 다시 찾아야 했다.
+  const [assignPreset, setAssignPreset] = useState(null); // { mediaId, face }
   const [editMode, setEditMode] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const [mapImage, setMapImage] = useState(null);
@@ -240,6 +244,28 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       return true;
     } catch (e) { if (!silent) flash('배치에 실패했습니다: ' + e.message); return false; }
   };
+  // 현장에서 찍은 설치 확인 사진을 이미 걸려 있는 배치에 나중에 붙인다. 홍보물 이미지가
+  // 아직 비어 있으면 배치 생성 때와 동일하게 그 사진으로 함께 채운다.
+  const attachInstallPhoto = async (placementId, result) => {
+    try {
+      const updated = await setPlacementInstallPhoto(placementId, result);
+      setPlacements((prev) => prev.map((p) => (p.id === placementId
+        ? { ...p, installPhoto: true, installPhotoPath: updated.installPhotoPath } : p)));
+      const target = placements.find((p) => p.id === placementId);
+      const posting = target && postings.find((x) => x.id === target.postingId);
+      if (posting && !posting.thumbPath) {
+        try {
+          const np = await setPostingImage(posting, result);
+          setPostings((prev) => prev.map((x) => (x.id === np.id ? { ...x, ...np } : x)));
+          setPlacements((prev) => prev.map((pl) => (pl.postingId === np.id
+            ? { ...pl, thumbPath: np.thumbPath, viewPath: np.viewPath } : pl)));
+        } catch { /* 사진은 이미 배치에 붙었으므로 홍보물 이미지 채우기 실패는 넘어간다 */ }
+      }
+      flash('설치 확인 사진을 등록했습니다.');
+      return true;
+    } catch (e) { flash('사진 등록에 실패했습니다: ' + e.message); return false; }
+  };
+
   // 잘못 만든 배치를 기록째 지운다 — 실제 철거(markPlacementRemoved)와는 다르다. 철거는
   // "걸렸다가 뗐다"는 사실 기록이라 이력에 남아야 하지만, 애초에 잘못 만든 배치는 남으면
   // 그 매체에 걸린 적도 없는 업체가 이력에 찍힌다.
@@ -448,7 +474,9 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {tab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
           {tab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
-              onPick={setSelMedia} onAssign={setAssigningId} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem} />
+              onPick={setSelMedia} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem}
+              onAssign={(id) => { setAssignPreset(null); setAssigningId(id); }}
+              onRepeat={(pl) => { setAssignPreset({ mediaId: pl.mediaId, face: pl.face || 1 }); setAssigningId(pl.postingId); }} />
           )}
           {tab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={setSelMedia} />}
           {tab === 'manage' && (
@@ -464,7 +492,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       {selMedia && byId[selMedia] && (
         <MediaSheet
           {...ctx} o={byId[selMedia]} onClose={() => setSelMedia(null)} onRemove={markRemoved} onDelete={removeMedia}
-          onEditMediaFaces={editMediaFaces}
+          onEditMediaFaces={editMediaFaces} onAttachPhoto={attachInstallPhoto}
           onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}
         />
       )}
@@ -499,7 +527,8 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       {assigningId && isEditor && (
         <AssignModal
           {...ctx} posting={postings.find((p) => p.id === assigningId)} media={media} placements={placements}
-          onClose={() => setAssigningId(null)} onAssign={addPlacement} onAdjustEnd={adjustEnd}
+          preset={assignPreset}
+          onClose={() => { setAssigningId(null); setAssignPreset(null); }} onAssign={addPlacement} onAdjustEnd={adjustEnd}
           onDone={(ok, failed) => flash(`${ok}건 배치 완료${failed ? ` · ${failed}건 실패` : ''}`)}
         />
       )}

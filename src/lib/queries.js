@@ -247,6 +247,22 @@ export async function createPlacement({ postingId, mediaId, start, end, installP
   return mapPlacement(updated);
 }
 
+// 이미 만들어진 배치에 설치 확인 사진을 나중에 붙인다. 실제 업무는 "사무실에서 배치를
+// 등록 → 현장에 가서 부착 → 그 자리에서 사진 촬영" 순서인데, 지금까지는 배치를 만드는
+// 순간에만 사진을 첨부할 수 있어서 현장에서 찍은 사진을 넣으려면 배치를 지우고 다시
+// 만들어야 했다(기간·이력이 꼬인다). 이미 사진이 있으면 새 사진으로 교체한다.
+export async function setPlacementInstallPhoto(placementId, result) {
+  const install_photo_path = await uploadPostingImage(`placements/${placementId}/install.webp`, result.view.url);
+  const { data, error } = await supabase
+    .from('placements')
+    .update({ install_photo_path })
+    .eq('id', placementId)
+    .select()
+    .single();
+  if (error) throw error;
+  return mapPlacement(data);
+}
+
 // 현장 사진을 홍보물 이미지로 채운다 — 인쇄 시안 파일 없이 등록해 둔 홍보물이 흔한데,
 // 그러면 홍보물 목록이 계속 빈 칸이라 무엇이 걸려 있는지 알 수 없었다. 설치 확인 사진과
 // 홍보물 이미지는 같은 변환 결과 모양을 쓰므로 그대로 돌려쓴다. 이미 이미지가 있는

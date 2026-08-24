@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { contentOf, subOf, days, ST, typeChipStyle } from '../constants.js';
+import { contentOf, subOf, days, ST, typeChipStyle, matches } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
@@ -58,8 +58,8 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       .filter((p) => (p.end || '9999-12-31') >= from && p.start <= to)
       .filter((p) => {
         if (!q) return true;
-        const haystack = [pLabel(p), p.brand, contentOf(p), p.start, p.end, p.removedAt, ST[statusOf(p, refDate)]?.label].join(' ').toLowerCase();
-        return haystack.includes(q.toLowerCase());
+        const haystack = [pLabel(p), p.brand, contentOf(p), p.start, p.end, p.removedAt, ST[statusOf(p, refDate)]?.label].join(' ');
+        return matches(haystack, q);
       })
       .sort((a, b) => b.start.localeCompare(a.start));
   }, [rangeOn, postings, typeSel, from, to, q, media]);
@@ -72,8 +72,8 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       .filter((o) => {
         if (!q) return true;
         const p = o.overdue || o.current || o.next;
-        const haystack = [o.name, T[o.type]?.label, zoneLabel(o.zone), p?.brand, p ? contentOf(p) : '', p?.end, STATUS_LABEL[statusCat(o)]].join(' ').toLowerCase();
-        return haystack.includes(q.toLowerCase());
+        const haystack = [o.name, T[o.type]?.label, zoneLabel(o.zone), p?.brand, p ? contentOf(p) : '', p?.end, STATUS_LABEL[statusCat(o)]].join(' ');
+        return matches(haystack, q);
       })
       // next(게시예정)도 p로 포함시켜 시작일·종료일·업체명 컬럼이 "—"로 비지 않고
       // 실제 예정 정보를 보여주게 한다 — 별도로 D-day 문구를 상태 배지에 반복할 필요가 없어진다.

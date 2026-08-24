@@ -166,6 +166,11 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
    같은 폭으로 나눠 갖게 한다. */
 .seg button{border:0;background:#fff;padding:8px 14px;font-size:13px;cursor:pointer;border-right:1px solid var(--line);color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .seg button:last-child{border-right:0}
+/* 툴바 안의 세그먼트(기간 60/120/240일, 매체/매체 유형 토글)는 flex 아이템이라 옆 요소가
+   늘어나면 폭이 눌리는데, auto-fit 그리드가 그 좁은 폭에서 1열로 접혀 버튼이 세로로
+   쌓였다(면 선택이 10개까지 늘 수 있어 auto-fit이 필요했던 건 모달 쪽이다).
+   툴바에서는 내용 폭을 지키고, 자리가 없으면 줄 전체가 다음 줄로 넘어가게 한다. */
+.toolrow .seg{flex:0 0 auto;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:1fr}
 .seg button.on{background:#23211E;color:#fff;font-weight:600}
 /* iOS Safari가 flex 컨테이너의 overflow:hidden+border-radius 클리핑을 가끔 놓쳐서,
    선택된(검정) 버튼이 옆 버튼과 떨어진 별개의 알약처럼 보이던 문제 — 부모 클리핑에만
@@ -396,6 +401,10 @@ td.sub{display:table-cell}
    판넬"처럼 매체명이 길면 표가 카드(271px)보다 넓은 384px까지 자라면서, 상태 칩과 "철거
    처리" 버튼이 카드 밖으로 밀려나 잘렸다. 첫 칸(이름)만 말줄임으로 줄이고 나머지 칸은
    내용 폭을 지키게 해, 조작 요소는 이름이 아무리 길어도 항상 보이게 한다. */
+/* 매체 상세 안에서 쓰는 작은 업로드 버튼 — 등록 폼의 큰 드롭존과 달리 안내문 없이 버튼만 */
+.drop.compact{padding:0;border:0;background:none;margin-top:8px}
+.drop.compact .dropbtn{display:block;width:100%;text-align:center}
+
 .mini-t{font-size:12px;margin-top:10px;min-width:0;width:100%}
 .mini-t td{padding:6px 4px;border-bottom:1px solid #F0ECE4}
 /* 첫 칸(매체명)만 줄바꿈을 허용한다. tbody td의 nowrap 때문에 긴 이름이 한 줄을 고집해서,
