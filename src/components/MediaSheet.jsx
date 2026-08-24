@@ -69,10 +69,30 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd 
   );
 }
 
-export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd }) {
+export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces }) {
   const t = T[o.type];
   const zoneLabel = ZONES[o.zone]?.label || o.zone;
   const hasHistory = o.slots.some((s) => s.history.length > 0);
+
+  // 면수 수정 — 듀라트란스처럼 자리마다 판 개수가 다른 매체를 잘못된 면수로 등록했을 때
+  // 매체 관리 화면까지 안 가고 여기서 바로 고칠 수 있게 한다. 줄이는 쪽은, 줄어들 면에
+  // 아직 비어있지 않은(현재/만료) 배치가 있으면 그 배치가 화면에서 통째로 사라져 버리므로
+  // (슬롯은 media.faces 개수만큼만 계산됨, lib/status.js) 막고 이유를 보여준다.
+  const [editingFaces, setEditingFaces] = useState(false);
+  const [facesInput, setFacesInput] = useState(o.faces);
+  const [facesErr, setFacesErr] = useState('');
+  const startEditFaces = () => { setEditingFaces(true); setFacesInput(o.faces); setFacesErr(''); };
+  const saveFaces = () => {
+    const n = +facesInput;
+    if (!n || n < 1) return;
+    const blocked = o.slots.filter((s) => s.face > n && (s.current || s.overdue));
+    if (blocked.length > 0) {
+      setFacesErr(`${Math.max(...blocked.map((s) => s.face))}면에 아직 철거하지 않은 배치가 있어 줄일 수 없습니다.`);
+      return;
+    }
+    onEditMediaFaces(o.id, n);
+    setEditingFaces(false);
+  };
 
   // 실제 업로드된 게시물 사진이 있으면 그라데이션 대신 그걸 보여준다 — 큰 카드는 view(1600px),
   // 이력의 작은 점은 thumb(400px)를 쓴다.
@@ -95,7 +115,26 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
   return (
     <div className="modal" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="shead"><div><b>{o.name}</b><i>{zoneLabel} · {t.label} · {o.spec || t.spec} · {o.faces}면</i></div><button onClick={onClose}>✕</button></div>
+        <div className="shead">
+          <div>
+            <b>{o.name}</b>
+            {editingFaces ? (
+              <i style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {zoneLabel} · {t.label} · {o.spec || t.spec} ·
+                <input className="inp num" type="number" min="1" style={{ width: 56 }} value={facesInput} onChange={(e) => setFacesInput(e.target.value)} />면
+                <button className="mini ok" onClick={saveFaces}>저장</button>
+                <button className="mini" onClick={() => setEditingFaces(false)}>취소</button>
+              </i>
+            ) : (
+              <i>
+                {zoneLabel} · {t.label} · {o.spec || t.spec} · {o.faces}면
+                {isEditor && <button className="mini" style={{ marginLeft: 6 }} onClick={startEditFaces}>면수 수정</button>}
+              </i>
+            )}
+            {editingFaces && facesErr && <p className="warnbox" style={{ marginTop: 6 }}>{facesErr}</p>}
+          </div>
+          <button onClick={onClose}>✕</button>
+        </div>
         <div className="sbody">
         {o.slots.map((slot) => (
           <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} />
