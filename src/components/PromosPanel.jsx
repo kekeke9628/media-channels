@@ -17,6 +17,10 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
   const mName = (id) => media.find((m) => m.id === id)?.name || '-';
   // 매체가 여러 면을 가지면(웨더워리어 등) 어느 면에 걸렸는지 이름 옆에 붙인다.
   const pLabel = (pl) => mName(pl.mediaId) + ((media.find((m) => m.id === pl.mediaId)?.faces || 1) > 1 ? ` · ${pl.faceLabel || (pl.face || 1) + '면'}` : '');
+  // 보관된(지도에서 내린) 매체에 걸린 배치 — 이제 보관 시 함께 철거 처리되지만, 그 전에
+  // 만들어진 기록은 남아 있다. 이런 행은 매체 상세가 열리지 않으므로(활성 매체만 계산됨)
+  // 클릭을 막고 이유를 표시한다 — 예전엔 눌러도 아무 일도 안 일어나는 먹통이었다.
+  const isArchived = (pl) => media.find((m) => m.id === pl.mediaId)?.active === false;
 
   useEffect(() => {
     let cancelled = false;
@@ -94,9 +98,10 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                   <table className="mini-t">
                     <tbody>{pls.map((pl) => {
                       const s = statusOf(pl, refDate);
+                      const archived = isArchived(pl);
                       return (
-                        <tr key={pl.id} onClick={() => onPick(pl.mediaId)}>
-                          <td>{pLabel(pl)}{pl.installPhoto && <span title="설치 확인 사진 있음"> 📷</span>}</td>
+                        <tr key={pl.id} onClick={archived ? undefined : () => onPick(pl.mediaId)} style={archived ? { cursor: 'default' } : undefined}>
+                          <td>{pLabel(pl)}{archived && <i className="sub"> · 보관된 매체</i>}{pl.installPhoto && <span title="설치 확인 사진 있음"> 📷</span>}</td>
                           <td><StatusChip status={s} /></td>
                           {isEditor && (
                             <td className="r" onClick={(e) => e.stopPropagation()}>

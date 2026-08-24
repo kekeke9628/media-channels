@@ -264,9 +264,21 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     const used = placements.some((p) => p.mediaId === id);
     try {
       if (used) {
+        // 아직 철거 기록이 없는 배치는 여기서 함께 철거 처리한다 — 프레임 자체를 내리는
+        // 것이므로 물리적으로 그 위의 홍보물도 같이 내려온다. 이걸 안 하면 그 배치가
+        // "게시중"인 채로 남는데, 매체 현황·타임라인·알람은 활성 매체만 보므로(buildState)
+        // 화면 어디에도 안 뜨는 유령 배치가 된다 — 철거 알람도 영영 안 울린다.
+        const living = placements.filter((p) => p.mediaId === id && !p.removedAt);
+        for (const p of living) await markPlacementRemoved(p.id, refDate);
+        if (living.length) {
+          const ids = new Set(living.map((p) => p.id));
+          setPlacements((prev) => prev.map((p) => (ids.has(p.id) ? { ...p, removedAt: refDate, removalSource: 'manual' } : p)));
+        }
         await archiveMedia(id);
         setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, active: false } : m)));
-        flash('배치 기록이 있어 삭제 대신 보관 처리했습니다.');
+        flash(living.length
+          ? `배치 기록이 있어 보관 처리했습니다 — 게시 중이던 ${living.length}건도 함께 철거 처리했습니다.`
+          : '배치 기록이 있어 삭제 대신 보관 처리했습니다.');
       } else {
         await deleteMedia(id);
         setMedia((prev) => prev.filter((m) => m.id !== id));
