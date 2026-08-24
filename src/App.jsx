@@ -104,14 +104,6 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     return () => window.removeEventListener('resize', on);
   }, []);
 
-  // 핀을 클릭해 상세 시트가 열린 상태에서 ESC를 누르면 선택을 해제한다.
-  useEffect(() => {
-    if (!selMedia) return;
-    const onKey = (e) => { if (e.key === 'Escape') setSelMedia(null); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [selMedia]);
-
   // undo를 넘기면 토스트에 "되돌리기" 버튼이 붙고, 누를 시간을 주려고 더 오래 떠 있는다.
   // 철거처럼 되돌리는 경로가 화면에 없던 동작에 실행취소를 주기 위한 것.
   // 타이머를 ref로 잡아 두고 매번 취소한다 — 그러지 않으면 연달아 동작했을 때 앞선

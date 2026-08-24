@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useModalKeys } from '../lib/useModalKeys.js';
 import { LONG_OPEN, subOf } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { getPostingImageUrls } from '../lib/queries.js';
@@ -170,6 +171,8 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathsKey]);
+
+  useModalKeys({ onClose });
 
   return (
     <div className="modal" onClick={onClose}>

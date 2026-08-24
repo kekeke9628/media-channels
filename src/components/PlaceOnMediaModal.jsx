@@ -125,7 +125,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
                   {options.length === 0 ? `${t?.label} 규격 파일을 가진 홍보물이 없습니다. 홍보물 화면에서 이 규격을 추가해 주세요.` : '검색 결과가 없습니다.'}
                 </p>
               ) : (
-                <div className="medialist" style={{ maxHeight: 280 }}>
+                <div className="medialist wide">
                   {rows.map((p) => {
                     const url = thumbUrls.get(variantFor(p, media.type)?.thumbPath);
                     const placedCount = placementsOf[p.id]?.length || 0;

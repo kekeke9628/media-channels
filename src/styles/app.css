@@ -237,16 +237,23 @@ td.sub{display:table-cell}
 /* 링크가 없을 때도 같은 자리에 같은 모양으로 두되, 눌리면 이유를 알려 준다. */
 .lnk.asbtn{background:none;border:0;padding:0;font-family:inherit;cursor:pointer;color:var(--ink2);text-decoration:underline dotted}
 
-.modal{position:fixed;inset:0;background:rgba(35,33,30,.5);display:grid;place-items:center;z-index:60;padding:16px}
-.mbox{background:#fff;border-radius:15px;width:min(520px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.modal{position:fixed;inset:0;background:rgba(35,33,30,.5);display:grid;place-items:center;z-index:60;
+  padding:16px;--modal-gap:32px}
+/* 팝업 높이 예산 = 실제 보이는 화면 높이 - .modal 위아래 패딩.
+   90vh처럼 패딩과 무관한 값을 쓰면 둘을 더한 값이 화면을 넘겨서, 넘친 만큼이 화면 밖으로
+   나가 버린다(.modal은 스크롤되지 않는다) — 그래서 팝업 아래쪽이 잘리고 더 내려가지지도
+   않았다. 100vh는 iOS에서 주소창을 뺀 실제 높이보다 크게 잡히므로 dvh를 쓰고, dvh를 모르는
+   브라우저를 위해 vh 값을 먼저 둔다. */
+  .modal>*{max-height:calc(100vh - var(--modal-gap));max-height:calc(100dvh - var(--modal-gap))}
+.mbox{background:#fff;border-radius:15px;width:min(520px,100%);display:flex;flex-direction:column;overflow:hidden}
 .mhead{display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid var(--line)}
 .mhead b{font-size:15px}
 /* 닫기(✕)가 29×22라 모바일에서 누르기 어려웠다 — 글자 크기는 두고 누를 면적만 넓힌다.
    오른쪽·위 여백을 음수 마진으로 되돌려 헤더 높이와 정렬은 그대로 둔다. */
 .mhead button{border:0;background:none;font-size:19px;cursor:pointer;color:var(--ink2);
   width:44px;height:44px;margin:-11px -13px -11px 0;display:grid;place-items:center}
-.mbody{padding:16px 18px;overflow:auto;display:flex;flex-direction:column;gap:11px}
-/* .mbody가 .mbox의 90vh 예산 안에 맞추려 줄어들 때, flex-shrink 기본값(1) 때문에
+.mbody{padding:16px 18px;overflow:auto;display:flex;flex-direction:column;gap:11px;min-height:0}
+/* .mbody가 .mbox의 높이 예산 안에 맞추려 줄어들 때, flex-shrink 기본값(1) 때문에
    자식들이 짜부라들 수 있다 — 특히 overflow:hidden인 .seg(테두리 둥글리기용)는 자동
    최소 높이가 0으로 계산돼(스펙상 overflow≠visible이면 그렇다) 다른 필드보다 훨씬 먼저,
    훨씬 심하게 눌린다. 폼이 길어지면 면 선택 버튼이 2px로 짜부라들어 안 보이던 게 이
@@ -254,6 +261,9 @@ td.sub{display:table-cell}
    줄어들지 않도록 막는다. */
 .mbody > *{flex-shrink:0}
 .mfoot{padding:13px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+/* 본문이 길어져 팝업이 높이 한계에 걸리면, 줄어들 수 있는 쪽(기본 flex-shrink:1)이 다 같이
+   눌린다 — 제목줄과 버튼줄은 줄어들면 안 되는 자리이므로 본문만 줄어들게 못 박는다. */
+.mhead,.mfoot,.shead{flex:none}
 .cropbox{width:min(720px,100%)}
 .mhead .pagepick{display:flex;align-items:center;gap:8px;margin-left:auto;margin-right:12px;font-size:12px;color:var(--ink2)}
 .mhead .pagepick button{border:1px solid var(--line);background:#fff;border-radius:6px;width:24px;height:24px;cursor:pointer}
@@ -301,6 +311,7 @@ td.sub{display:table-cell}
 .rprev img{max-width:130px;border-radius:8px;border:1px solid var(--line)}
 .movebox{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F8F1E4;border:1px solid #E7D9BC;border-radius:10px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:#8A6A20}
 .medialist{border:1px solid var(--line);border-radius:9px;max-height:220px;overflow:auto;margin-top:6px}
+.medialist.wide{max-height:280px}
 .medialist-item{display:flex;align-items:center;gap:8px;padding:7px 11px;font-size:12.5px;border-bottom:1px solid #F0ECE4;cursor:pointer}
 .medialist-item:last-child{border-bottom:0}
 .medialist-item:hover{background:#FAF8F4}
@@ -352,7 +363,7 @@ td.sub{display:table-cell}
 .linklike{border:0;background:none;padding:0;font:inherit;color:var(--brass);font-weight:700;cursor:pointer;text-decoration:underline}
 .linklike:hover{color:#8E6B2C}
 
-.sheet{background:#fff;border-radius:15px;width:min(460px,100%);max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden}
+.sheet{background:#fff;border-radius:15px;width:min(460px,100%);box-shadow:0 20px 60px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden}
 .shead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
 .shead b{font-size:15px;display:block}
 .shead i{font-style:normal;font-size:11.5px;color:var(--ink2)}
@@ -403,7 +414,9 @@ td.sub{display:table-cell}
    내용 폭을 지키게 해, 조작 요소는 이름이 아무리 길어도 항상 보이게 한다. */
 /* 매체 상세 안에서 쓰는 작은 업로드 버튼 — 등록 폼의 큰 드롭존과 달리 안내문 없이 버튼만 */
 .drop.compact{padding:0;border:0;background:none;margin-top:8px}
-.drop.compact .dropbtn{display:block;width:100%;text-align:center}
+/* 폭을 꽉 채우려고 display:block으로 덮었더니 .dropbtn의 세로 가운데 정렬(inline-flex)이
+   같이 사라져, min-height:44px 칸 안에서 글자가 12.5px 위로 붙어 있었다. flex는 유지한다. */
+.drop.compact .dropbtn{display:flex;width:100%}
 
 /* 홍보물 카드의 "보유 규격" 줄 — 규격 뱃지들 + 규격 추가 버튼 */
 .varrow{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px}
@@ -500,16 +513,19 @@ td.sub{display:table-cell}
   /* 팝업이 화면을 거의 꽉 채워서 ✕가 브라우저 주소창 바로 밑에 붙었다 — 손이 닿는 곳으로
      내려오도록 조금 줄이고 위쪽 여백을 더 준다. 100vh는 iOS에서 주소창을 뺀 실제 높이보다
      크게 잡히므로 dvh를 쓰고, dvh를 모르는 브라우저를 위해 vh 값을 먼저 둔다. */
-  .modal{padding:64px 12px 20px;align-content:center}
-  .mbox{max-height:76vh;max-height:76dvh}
+  .modal{padding:64px 12px 20px;align-content:center;--modal-gap:84px}
   /* 어떤 이유로든 안쪽 내용이 넓어져도 팝업이 옆으로 밀리지는 않게 한다. */
   .mbody{overflow-x:hidden}
+  /* 팝업 본문 안에 또 스크롤되는 칸(매체 목록)이 있으면, 손가락으로 밀 때 그 칸만
+     움직이고 팝업은 그대로라 "아래로 안 내려간다"고 느낀다 — 모바일에서는 목록의
+     자체 스크롤을 없애고 팝업 본문 하나만 스크롤되게 한다. */
+  .medialist,.medialist.wide{max-height:none;overflow:visible}
   /* 매체/매체 유형 같은 토글은 좁은 화면에서 폭을 다 쓰는 편이 누르기 쉽다. */
   .seg{width:100%}
   .seg button{padding:11px 12px}
 
   /* 지도 위 클릭 지점에 붙이면 화면 가장자리에서 잘리므로, 모바일에서는 화면 중앙에 띄운다 */
-  .addpop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(300px,86vw);max-height:80vh;overflow:auto}
+  .addpop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(300px,86vw);max-height:80vh;max-height:80dvh;overflow:auto}
   /* 손가락으로 쓰는 화면인데 실측해 보니 "+홍보물 등록"이 24px, 체크박스 라벨이 19px,
      mini 버튼이 27px였다 — 자꾸 옆을 누르게 된다. 권장치(44px)에 맞춰 키운다.
      데스크톱(마우스)은 지금 크기가 오히려 정돈돼 보이므로 모바일에서만 바꾼다. */
