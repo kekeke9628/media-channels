@@ -95,7 +95,15 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 /* 핀 아이콘(특히 모바일에서 19×20px로 줄어드는 .pdot)은 손가락으로 정확히 맞추기엔 너무 작다.
    -50%,-56% 위치 계산은 버튼 자신의 박스 크기를 기준으로 하므로 .pin에 직접 패딩을 주면 앵커가
    틀어진다 — 대신 ::before로 보이지 않는 히트 영역만 넓혀서 시각적 크기는 그대로 둔다. */
-.pin::before{content:'';position:absolute;inset:-14px}
+/* 확장 폭은 JS가 이웃 핀과의 거리를 재서 --hit로 넣어 준다(MapPanel.sizePinHits) — 핀이
+   붙어 있을 때 이 여백이 옆 핀 아이콘을 덮어 클릭을 가로채던 문제 때문. 값이 없으면 종전값. */
+.pin::before{content:'';position:absolute;inset:var(--hit,-14px)}
+/* 아이콘끼리 물리적으로 겹칠 만큼 핀이 붙어 있으면(모바일 1배에서 19px 아이콘이 8px 간격)
+   히트 영역을 아무리 줄여도 위 핀이 아래 핀의 픽셀을 덮는다 — 이건 확대해야 갈라진다.
+   다만 지금 보고 있는 핀만은 항상 맨 위로 올려, 목록에서 고른 매체가 다른 핀에 가려
+   안 보이는 일은 없게 한다. 데스크톱에서는 마우스를 올린 핀도 앞으로 꺼내 준다. */
+.pin:hover{z-index:7}
+.pin.sel{z-index:8}
 .pin.editable{cursor:grab}
 .pin-inner{transform-origin:center bottom}
 .pdot{position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;width:28px;height:34px;font-size:12px;font-weight:700;letter-spacing:-.4px;color:#fff;

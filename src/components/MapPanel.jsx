@@ -59,6 +59,36 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
     });
   }, []);
 
+  // 핀의 히트 영역은 손가락으로 누르기 쉽도록 아이콘보다 14px 넓다(.pin::before). 그런데 핀
+  // 두 개가 가까이 붙으면 그 보이지 않는 여백이 이웃 핀의 아이콘을 덮어, 밑에 깔린 핀은
+  // 아이콘을 정확히 눌러도 위 핀이 클릭을 가로챈다(실제로 재현됨). 이웃과의 거리에 맞춰
+  // 여백을 줄여 서로 침범하지 않게 한다 — 떨어져 있으면 종전대로 14px 전부 쓴다.
+  // 거리는 배율에만 좌우되고 이동(pan)에는 영향받지 않으므로 배율이 바뀔 때만 다시 계산한다.
+  const HIT_MAX = 14;
+  const sizePinHits = useCallback((pz) => {
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const pts = itemsRef.current.map((o) => ({
+      id: o.id,
+      x: (o.x / 100) * r.width * pz,
+      y: (o.y / 100) * r.height * pz,
+    }));
+    pts.forEach((a) => {
+      const el = pinRefs.current[a.id];
+      if (!el) return;
+      let nearest = Infinity;
+      for (const b of pts) {
+        if (b.id === a.id) continue;
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (d < nearest) nearest = d;
+      }
+      // 두 아이콘 사이에 남는 빈 간격을 절반씩 나눠 갖는다(아이콘 폭은 실제 렌더 크기 기준).
+      const gap = nearest - el.offsetWidth;
+      const room = Number.isFinite(gap) ? Math.floor(gap / 2) : HIT_MAX;
+      el.style.setProperty('--hit', -clamp(room, 0, HIT_MAX) + 'px');
+    });
+  }, []);
+
   const applyTransform = () => {
     const st = stageRef.current;
     if (!st) return;
@@ -90,7 +120,11 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   useLayoutEffect(() => {
     const { x, y, zoom: z } = panRef.current;
     positionPins(x, y, z);
-  }, [items, positionPins]);
+    sizePinHits(z);
+  }, [items, positionPins, sizePinHits]);
+
+  // 배율이 바뀌면 핀 사이 실제 거리가 달라지므로 히트 영역도 다시 재 본다(이동만으로는 안 바뀜).
+  useLayoutEffect(() => { sizePinHits(zoom); }, [zoom, sizePinHits]);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -98,10 +132,11 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
     const ro = new ResizeObserver(() => {
       const { x, y, zoom: z } = panRef.current;
       positionPins(x, y, z);
+      sizePinHits(z); // 화면 폭이 바뀌면 핀 사이 픽셀 거리도 바뀐다
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [positionPins]);
+  }, [positionPins, sizePinHits]);
 
   // 휠 줌 — useEffect + ref로 등록해 stale closure를 피하고, preventDefault를 위해
   // React onWheel(수동 리스너) 대신 네이티브 addEventListener를 쓴다.
