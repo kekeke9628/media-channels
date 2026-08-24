@@ -3,7 +3,7 @@ import { ALERT_DAYS, LONG_OPEN, getToday } from './constants.js';
 import { autoClose, buildState, flattenSlots } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
-  fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, createMedia,
+  fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, updateMediaFaces, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
   createPlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, setPostingImage,
 } from './lib/queries.js';
@@ -252,6 +252,14 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const toggleType = (code) => setTypes((prev) => prev.map((t) => (t.code === code ? { ...t, active: !t.active } : t)));
   const editType = (code, patch) => { setTypes((prev) => prev.map((t) => (t.code === code ? { ...t, ...patch } : t))); flash('매체 유형을 수정했습니다.'); };
 
+  const editMediaFaces = async (id, faces) => {
+    try {
+      await updateMediaFaces(id, faces);
+      setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, faces } : m)));
+      flash('면수를 수정했습니다.');
+    } catch (e) { flash('면수 수정에 실패했습니다: ' + e.message); }
+  };
+
   const removeMedia = async (id) => {
     const used = placements.some((p) => p.mediaId === id);
     try {
@@ -420,7 +428,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {tab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={setSelMedia} />}
           {tab === 'manage' && (
             <ManagePanel {...ctx} media={media} postings={placements}
-              onAddType={addType} onToggleType={toggleType} onEditType={editType}
+              onAddType={addType} onToggleType={toggleType} onEditType={editType} onEditMediaFaces={editMediaFaces}
               onRemoveMedia={removeMedia} onRestoreMedia={restoreMediaItem} />
           )}
           {tab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} />}

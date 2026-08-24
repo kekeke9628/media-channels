@@ -396,7 +396,7 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
       {source === 'new' ? (
         <>
           <input className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="매체명을 입력해주세요" />
-          <input className="inp" type="number" min="1" max="6" value={faces} onChange={(e) => setFaces(e.target.value)} placeholder="면수를 입력해주세요" />
+          <input className="inp" type="number" min="1" value={faces} onChange={(e) => setFaces(e.target.value)} placeholder="면수를 입력해주세요" />
         </>
       ) : archivedOfType.length > 0 ? (
         <select className="sel" value={existingId} onChange={(e) => setExistingId(e.target.value)}>

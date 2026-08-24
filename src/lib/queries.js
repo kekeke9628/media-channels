@@ -56,6 +56,13 @@ export async function updateMediaPosition(id, x, y, zone) {
   if (error) throw error;
 }
 
+// 듀라트란스처럼 한 자리에 여러 판이 몰려 있는 경우, 면수를 처음 등록할 때 잘못 넣었거나
+// 나중에 판이 늘고 줄면 고쳐야 한다 — 지금까지는 등록 시점에만 정할 수 있었다.
+export async function updateMediaFaces(id, faces) {
+  const { error } = await supabase.from('media').update({ faces }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function createMedia({ id, type, name, faces, spec, x, y, zone }) {
   const { data, error } = await supabase
     .from('media')

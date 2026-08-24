@@ -4,12 +4,32 @@ import { ZONES } from '../data/seed.js';
 const zoneLabel = (z) => ZONES[z]?.label || z;
 
 // 매체 관리 — 매체 유형 CRUD(보관), 매체 보관/복구/삭제. 매체 추가·위치 이동은 지도에서 한다.
-export default function ManagePanel({ T, types, media, postings, isEditor, narrow, onAddType, onToggleType, onEditType, onRemoveMedia, onRestoreMedia }) {
+export default function ManagePanel({ T, types, media, postings, isEditor, narrow, onAddType, onToggleType, onEditType, onEditMediaFaces, onRemoveMedia, onRestoreMedia }) {
   const [sec, setSec] = useState('media');
   const [editing, setEditing] = useState(null);
   const [edit, setEdit] = useState({});
   const [nt, setNt] = useState({ label: '', specW: '', specH: '', faces: 1, color: '#5E7B8A', glyph: '▪', movable: false, openEnded: false });
   const [q, setQ] = useState('');
+
+  // 매체 하나의 면수 수정 — 듀라트란스처럼 자리마다 판 개수가 제각각인 유형은 유형 기본값
+  // 하나로 못 맞추니 개별 매체마다 고칠 수 있어야 한다. 줄이는 쪽은 위험하다 — 안 보이게
+  // 되는 면에 아직 철거 안 한 배치가 있으면 그 배치가 화면 어디에도 안 뜨는 채로 살아있게
+  // 되므로(슬롯은 media.faces 개수만큼만 만들어진다), 그 경우엔 막는다.
+  const [editingMediaId, setEditingMediaId] = useState(null);
+  const [edFaces, setEdFaces] = useState(1);
+  const [faceErr, setFaceErr] = useState('');
+  const startEditMediaFaces = (m) => { setEditingMediaId(m.id); setEdFaces(m.faces); setFaceErr(''); };
+  const saveMediaFaces = (m) => {
+    const n = +edFaces;
+    if (!n || n < 1) return;
+    const blocking = postings.filter((p) => p.mediaId === m.id && !p.removedAt && (p.face || 1) > n);
+    if (blocking.length > 0) {
+      setFaceErr(`${Math.max(...blocking.map((p) => p.face || 1))}면에 아직 철거하지 않은 배치가 있어 줄일 수 없습니다.`);
+      return;
+    }
+    onEditMediaFaces(m.id, n);
+    setEditingMediaId(null);
+  };
 
   const countOf = (code) => media.filter((m) => m.type === code && m.active).length;
   const histOf = (id) => postings.filter((p) => p.mediaId === id).length;
@@ -61,7 +81,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                           <label className="fld"><span>가로 (mm)</span><input type="number" min="1" value={edit.specW} onChange={(e) => setEdit({ ...edit, specW: e.target.value })} /></label>
                           <label className="fld"><span>세로 (mm)</span><input type="number" min="1" value={edit.specH} onChange={(e) => setEdit({ ...edit, specH: e.target.value })} /></label>
                         </div>
-                        <label className="fld" style={{ marginTop: 8 }}><span>면수</span><input type="number" min="1" max="6" value={edit.faces} onChange={(e) => setEdit({ ...edit, faces: +e.target.value })} /></label>
+                        <label className="fld" style={{ marginTop: 8 }}><span>면수</span><input type="number" min="1" value={edit.faces} onChange={(e) => setEdit({ ...edit, faces: +e.target.value })} /></label>
                         <div className="conflictbtns" style={{ marginTop: 10 }}>
                           <button className="btn primary" onClick={saveEdit}>저장</button>
                           <button className="btn" onClick={() => setEditing(null)}>취소</button>
@@ -111,7 +131,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                           </div>
                         ) : (t.spec || '—')}
                       </td>
-                      <td className="r mono">{isEd ? <input className="inp num" type="number" min="1" max="6" value={edit.faces} onChange={(e) => setEdit({ ...edit, faces: +e.target.value })} /> : t.faces}</td>
+                      <td className="r mono">{isEd ? <input className="inp num" type="number" min="1" value={edit.faces} onChange={(e) => setEdit({ ...edit, faces: +e.target.value })} /> : t.faces}</td>
                       <td className="sub">{t.movable ? '예' : '—'}</td>
                       <td className="sub">{t.openEnded ? '미정' : '직접 입력'}</td>
                       <td className="r mono">{countOf(t.code)}</td>
@@ -138,7 +158,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                   <label className="fld"><span>가로 (mm)</span><input type="number" min="1" placeholder="900" value={nt.specW} onChange={(e) => setNt({ ...nt, specW: e.target.value })} /></label>
                   <label className="fld"><span>세로 (mm)</span><input type="number" min="1" placeholder="1800" value={nt.specH} onChange={(e) => setNt({ ...nt, specH: e.target.value })} /></label>
                 </div>
-                <label className="fld"><span>면수</span><input type="number" min="1" max="6" value={nt.faces} onChange={(e) => setNt({ ...nt, faces: +e.target.value })} /></label>
+                <label className="fld"><span>면수</span><input type="number" min="1" value={nt.faces} onChange={(e) => setNt({ ...nt, faces: +e.target.value })} /></label>
                 <label className="fld"><span>아이콘</span><input className="iconinp" value={nt.glyph} onChange={(e) => setNt({ ...nt, glyph: e.target.value })} maxLength={2} /></label>
                 <label className="fld"><span>색상</span><input className="colorinp" type="color" value={nt.color} onChange={(e) => setNt({ ...nt, color: e.target.value })} /></label>
                 <label className="chk"><input type="checkbox" checked={nt.movable} onChange={(e) => setNt({ ...nt, movable: e.target.checked })} />위치를 자주 옮기는 유형</label>
@@ -178,13 +198,30 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                     </div>
                     <div className="mcard-meta">
                       <span className="sub">{zoneLabel(m.zone)}</span>
-                      <span className="sub mono">{m.spec || T[m.type]?.spec || '규격 미정'} · {m.faces}면</span>
+                      {editingMediaId === m.id ? (
+                        <span className="sub mono" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <input className="inp num" type="number" min="1" style={{ width: 56 }} value={edFaces} onChange={(e) => setEdFaces(e.target.value)} />면
+                        </span>
+                      ) : (
+                        <span className="sub mono">{m.spec || T[m.type]?.spec || '규격 미정'} · {m.faces}면</span>
+                      )}
                     </div>
+                    {editingMediaId === m.id && faceErr && <p className="warnbox" style={{ marginTop: 6 }}>{faceErr}</p>}
                     <div className="mcard-date">지난 배치 {hist}건</div>
                     {isEditor && (
-                      m.active
-                        ? <button className="btn wide danger" style={{ marginTop: 8 }} onClick={() => onRemoveMedia(m.id)}>{hist ? '보관' : '삭제'}</button>
-                        : <button className="btn wide" style={{ marginTop: 8 }} onClick={() => onRestoreMedia(m.id)}>복구</button>
+                      editingMediaId === m.id ? (
+                        <div className="conflictbtns" style={{ marginTop: 8 }}>
+                          <button className="btn primary" onClick={() => saveMediaFaces(m)}>저장</button>
+                          <button className="btn" onClick={() => setEditingMediaId(null)}>취소</button>
+                        </div>
+                      ) : (
+                        <div className="conflictbtns" style={{ marginTop: 8 }}>
+                          <button className="btn" onClick={() => startEditMediaFaces(m)}>면수 수정</button>
+                          {m.active
+                            ? <button className="btn danger" onClick={() => onRemoveMedia(m.id)}>{hist ? '보관' : '삭제'}</button>
+                            : <button className="btn" onClick={() => onRestoreMedia(m.id)}>복구</button>}
+                        </div>
+                      )
                     )}
                   </div>
                 );
@@ -203,9 +240,25 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                       <td><b>{m.name}</b></td>
                       <td>{t && <span className="chip" style={{ background: t.color + '1A', color: t.color }}>{t.label}</span>}</td>
                       <td>{zoneLabel(m.zone)}</td>
-                      <td className="r mono">{m.faces}</td>
+                      <td className="r mono">
+                        {editingMediaId === m.id ? (
+                          <>
+                            <input className="inp num" type="number" min="1" value={edFaces} onChange={(e) => setEdFaces(e.target.value)} />
+                            {faceErr && <div className="sub" style={{ color: '#B4534B', marginTop: 4, textAlign: 'left' }}>{faceErr}</div>}
+                          </>
+                        ) : m.faces}
+                      </td>
                       <td className="r mono">{hist}건</td>
-                      <td className="r">{!isEditor ? <span className="sub">—</span> : m.active ? <button className="mini no" onClick={() => onRemoveMedia(m.id)}>{hist ? '보관' : '삭제'}</button> : <button className="mini" onClick={() => onRestoreMedia(m.id)}>복구</button>}</td>
+                      <td className="r">
+                        {!isEditor ? <span className="sub">—</span> : editingMediaId === m.id ? (
+                          <><button className="mini ok" onClick={() => saveMediaFaces(m)}>저장</button><button className="mini" onClick={() => setEditingMediaId(null)}>취소</button></>
+                        ) : (
+                          <>
+                            <button className="mini" onClick={() => startEditMediaFaces(m)}>면수</button>
+                            {m.active ? <button className="mini no" onClick={() => onRemoveMedia(m.id)}>{hist ? '보관' : '삭제'}</button> : <button className="mini" onClick={() => onRestoreMedia(m.id)}>복구</button>}
+                          </>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
