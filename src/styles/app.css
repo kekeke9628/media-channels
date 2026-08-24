@@ -398,7 +398,7 @@ td.sub{display:table-cell}
 .side-row2{display:contents}
 .app.narrow .side-row2{display:none}
 .app.narrow main{padding:14px}
-/* 배치도 이미지는 업로드 시(MapCropModal) 항상 2:1(1600×800)로 저장된다 — 모바일에서만
+/* 배치도 이미지는 업로드 시(MapCropModal) 항상 2:1(3200×1600)로 저장된다 — 모바일에서만
    여기를 4:3으로 좁혀 뒀더니 object-fit:cover가 2:1 이미지의 좌우를 잘라 매장 이름이
    가장자리에서 통째로 안 보이는 문제가 있었다. 핀 위치도 이 박스의 실제 가로세로 비율을
    기준으로 계산되므로(positionPins), 이미지와 다른 비율을 쓰면 자르기 문제가 항상 재발한다 —

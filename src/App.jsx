@@ -279,7 +279,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     }
   };
 
-  // MapCropModal이 PDF/이미지에서 팬·줌으로 고른 2:1 영역을 이미 1600×800 PNG blob으로 넘겨준다.
+  // MapCropModal이 PDF/이미지에서 팬·줌으로 고른 2:1 영역을 이미 3200×1600 PNG blob으로 넘겨준다.
   const saveMapImage = async (blob) => {
     try {
       await uploadCenterMap(blob);

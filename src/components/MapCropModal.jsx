@@ -8,6 +8,11 @@ const FRAME_W = 640;
 const FRAME_H = 320; // 2:1
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 6;
+// 실제 저장 해상도(2:1) — 지도 패널이 모바일에서 기본 1.5배, 손가락으로 최대 4배까지
+// 확대해서 보여주는데(MapPanel.jsx MAX_ZOOM), 예전 1600×800으로는 그만큼 확대했을 때
+// 원본 픽셀보다 화면 픽셀이 훨씬 많아져 매장 이름 글자가 뭉개져 보였다 — 두 배로 저장한다.
+const OUT_W = 3200;
+const OUT_H = 1600;
 
 // 센터맵 PDF 2페이지 기본 크롭 규칙 — 좌상단 Full View 미니맵/범례와 우측 Village 영역은
 // 매장 배치와 무관한 장식 요소라 제외하고, WEST 구역 왼쪽 끝은 잘리지 않게 보존한다.
@@ -191,14 +196,14 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
     const { x, y, zoom, baseScale } = stateRef.current;
     const scale = baseScale * zoom;
     const cv = document.createElement('canvas');
-    cv.width = 1600; cv.height = 800;
+    cv.width = OUT_W; cv.height = OUT_H;
     const ctx = cv.getContext('2d');
     // 지도 배경을 흑백으로 눌러서 매체 핀(빨강/초록)이 도드라지게 한다.
     ctx.filter = 'grayscale(1)';
     ctx.drawImage(
       srcImg,
       -x / scale, -y / scale, FRAME_W / scale, FRAME_H / scale,
-      0, 0, 1600, 800
+      0, 0, OUT_W, OUT_H
     );
     cv.toBlob((blob) => { setBusy(false); onConfirm(blob); }, 'image/png');
   };
