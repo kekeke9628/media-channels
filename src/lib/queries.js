@@ -96,20 +96,40 @@ export async function deleteMedia(id) {
   if (error) throw error;
 }
 
+// 홍보물 = 캠페인. 실제 인쇄 파일은 규격(매체 유형)별로 variants에 들어 있다.
+// 화면 대부분은 "대표 이미지 한 장"만 필요하므로(목록 썸네일 등) 첫 규격을 thumbPath/
+// viewPath로 얹어 준다 — 특정 매체에 걸린 모습은 variantFor(posting, mediaType)로 고른다.
+function mapVariant(v) {
+  return {
+    type: v.type,
+    thumbPath: v.thumb_path,
+    viewPath: v.view_path,
+    bytesOrig: v.bytes_orig || 0,
+    bytesLight: v.bytes_light || 0,
+  };
+}
+
 function mapPosting(p) {
+  const variants = (p.posting_variants || []).map(mapVariant);
+  const withImage = variants.find((v) => v.thumbPath) || variants[0] || null;
   return {
     id: p.id,
-    type: p.type,
     brand: p.brand,
     title: p.title || '',
-    thumbPath: p.thumb_path,
-    viewPath: p.view_path,
+    variants,
+    types: variants.map((v) => v.type),
+    thumbPath: withImage?.thumbPath || null,
+    viewPath: withImage?.viewPath || null,
     hue: hueOf(p.id),
-    bytesOrig: p.bytes_orig || 0,
-    bytesLight: p.bytes_light || 0,
+    bytesOrig: variants.reduce((n, v) => n + v.bytesOrig, 0),
+    bytesLight: variants.reduce((n, v) => n + v.bytesLight, 0),
     createdAt: p.created_at,
   };
 }
+
+// 이 캠페인에 그 매체 유형용 인쇄 파일이 있는가 / 어느 것인가.
+export const variantFor = (posting, mediaType) => (posting?.variants || []).find((v) => v.type === mediaType) || null;
+export const canPlaceOn = (posting, mediaType) => !!variantFor(posting, mediaType);
 
 function mapPlacement(pl) {
   return {
@@ -131,7 +151,7 @@ function mapPlacement(pl) {
 
 // 순수 홍보물 목록 — 매체 배치와 무관하게 홍보물 자체(브랜드·내용·이미지)를 관리한다.
 export async function fetchPostings() {
-  const { data, error } = await supabase.from('postings').select('*').order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('postings').select('*, posting_variants(*)').order('created_at', { ascending: false });
   if (error) throw error;
   return data.map(mapPosting);
 }
@@ -139,7 +159,7 @@ export async function fetchPostings() {
 // 배치 목록 — 배치 정보에 소속 홍보물 정보를 얹어 평탄화한다. 매체별 현재 상태 표,
 // 타임라인, 이력 조회처럼 "어느 매체에 무엇이 걸려 있었는가" 화면들이 쓰는 모양.
 export async function fetchPlacements() {
-  const { data, error } = await supabase.from('placements').select('*, postings(*)').order('start_date');
+  const { data, error } = await supabase.from('placements').select('*, postings(*, posting_variants(*))').order('start_date');
   if (error) throw error;
   return data.map((pl) => ({ ...mapPosting(pl.postings), ...mapPlacement(pl) }));
 }
@@ -190,27 +210,40 @@ export async function createPosting({ type, brand, title, singleResult }) {
   const { data: userData } = await supabase.auth.getUser();
   const { data: inserted, error: insertError } = await supabase
     .from('postings')
-    .insert({
-      type,
-      brand,
-      title: title || null,
-      created_by: userData?.user?.id || null,
-    })
+    .insert({ brand, title: title || null, created_by: userData?.user?.id || null })
     .select()
     .single();
   if (insertError) throw insertError;
-  const id = inserted.id;
-  if (!singleResult) return mapPosting(inserted);
+  // 유형이 주어지면 그 규격을 첫 인쇄 파일로 함께 만든다(파일은 나중에 붙일 수도 있다).
+  if (type) await addPostingVariant(inserted.id, type, singleResult);
+  return fetchPosting(inserted.id);
+}
 
-  const patch = {
-    view_path: await uploadPostingImage(`${id}/view.webp`, singleResult.view.url),
-    thumb_path: await uploadPostingImage(`${id}/thumb.webp`, singleResult.thumb.url),
-    bytes_orig: singleResult.orig,
-    bytes_light: singleResult.view.bytes,
-  };
-  const { data: updated, error: updateError } = await supabase.from('postings').update(patch).eq('id', id).select().single();
-  if (updateError) throw updateError;
-  return mapPosting(updated);
+// 이미 만든 캠페인에 다른 규격(매체 유형)의 인쇄 파일을 더한다. 같은 시안을 웨더워리어용·
+// 듀라트란스용으로 각각 뽑는 게 실제 업무라, 캠페인을 새로 만들지 않고 규격만 얹는다.
+export async function addPostingVariant(postingId, type, result) {
+  const row = { posting_id: postingId, type };
+  if (result) {
+    row.view_path = await uploadPostingImage(`${postingId}/${type}/view.webp`, result.view.url);
+    row.thumb_path = await uploadPostingImage(`${postingId}/${type}/thumb.webp`, result.thumb.url);
+    row.bytes_orig = result.orig;
+    row.bytes_light = result.view.bytes;
+  }
+  const { error } = await supabase.from('posting_variants').upsert(row, { onConflict: 'posting_id,type' });
+  if (error) throw error;
+  return fetchPosting(postingId);
+}
+
+export async function removePostingVariant(postingId, type) {
+  const { error } = await supabase.from('posting_variants').delete().eq('posting_id', postingId).eq('type', type);
+  if (error) throw error;
+  return fetchPosting(postingId);
+}
+
+async function fetchPosting(id) {
+  const { data, error } = await supabase.from('postings').select('*, posting_variants(*)').eq('id', id).single();
+  if (error) throw error;
+  return mapPosting(data);
 }
 
 // 이미 등록된 홍보물이 매체·이미지 전부 없이 텍스트 실수 등으로 잘못 만들어졌을 때를 위한
@@ -267,17 +300,12 @@ export async function setPlacementInstallPhoto(placementId, result) {
 // 그러면 홍보물 목록이 계속 빈 칸이라 무엇이 걸려 있는지 알 수 없었다. 설치 확인 사진과
 // 홍보물 이미지는 같은 변환 결과 모양을 쓰므로 그대로 돌려쓴다. 이미 이미지가 있는
 // 홍보물은 덮지 않는다(호출 쪽에서 판단).
-export async function setPostingImage(posting, result) {
-  const id = posting.id;
-  const patch = {
-    view_path: await uploadPostingImage(`${id}/view.webp`, result.view.url),
-    thumb_path: await uploadPostingImage(`${id}/thumb.webp`, result.thumb.url),
-    bytes_orig: result.orig,
-    bytes_light: result.view.bytes,
-  };
-  const { data, error } = await supabase.from('postings').update(patch).eq('id', id).select().single();
-  if (error) throw error;
-  return mapPosting(data);
+// 현장 사진을 인쇄 파일 대신 채운다 — 시안 없이 등록된 캠페인이 목록에서 계속 빈 칸이라
+// 무엇이 걸려 있는지 알 수 없던 문제 때문. 어느 규격에 넣을지는 걸린 매체의 유형이 정한다.
+export async function setPostingImage(posting, result, type) {
+  const t = type || posting.types?.[0];
+  if (!t) return posting;
+  return addPostingVariant(posting.id, t, result);
 }
 
 // 배치를 잘못 만들었을 때(엉뚱한 매체 선택 등) 되돌리는 삭제 — 실제 철거 기록(removed_at)과는

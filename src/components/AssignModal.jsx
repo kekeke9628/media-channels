@@ -3,6 +3,7 @@ import { iso, DAY } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
 import { statusOf } from '../lib/status.js';
+import { canPlaceOn } from '../lib/queries.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
 
 // 매체 배치 — 이미 등록된 홍보물(posting)을 매체에 건다. 처음 배치든, 이미 다른 매체(들)에
@@ -11,9 +12,11 @@ import { useModalKeys } from '../lib/useModalKeys.js';
 // 면에 걸지 고르고, 여러 매체를 한 번에 배치할 때는 각 매체의 1면에 건다(매체마다 다른
 // 면을 따로 고르는 건 복잡도만 커지고 실제로도 드문 경우라, 필요하면 단일 배치를 쓴다).
 export default function AssignModal({ posting, T, media, placements, refDate, preset, onClose, onAssign, onAdjustEnd, onDone }) {
-  const t = T[posting.type];
+  const t = T[posting.types?.[0]];
   const [mode, setMode] = useState('single'); // 'single' | 'bulk'
-  const targets = useMemo(() => media.filter((m) => m.active && m.type === posting.type), [media, posting.type]);
+  // 이 캠페인의 인쇄 파일이 있는 규격의 매체만 후보로 둔다 — 웨더워리어용 파일이 없으면
+  // 웨더워리어에 걸 수 없다(물리적으로 다른 규격이라).
+  const targets = useMemo(() => media.filter((m) => m.active && canPlaceOn(posting, m.type)), [media, posting]);
 
   // preset이 있으면("다시 걸기") 그 매체를 미리 골라 둔다.
   const [mediaId, setMediaId] = useState(preset?.mediaId || targets[0]?.id || '');
@@ -136,7 +139,7 @@ export default function AssignModal({ posting, T, media, placements, refDate, pr
       <div className="mbox" onClick={(e) => e.stopPropagation()}>
         <div className="mhead"><b>매체 배치</b><button onClick={onClose}>✕</button></div>
         <div className="mbody">
-          <p className="hint"><b>{posting.brand}</b>{posting.title ? ' · ' + posting.title : ''} · {t?.label}{t?.spec ? ' · 규격 ' + t.spec : ''}</p>
+          <p className="hint"><b>{posting.brand}</b>{posting.title ? ' · ' + posting.title : ''} · 보유 규격 {(posting.types || []).map((c) => T[c]?.label || c).join(' · ') || '없음'}</p>
 
           <div className="seg">
             <button className={mode === 'single' ? 'on' : ''} disabled={saving} onClick={() => setMode('single')}>단일 매체</button>
@@ -144,7 +147,7 @@ export default function AssignModal({ posting, T, media, placements, refDate, pr
           </div>
 
           {targets.length === 0 ? (
-            <p className="sub" style={{ padding: '8px 0' }}>이 유형({t?.label})의 매체가 없습니다. 먼저 매체 관리에서 매체를 추가하세요.</p>
+            <p className="sub" style={{ padding: '8px 0' }}>이 홍보물이 가진 규격에 맞는 매체가 없습니다. 홍보물 화면에서 필요한 규격을 추가하거나, 매체를 먼저 등록하세요.</p>
           ) : mode === 'single' ? (
             <>
               <label className="fld"><span>매체</span><select value={mediaId} onChange={(e) => { setMediaId(e.target.value); setConflict(null); }}>{targets.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>

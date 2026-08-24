@@ -405,12 +405,20 @@ td.sub{display:table-cell}
 .drop.compact{padding:0;border:0;background:none;margin-top:8px}
 .drop.compact .dropbtn{display:block;width:100%;text-align:center}
 
+/* 홍보물 카드의 "보유 규격" 줄 — 규격 뱃지들 + 규격 추가 버튼 */
+.varrow{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px}
+
 .mini-t{font-size:12px;margin-top:10px;min-width:0;width:100%}
 .mini-t td{padding:6px 4px;border-bottom:1px solid #F0ECE4}
 /* 첫 칸(매체명)만 줄바꿈을 허용한다. tbody td의 nowrap 때문에 긴 이름이 한 줄을 고집해서,
    표가 카드보다 넓어지고 상태 칩·"철거 처리" 버튼이 카드 밖으로 밀려나 잘렸다. 이름이
    두 줄이 되더라도 조작 요소가 항상 보이는 쪽이 낫다. */
-.mini-t td:first-child{white-space:normal;word-break:break-word}
+/* 이름 칸은 줄바꿈을 허용하되 최소 폭을 준다 — 조작 버튼이 2~3개로 늘면 이 칸이 거의
+   0까지 짜부라져서, word-break가 매체명을 한 글자씩 세로로 쪼개 버렸다. */
+.mini-t td:first-child{white-space:normal;word-break:break-word;min-width:5.5em}
+/* 버튼이 여러 개면 칸 안에서 줄바꿈되게 — 한 줄을 고집하면 다시 이름 칸을 밀어낸다. */
+.mini-t td:last-child{white-space:normal}
+.mini-t td:last-child button{margin:1px 0 1px 3px}
 
 /* 한글이 음절 중간에서 끊기지 않도록 단어 단위로 줄바꿈한다. */
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#23211E;color:#fff;padding:10px 18px;border-radius:22px;font-size:13px;z-index:80;display:flex;align-items:center;gap:12px;max-width:min(92vw,460px);word-break:keep-all;line-height:1.5}

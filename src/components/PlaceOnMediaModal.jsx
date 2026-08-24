@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY, contentOf, subOf, matches } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
-import { getPostingImageUrls } from '../lib/queries.js';
+import { getPostingImageUrls, canPlaceOn, variantFor } from '../lib/queries.js';
 import { statusOf } from '../lib/status.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
 
@@ -13,7 +13,8 @@ import { useModalKeys } from '../lib/useModalKeys.js';
 // onCreateNew로 등록 화면(AddModal)에 이 매체를 넘겨 새로 만들면서 바로 걸 수 있다.
 export default function PlaceOnMediaModal({ media, T, postings, placements, refDate, initialFace, onClose, onAssign, onAdjustEnd, onDone, onCreateNew }) {
   const t = T[media.type];
-  const options = useMemo(() => postings.filter((p) => p.type === media.type), [postings, media.type]);
+  // 이 매체 규격의 인쇄 파일을 가진 캠페인만 고를 수 있다.
+  const options = useMemo(() => postings.filter((p) => canPlaceOn(p, media.type)), [postings, media.type]);
 
   const placementsOf = useMemo(() => {
     const by = {};
@@ -35,7 +36,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
   const [thumbUrls, setThumbUrls] = useState(new Map());
   useEffect(() => {
     let cancelled = false;
-    getPostingImageUrls(options.map((p) => p.thumbPath)).then((m) => { if (!cancelled) setThumbUrls(m); });
+    getPostingImageUrls(options.map((p) => variantFor(p, media.type)?.thumbPath)).then((m) => { if (!cancelled) setThumbUrls(m); });
     return () => { cancelled = true; };
   }, [options]);
 
@@ -58,7 +59,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
     setInstallPhoto(r);
     setInstallBusy(false);
   };
-  const willFillPostingImage = !!installPhoto && posting && !posting.thumbPath;
+  const willFillPostingImage = !!installPhoto && posting && !variantFor(posting, media.type)?.thumbPath;
 
   const mediaPlacements = (f) => placements.filter((pl) => pl.mediaId === media.id && (pl.face || 1) === f).sort((a, b) => b.start.localeCompare(a.start));
   const findOverlap = (f) => {
@@ -121,12 +122,12 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
               <label className="fld"><span>홍보물 검색</span><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="업체명 · 내용" /></label>
               {rows.length === 0 ? (
                 <p className="sub" style={{ padding: '8px 0' }}>
-                  {options.length === 0 ? `등록된 ${t?.label} 홍보물이 없습니다.` : '검색 결과가 없습니다.'}
+                  {options.length === 0 ? `${t?.label} 규격 파일을 가진 홍보물이 없습니다. 홍보물 화면에서 이 규격을 추가해 주세요.` : '검색 결과가 없습니다.'}
                 </p>
               ) : (
                 <div className="medialist" style={{ maxHeight: 280 }}>
                   {rows.map((p) => {
-                    const url = thumbUrls.get(p.thumbPath);
+                    const url = thumbUrls.get(variantFor(p, media.type)?.thumbPath);
                     const placedCount = placementsOf[p.id]?.length || 0;
                     return (
                       <div className="mrow" key={p.id} onClick={() => pick(p)}>

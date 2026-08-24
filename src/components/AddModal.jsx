@@ -184,12 +184,15 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
       <div className="mbox" onClick={(e) => e.stopPropagation()}>
         <div className="mhead"><b>{initialMedia ? `${initialMedia.name}에 새로 등록` : '홍보물 등록'}</b><button onClick={onClose}>✕</button></div>
         <div className="mbody">
-          <label className="fld"><span>매체 유형</span>
+          <label className="fld"><span>규격 (매체 유형)</span>
             <select value={typeCode} onChange={(e) => setTypeCode(e.target.value)} disabled={!!initialMedia}>
               {activeTypes.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
             </select>
           </label>
-          {t && <p className="hint">규격 <b>{t.spec}</b> · {t.faces}면{t.movable ? ' · 이동형' : ''}</p>}
+          {/* 면수는 매체의 속성이지 홍보물의 속성이 아니다 — 인쇄물 한 장에 "2면"은 뜻이 없다
+              (postings.faces는 마이그레이션 018에서 이미 제거했는데 문구만 남아 있었다).
+              여기서 뜻이 있는 건 규격뿐이다: 어떤 크기로 파일을 준비해야 하는지 알려 준다. */}
+          {t && <p className="hint">이 규격으로 인쇄 파일을 준비하세요 — <b>{t.spec}</b></p>}
 
           {initialMedia ? (
             mediaFaces > 1 && (
