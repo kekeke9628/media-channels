@@ -21,8 +21,12 @@ import MapCropModal from './MapCropModal.jsx';
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const CLICK_SLOP = 6; // 이 픽셀 이내 움직임은 팬이 아니라 클릭으로 본다
+// 모바일 지도 박스를 배치도 원본 비율(2:1)에 맞추면서 화면 폭 전체를 그대로 보여주게 됐는데,
+// 그만큼 예전(잘못 잘려서 확대돼 보이던 상태)보다 글자가 작아 보인다 — 시작할 때 이 배율로
+// 살짝 당겨서 예전과 비슷한 크기로 보여주고, 양옆까지 보고 싶으면 손가락으로 줌아웃(1배까지)하면 된다.
+const DEFAULT_NARROW_ZOOM = 1.5;
 
-export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, setSelMedia, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, onRestoreAt, mapImage, onMapImage, isEditor }) {
+export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, setSelMedia, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, onRestoreAt, mapImage, onMapImage, isEditor, narrow }) {
   const wrapRef = useRef(null);
   const stageRef = useRef(null);
   const pinRefs = useRef({});   // item.id -> 핀 DOM 노드 (지도와 분리된 레이어라 위치를 직접 계산해서 넣어줘야 함)
@@ -102,6 +106,22 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
     ro.observe(el);
     return () => ro.disconnect();
   }, [positionPins]);
+
+  // 모바일에서 처음 열렸을 때 한 번만 기본 확대를 걸어 둔다 — narrow가 리사이즈로 나중에
+  // true가 될 수도 있어 마운트 시점이 아니라 narrow가 true가 되는 첫 순간에 건다. 이후
+  // 사용자가 직접 줌을 조작해도 이 효과가 다시 끼어들지 않도록 한 번 걸리면 끈다.
+  const narrowZoomedRef = useRef(false);
+  useLayoutEffect(() => {
+    if (!narrow || narrowZoomedRef.current) return;
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (!r) return;
+    narrowZoomedRef.current = true;
+    const z = DEFAULT_NARROW_ZOOM;
+    const next = clampPan(r.width * (1 - z) / 2, r.height * (1 - z) / 2, z, r);
+    panRef.current = { ...next, zoom: z };
+    applyTransform();
+    setZoom(z);
+  }, [narrow]);
 
   // 휠 줌 — useEffect + ref로 등록해 stale closure를 피하고, preventDefault를 위해
   // React onWheel(수동 리스너) 대신 네이티브 addEventListener를 쓴다.
