@@ -3,6 +3,7 @@ import { iso, DAY } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
 import { statusOf } from '../lib/status.js';
+import { useModalKeys } from '../lib/useModalKeys.js';
 
 // 매체 배치 — 이미 등록된 홍보물(posting)을 매체에 건다. 처음 배치든, 이미 다른 매체(들)에
 // 걸려 있는 홍보물에 추가로 배치하는 것이든 동일하게 다룬다. 대상 매체는 홍보물과 같은
@@ -123,6 +124,7 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
   };
 
   const canSubmit = mode === 'single' ? !!mediaId : selected.size > 0;
+  useModalKeys({ onClose, onSubmit: submit, canSubmit: canSubmit && !conflict && !bulkConfirm, busy: saving });
 
   return (
     <div className="modal" onClick={onClose}>

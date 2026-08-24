@@ -338,6 +338,14 @@ td.sub{display:table-cell}
 .alertwrap .slack.danger{border-left-color:#B4534B;background:#FCF3F1}
 .slack b{display:block;font-size:13px;margin-bottom:3px}
 .slack span{display:block;font-size:12.5px}
+/* 알람 줄에서 바로 조치할 수 있도록 오른쪽에 버튼을 붙인다. 좁은 화면에서는 줄바꿈돼
+   아래로 내려가므로 폭 걱정이 없다. */
+.alertwrap .slack{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.alertwrap .slack b,.alertwrap .slack span{flex:1 1 100%}
+.alertwrap .slack .alert-act{flex:none;margin-left:auto}
+/* 문장 속에서 링크처럼 눌러 그 매체로 이동하는 버튼 */
+.linklike{border:0;background:none;padding:0;font:inherit;color:var(--brass);font-weight:700;cursor:pointer;text-decoration:underline}
+.linklike:hover{color:#8E6B2C}
 
 .sheet{background:#fff;border-radius:15px;width:min(460px,100%);max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden}
 .shead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}

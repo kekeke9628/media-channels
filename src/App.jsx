@@ -5,7 +5,7 @@ import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, updateMediaFaces, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
-  createPlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, setPostingImage,
+  createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, setPostingImage,
 } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
 import { useAuth, OWNER_EMAIL, resetAdminPassword } from './lib/useAuth.js';
@@ -234,10 +234,23 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         } catch { p = posting; }
       }
       setPlacements((prev) => [...prev, { ...p, ...created }]);
-      if (!silent) flash('매체에 배치했습니다.');
+      // 엉뚱한 매체·기간에 잘못 건 걸 바로 무를 수 있게 한다. "철거 처리"로는 못 무른다 —
+      // 그건 실제로 걸렸다가 뗀 기록이라, 걸린 적도 없는 배치가 이력에 영구히 남는다.
+      if (!silent) flash('매체에 배치했습니다.', () => cancelPlacement(created.id));
       return true;
     } catch (e) { if (!silent) flash('배치에 실패했습니다: ' + e.message); return false; }
   };
+  // 잘못 만든 배치를 기록째 지운다 — 실제 철거(markPlacementRemoved)와는 다르다. 철거는
+  // "걸렸다가 뗐다"는 사실 기록이라 이력에 남아야 하지만, 애초에 잘못 만든 배치는 남으면
+  // 그 매체에 걸린 적도 없는 업체가 이력에 찍힌다.
+  const cancelPlacement = async (id) => {
+    try {
+      await deletePlacement(id);
+      setPlacements((prev) => prev.filter((p) => p.id !== id));
+      flash('배치를 취소했습니다.');
+    } catch (e) { flash('취소에 실패했습니다: ' + e.message); }
+  };
+
   // 겹침 조정(기존 배치 종료일 단축)은 새 배치를 넣기 전에 반드시 먼저 커밋돼야 한다 —
   // DB에 겹치는 기간을 막는 exclusion 제약이 있어, 순서가 뒤바뀌면 새 배치 삽입이 거부된다.
   const adjustEnd = async (id, newEnd) => {
@@ -435,7 +448,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {tab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
           {tab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
-              onPick={setSelMedia} onAssign={setAssigningId} onRemove={markRemoved} onUndo={undoRemoved} onDeletePosting={deletePostingItem} />
+              onPick={setSelMedia} onAssign={setAssigningId} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem} />
           )}
           {tab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={setSelMedia} />}
           {tab === 'manage' && (
@@ -443,7 +456,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
               onAddType={addType} onToggleType={toggleType} onEditType={editType} onEditMediaFaces={editMediaFaces}
               onRemoveMedia={removeMedia} onRestoreMedia={restoreMediaItem} />
           )}
-          {tab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} />}
+          {tab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} isEditor={isEditor} onRemove={markRemoved} onPick={setSelMedia} />}
           {tab === 'admins' && isEditor && <AdminsPanel meId={meId} narrow={narrow} />}
         </div>
       </main>

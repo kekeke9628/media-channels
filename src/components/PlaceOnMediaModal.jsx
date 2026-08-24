@@ -3,6 +3,7 @@ import { iso, DAY, contentOf, subOf } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { statusOf } from '../lib/status.js';
+import { useModalKeys } from '../lib/useModalKeys.js';
 
 // 매체 상세에서 "이 매체에 홍보물 배치"로 연다 — 매체는 이미 정해져 있으니(여기),
 // 이미 등록해 둔 홍보물 중에서 골라 거는 게 자연스럽다. 새로 만드는 건 AssignModal이
@@ -106,6 +107,8 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
     onDone?.(ok);
     if (ok) onClose();
   };
+
+  useModalKeys({ onClose, onSubmit: submit, canSubmit: !!posting && !conflict, busy: saving });
 
   return (
     <div className="modal" onClick={onClose}>

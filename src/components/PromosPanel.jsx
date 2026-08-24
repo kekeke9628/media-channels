@@ -8,7 +8,7 @@ import StatusChip from './StatusChip.jsx';
 // 매체 배치는 홍보물에 딸린 부가 정보로 아래 미니 표에서 보여주고, "+ 배치 추가"로 몇 곳이든
 // 추가할 수 있다(동시에 여러 매체에 걸거나, 시간차를 두고 다시 거는 것 모두 여기서 시작).
 
-export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRemove, onUndo, onDeletePosting }) {
+export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRemove, onUndo, onCancel, onDeletePosting }) {
   const [typeSel, setTypeSel] = useState(new Set(types.map((t) => t.code)));
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
@@ -106,6 +106,9 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                           {isEditor && (
                             <td className="r" onClick={(e) => e.stopPropagation()}>
                               {s !== 'upcoming' && s !== 'removed' && <button className="mini ok" onClick={() => onRemove(pl.id)}>철거 처리</button>}
+                              {/* 아직 시작 안 한 배치는 실제로 걸린 적이 없다 — 철거가 아니라 취소(기록 삭제)가 맞다.
+                                  철거로 처리하면 걸린 적도 없는 업체가 그 매체 이력에 남는다. */}
+                              {s === 'upcoming' && <button className="mini no" onClick={() => onCancel(pl.id)}>배치 취소</button>}
                               {s === 'removed' && pl.removalSource === 'manual' && <button className="mini" onClick={() => onUndo(pl.id)}>되돌리기</button>}
                             </td>
                           )}

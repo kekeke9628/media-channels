@@ -3,6 +3,7 @@ import { iso, DAY } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
 import { statusOf } from '../lib/status.js';
+import { useModalKeys } from '../lib/useModalKeys.js';
 
 // 4.2MB처럼 큰 사진이 보통이지만 작은 파일은 "0.0MB"로 표시돼 어색했다.
 const fileSize = (bytes) => (bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(bytes / 1024)) + 'KB');
@@ -175,6 +176,8 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   };
 
   const canSubmit = !!brand && (!bulkOn || selected.size > 0);
+  // 겹침 확인(conflict/bulkConfirm)이 떠 있을 때는 Enter로 건너뛰지 못하게 막는다.
+  useModalKeys({ onClose, onSubmit: submit, canSubmit: canSubmit && !conflict && !bulkConfirm, busy: saving });
 
   return (
     <div className="modal" onClick={onClose}>

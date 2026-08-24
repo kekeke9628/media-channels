@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { clamp } from '../constants.js';
+import { useModalKeys } from '../lib/useModalKeys.js';
 
 // PDF/이미지 배치도 업로드 크롭 — 배너 시스템과 동일하게, PDF의 특정 페이지 일부를
 // 지도 프레임 비율(2:1)로 크롭해 배경으로 쓴다. 자동 중앙 크롭이 아니라 팬/줌으로
@@ -190,6 +191,8 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
     if (pointersRef.current.size < 2) pinchRef.current = null;
     dragRef.current = null;
   };
+
+  useModalKeys({ onClose: onCancel, busy });
 
   const confirm = () => {
     setBusy(true);
