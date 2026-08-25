@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { clamp } from '../constants.js';
 import { ZONES } from '../data/seed.js';
@@ -40,6 +40,21 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   const [open, setOpen] = useState(false);
   const [cropFile, setCropFile] = useState(null);
   const active = types.filter((t) => t.active);
+
+  // 유형을 고르면 그게 몇 개짜리 몇 면인지 바로 알고 싶다 — 듀라트란스처럼 한 자리에
+  // 여러 면이 모인 유형은 "개수"와 "면수"가 크게 달라서 개수만으로는 물량이 안 잡힌다.
+  // 지도에 지금 보이는 것(유형·구역 필터가 이미 걸린 items) 기준으로 센다.
+  const summary = useMemo(() => {
+    const per = new Map();
+    let count = 0, faces = 0;
+    for (const o of items) {
+      const f = Math.max(1, o.faces || 1);
+      count += 1; faces += f;
+      const cur = per.get(o.type) || { count: 0, faces: 0 };
+      per.set(o.type, { count: cur.count + 1, faces: cur.faces + f });
+    }
+    return { count, faces, per: [...per.entries()].map(([code, v]) => ({ code, ...v })) };
+  }, [items]);
 
   const clampPan = (x, y, z, r) => {
     const w = r.width * z, h = r.height * z;
@@ -386,6 +401,16 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
 
       <div className="legend">
         <span><i className="lg full" />정상</span><span><i className="lg stale" />만료</span><span><i className="lg vacant" />비어있음</span>
+        <span className="legend-sum">
+          {summary.count === 0 ? '보이는 매체 없음' : (
+            <>
+              <b>{summary.count}개</b> · <b>{summary.faces}면</b>
+              {summary.per.length > 1 && (
+                <em>{summary.per.map((x) => `${T[x.code]?.label || x.code} ${x.count}개·${x.faces}면`).join(' / ')}</em>
+              )}
+            </>
+          )}
+        </span>
       </div>
 
       {cropFile && (
