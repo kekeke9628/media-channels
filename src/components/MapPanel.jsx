@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { clamp } from '../constants.js';
+import { getPostingImageUrls } from '../lib/queries.js';
 import { ZONES } from '../data/seed.js';
 import MapCropModal from './MapCropModal.jsx';
 
@@ -44,6 +45,29 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   // 유형을 고르면 그게 몇 개짜리 몇 면인지 바로 알고 싶다 — 듀라트란스처럼 한 자리에
   // 여러 면이 모인 유형은 "개수"와 "면수"가 크게 달라서 개수만으로는 물량이 안 잡힌다.
   // 지도에 지금 보이는 것(유형·구역 필터가 이미 걸린 items) 기준으로 센다.
+  // 핀에 마우스를 올리면 지금 걸려 있는 홍보물을 바로 보여준다 — 이름과 D-day만으로는
+  // "어느 시안이 걸렸더라"가 안 잡혀서, 확인하려면 핀을 하나하나 눌러 봐야 했다.
+  //
+  // 서명 URL은 한 번에 묶어 받는다(비공개 버킷). 올릴 때마다 요청하면 첫 hover가 매번
+  // 굼뜨고, 같은 핀을 오갈 때마다 새로 부른다 — 지금 지도에 보이는 것만이라 양도 적다.
+  const thumbPaths = useMemo(() => {
+    const out = [];
+    for (const o of items) for (const s of o.slots) {
+      const p = s.overdue || s.current;
+      if (p?.thumbPath) out.push(p.thumbPath);
+    }
+    return [...new Set(out)];
+  }, [items]);
+  const [thumbs, setThumbs] = useState(new Map());
+  const thumbKey = thumbPaths.join('|');
+  useEffect(() => {
+    if (!thumbPaths.length) { setThumbs(new Map()); return; }
+    let cancelled = false;
+    getPostingImageUrls(thumbPaths).then((m) => { if (!cancelled) setThumbs(m); }).catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [thumbKey]);
+
   const summary = useMemo(() => {
     const per = new Map();
     let count = 0, faces = 0;
@@ -364,7 +388,22 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
                 <div className="pin-inner">
                   <span className="pdot">{t.glyph}</span>
                   {(hover === o.id || selMedia === o.id) && (
-                    <span className="plabel">
+                    <span className={'plabel' + (o.y > 55 ? ' up' : '')}>
+                      {/* 지금 걸려 있는 시안. 여러 면이면 면마다 한 장씩(너무 길어지지 않게 6장까지). */}
+                      {(() => {
+                        const shots = o.slots
+                          .map((s) => ({ s, url: thumbs.get((s.overdue || s.current)?.thumbPath) }))
+                          .filter((x) => x.url);
+                        if (!shots.length) return null;
+                        return (
+                          <span className="pshots">
+                            {shots.slice(0, 6).map(({ s, url }) => (
+                              <img key={s.face} src={url} alt="" title={o.faces > 1 ? s.faceLabel : o.name} />
+                            ))}
+                            {shots.length > 6 && <em>+{shots.length - 6}</em>}
+                          </span>
+                        );
+                      })()}
                       {o.name}
                       {/* 면이 여러 개면 값 하나로는 "일부만 비었다" 같은 걸 담을 수 없어서
                           (o.overdue/o.live 등은 여러 면 중 가장 급한 것의 대표값이다),
