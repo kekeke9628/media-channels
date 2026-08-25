@@ -48,6 +48,7 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .btn.on{background:var(--brass);border-color:var(--brass);color:#fff}
 .btn.primary{background:#23211E;border-color:#23211E;color:#fff}
 .btn.danger{background:#B4534B;border-color:#B4534B;color:#fff}
+.mini.danger{background:#B4534B;border-color:#B4534B;color:#fff}
 .btn.ok{background:#4B7B58;border-color:#4B7B58;color:#fff}
 .btn.ok:hover{background:#3E6549;border-color:#3E6549}
 .btn.wide{width:100%;margin-top:10px}

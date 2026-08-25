@@ -127,7 +127,7 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
   );
 }
 
-export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces, onAttachPhoto }) {
+export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onAttachPhoto }) {
   const t = T[o.type];
   const zoneLabel = ZONES[o.zone]?.label || o.zone;
   const hasHistory = o.slots.some((s) => s.history.length > 0);
@@ -138,19 +138,25 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
   // (슬롯은 media.faces 개수만큼만 계산됨, lib/status.js) 막고 이유를 보여준다.
   // 판정은 반드시 "철거 기록이 없는 모든 배치"로 해야 한다 — 현재/만료만 보면 아직 시작
   // 안 한 게시예정 예약이 걸린 면을 그냥 숨겨 버린다(매체 관리 쪽과 같은 기준).
+  // 매체명도 여기서 같이 고친다 — 핀을 눌러 이 매체를 보고 있는 참이라, 오타를 발견하는
+  // 자리가 대개 여기다. 이름은 표시용이라 배치 이력에는 영향이 없다(배치는 id로 묶인다).
   const [editingFaces, setEditingFaces] = useState(false);
+  const [nameInput, setNameInput] = useState(o.name);
   const [facesInput, setFacesInput] = useState(o.faces);
   const [facesErr, setFacesErr] = useState('');
-  const startEditFaces = () => { setEditingFaces(true); setFacesInput(o.faces); setFacesErr(''); };
+  const startEditFaces = () => { setEditingFaces(true); setNameInput(o.name); setFacesInput(o.faces); setFacesErr(''); };
   const saveFaces = () => {
     const n = +facesInput;
+    const name = (nameInput || '').trim();
     if (!n || n < 1) return;
+    if (!name) { setFacesErr('매체명을 비워 둘 수 없습니다.'); return; }
     const blocked = o.slots.filter((s) => s.face > n && s.history.some((p) => !p.removedAt));
     if (blocked.length > 0) {
       setFacesErr(`${Math.max(...blocked.map((s) => s.face))}면에 아직 철거하지 않은 배치가 있어 줄일 수 없습니다.`);
       return;
     }
-    onEditMediaFaces(o.id, n);
+    if (name !== o.name) onRenameMedia(o.id, name);
+    if (n !== o.faces) onEditMediaFaces(o.id, n);
     setEditingFaces(false);
   };
 
@@ -179,7 +185,9 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
         <div className="shead">
           <div>
-            <b>{o.name}</b>
+            {editingFaces
+              ? <input className="inp" value={nameInput} onChange={(e) => setNameInput(e.target.value)} placeholder="매체명" />
+              : <b>{o.name}</b>}
             {editingFaces ? (
               <i className="headline">
                 <span>{zoneLabel} · {t.label} · {o.spec || t.spec} ·</span>
@@ -190,7 +198,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
             ) : (
               <i className="headline">
                 <span>{zoneLabel} · {t.label} · {o.spec || t.spec} · {o.faces}면</span>
-                {isEditor && <button className="mini" onClick={startEditFaces}>면수 수정</button>}
+                {isEditor && <button className="mini" onClick={startEditFaces}>수정</button>}
               </i>
             )}
             {editingFaces && facesErr && <p className="warnbox" style={{ marginTop: 6 }}>{facesErr}</p>}

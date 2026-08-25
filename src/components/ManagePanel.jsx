@@ -29,7 +29,7 @@ const autoGlyph = (label, types) => {
 
 
 // 매체 관리 — 매체 유형 CRUD(보관), 매체 보관/복구/삭제. 매체 추가·위치 이동은 지도에서 한다.
-export default function ManagePanel({ T, types, media, postings, isEditor, narrow, onAddType, onToggleType, onEditType, onEditMediaFaces, onRemoveMedia, onRestoreMedia }) {
+export default function ManagePanel({ T, types, media, postings, isEditor, narrow, onAddType, onToggleType, onEditType, onRemoveType, onEditMediaFaces, onRenameMedia, onRemoveMedia, onRestoreMedia }) {
   const [sec, setSec] = useState('media');
   const [editing, setEditing] = useState(null);
   const [edit, setEdit] = useState({});
@@ -40,19 +40,25 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
   // 하나로 못 맞추니 개별 매체마다 고칠 수 있어야 한다. 줄이는 쪽은 위험하다 — 안 보이게
   // 되는 면에 아직 철거 안 한 배치가 있으면 그 배치가 화면 어디에도 안 뜨는 채로 살아있게
   // 되므로(슬롯은 media.faces 개수만큼만 만들어진다), 그 경우엔 막는다.
+  // 매체명도 같은 자리에서 고친다 — 오타나 현장 표기 변경이 흔한데 만들 때 정하면 끝이라
+  // 방법이 없었다. 이름은 표시용이라 배치 이력에는 영향이 없다(배치는 id로 묶인다).
   const [editingMediaId, setEditingMediaId] = useState(null);
+  const [edName, setEdName] = useState('');
   const [edFaces, setEdFaces] = useState(1);
   const [faceErr, setFaceErr] = useState('');
-  const startEditMediaFaces = (m) => { setEditingMediaId(m.id); setEdFaces(m.faces); setFaceErr(''); };
-  const saveMediaFaces = (m) => {
+  const startEditMedia = (m) => { setEditingMediaId(m.id); setEdName(m.name); setEdFaces(m.faces); setFaceErr(''); };
+  const saveMedia = (m) => {
     const n = +edFaces;
+    const name = (edName || '').trim();
     if (!n || n < 1) return;
+    if (!name) { setFaceErr('매체명을 비워 둘 수 없습니다.'); return; }
     const blocking = postings.filter((p) => p.mediaId === m.id && !p.removedAt && (p.face || 1) > n);
     if (blocking.length > 0) {
       setFaceErr(`${Math.max(...blocking.map((p) => p.face || 1))}면에 아직 철거하지 않은 배치가 있어 줄일 수 없습니다.`);
       return;
     }
-    onEditMediaFaces(m.id, n);
+    if (name !== m.name) onRenameMedia(m.id, name);
+    if (n !== m.faces) onEditMediaFaces(m.id, n);
     setEditingMediaId(null);
   };
 
@@ -128,6 +134,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                           <div className="conflictbtns" style={{ marginTop: 9 }}>
                             <button className="btn" onClick={() => startEdit(t)}>수정</button>
                             <button className="btn" onClick={() => onToggleType(t.code)}>{t.active ? '보관' : '복구'}</button>
+                            <button className="btn danger" onClick={() => onRemoveType(t.code)}>삭제</button>
                           </div>
                         )}
                       </>
@@ -162,7 +169,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                         {!isEditor ? <span className="sub">—</span> : isEd ? (
                           <><button className="mini ok" onClick={saveEdit}>저장</button><button className="mini" onClick={() => setEditing(null)}>취소</button></>
                         ) : (
-                          <><button className="mini" onClick={() => startEdit(t)}>수정</button><button className="mini" onClick={() => onToggleType(t.code)}>{t.active ? '보관' : '복구'}</button></>
+                          <><button className="mini" onClick={() => startEdit(t)}>수정</button><button className="mini" onClick={() => onToggleType(t.code)}>{t.active ? '보관' : '복구'}</button><button className="mini danger" onClick={() => onRemoveType(t.code)}>삭제</button></>
                         )}
                       </td>
                     </tr>
@@ -216,7 +223,9 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                 return (
                   <div className={'mcard' + (m.active ? '' : ' archived')} key={m.id}>
                     <div className="mcard-top">
-                      <b>{m.name}</b>
+                      {editingMediaId === m.id
+                        ? <input className="inp" value={edName} onChange={(e) => setEdName(e.target.value)} placeholder="매체명" />
+                        : <b>{m.name}</b>}
                       {t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}
                     </div>
                     <div className="mcard-meta">
@@ -234,12 +243,12 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                     {isEditor && (
                       editingMediaId === m.id ? (
                         <div className="conflictbtns" style={{ marginTop: 8 }}>
-                          <button className="btn primary" onClick={() => saveMediaFaces(m)}>저장</button>
+                          <button className="btn primary" onClick={() => saveMedia(m)}>저장</button>
                           <button className="btn" onClick={() => setEditingMediaId(null)}>취소</button>
                         </div>
                       ) : (
                         <div className="conflictbtns" style={{ marginTop: 8 }}>
-                          <button className="btn" onClick={() => startEditMediaFaces(m)}>면수 수정</button>
+                          <button className="btn" onClick={() => startEditMedia(m)}>수정</button>
                           {m.active
                             ? <button className="btn danger" onClick={() => onRemoveMedia(m.id)}>{hist ? '보관' : '삭제'}</button>
                             : <button className="btn" onClick={() => onRestoreMedia(m.id)}>복구</button>}
@@ -260,7 +269,9 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                   const hist = histOf(m.id);
                   return (
                     <tr key={m.id} className={m.active ? '' : 'archived'}>
-                      <td><b>{m.name}</b></td>
+                      <td>{editingMediaId === m.id
+                        ? <input className="inp" value={edName} onChange={(e) => setEdName(e.target.value)} placeholder="매체명" />
+                        : <b>{m.name}</b>}</td>
                       <td>{t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}</td>
                       <td>{zoneLabel(m.zone)}</td>
                       <td className="r mono">
@@ -274,10 +285,10 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                       <td className="r mono">{hist}건</td>
                       <td className="r">
                         {!isEditor ? <span className="sub">—</span> : editingMediaId === m.id ? (
-                          <><button className="mini ok" onClick={() => saveMediaFaces(m)}>저장</button><button className="mini" onClick={() => setEditingMediaId(null)}>취소</button></>
+                          <><button className="mini ok" onClick={() => saveMedia(m)}>저장</button><button className="mini" onClick={() => setEditingMediaId(null)}>취소</button></>
                         ) : (
                           <>
-                            <button className="mini" onClick={() => startEditMediaFaces(m)}>면수</button>
+                            <button className="mini" onClick={() => startEditMedia(m)}>수정</button>
                             {m.active ? <button className="mini no" onClick={() => onRemoveMedia(m.id)}>{hist ? '보관' : '삭제'}</button> : <button className="mini" onClick={() => onRestoreMedia(m.id)}>복구</button>}
                           </>
                         )}

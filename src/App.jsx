@@ -7,6 +7,7 @@ import {
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
   createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, setPostingImage,
   setPlacementInstallPhoto, variantFor, addPostingVariant,
+  createMediaType, updateMediaType, setMediaTypeActive, deleteMediaType, countMediaTypeUsage, updateMediaName,
 } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
 import { useAuth, OWNER_EMAIL, resetAdminPassword } from './lib/useAuth.js';
@@ -304,9 +305,58 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     } catch (e) { flash('규격 추가에 실패했습니다: ' + e.message); return false; }
   };
 
-  const addType = (t) => { setTypes((prev) => [...prev, t]); flash('매체 유형을 추가했습니다.'); };
-  const toggleType = (code) => setTypes((prev) => prev.map((t) => (t.code === code ? { ...t, active: !t.active } : t)));
-  const editType = (code, patch) => { setTypes((prev) => prev.map((t) => (t.code === code ? { ...t, ...patch } : t))); flash('매체 유형을 수정했습니다.'); };
+  // 이 네 가지는 여태 화면 상태만 바꾸고 DB에 쓰지 않았다 — 유형을 만들어도 새로고침하면
+  // 사라졌다. 저장이 실패하면 화면도 되돌린다(반쯤 반영된 채로 두면 다음 동작이 엉킨다).
+  const addType = async (t) => {
+    try {
+      await createMediaType(t);
+      setTypes((prev) => [...prev, t]);
+      flash('매체 유형을 추가했습니다.');
+    } catch (e) { flash('매체 유형 추가에 실패했습니다: ' + e.message); }
+  };
+  const toggleType = async (code) => {
+    const cur = types.find((t) => t.code === code);
+    if (!cur) return;
+    try {
+      await setMediaTypeActive(code, !cur.active);
+      setTypes((prev) => prev.map((t) => (t.code === code ? { ...t, active: !t.active } : t)));
+      flash(cur.active ? '매체 유형을 보관했습니다.' : '매체 유형을 복구했습니다.');
+    } catch (e) { flash('처리에 실패했습니다: ' + e.message); }
+  };
+  const editType = async (code, patch) => {
+    try {
+      await updateMediaType(code, patch);
+      setTypes((prev) => prev.map((t) => (t.code === code ? { ...t, ...patch } : t)));
+      flash('매체 유형을 수정했습니다.');
+    } catch (e) { flash('매체 유형 수정에 실패했습니다: ' + e.message); }
+  };
+  // 삭제는 되돌릴 수 없고 FK로 묶인 것이 있으면 DB가 막는다 — 무엇 때문에 못 지우는지
+  // 사람이 읽을 수 있게 먼저 세어 보고, 쓰이는 데가 있으면 보관을 권한다.
+  const removeType = async (code) => {
+    const label = T[code]?.label || code;
+    try {
+      const { media: mc, variants: vc } = await countMediaTypeUsage(code);
+      if (mc || vc) {
+        const parts = [mc && `등록된 매체 ${mc}개`, vc && `홍보물 규격 ${vc}건`].filter(Boolean).join(', ');
+        flash(`"${label}"은(는) ${parts}에서 쓰고 있어 삭제할 수 없습니다. 대신 "보관"하면 새 등록에서만 빠집니다.`);
+        return;
+      }
+      if (!window.confirm(`매체 유형 "${label}"을(를) 완전히 삭제합니다. 되돌릴 수 없습니다.`)) return;
+      await deleteMediaType(code);
+      setTypes((prev) => prev.filter((t) => t.code !== code));
+      flash(`매체 유형 "${label}"을(를) 삭제했습니다.`);
+    } catch (e) { flash('매체 유형 삭제에 실패했습니다: ' + e.message); }
+  };
+
+  const renameMedia = async (id, name) => {
+    const clean = (name || '').trim();
+    if (!clean) return;
+    try {
+      await updateMediaName(id, clean);
+      setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, name: clean } : m)));
+      flash('매체명을 바꿨습니다.');
+    } catch (e) { flash('매체명 변경에 실패했습니다: ' + e.message); }
+  };
 
   const editMediaFaces = async (id, faces) => {
     try {
@@ -499,7 +549,8 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {tab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={setSelMedia} />}
           {tab === 'manage' && (
             <ManagePanel {...ctx} media={media} postings={placements}
-              onAddType={addType} onToggleType={toggleType} onEditType={editType} onEditMediaFaces={editMediaFaces}
+              onAddType={addType} onToggleType={toggleType} onEditType={editType} onRemoveType={removeType}
+              onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia}
               onRemoveMedia={removeMedia} onRestoreMedia={restoreMediaItem} />
           )}
           {tab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} isEditor={isEditor} onRemove={markRemoved} onPick={setSelMedia} />}
@@ -510,7 +561,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       {selMedia && byId[selMedia] && (
         <MediaSheet
           {...ctx} o={byId[selMedia]} onClose={() => setSelMedia(null)} onRemove={markRemoved} onDelete={removeMedia}
-          onEditMediaFaces={editMediaFaces} onAttachPhoto={attachInstallPhoto}
+          onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onAttachPhoto={attachInstallPhoto}
           onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}
         />
       )}

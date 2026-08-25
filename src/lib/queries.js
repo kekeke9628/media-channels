@@ -33,6 +33,62 @@ export async function fetchMediaTypes() {
   }));
 }
 
+// 매체 유형 추가·수정·보관·삭제.
+//
+// 여태 이 네 가지가 전부 화면 상태(setTypes)만 바꾸고 DB에는 한 줄도 안 쓰고 있었다 —
+// 유형을 만들어도 새로고침하면 사라졌다. 테이블과 RLS 정책은 처음부터 있었는데 부르는
+// 쪽이 없었던 것.
+const typeRow = (t) => ({
+  label: t.label, default_spec: t.spec || null, faces: t.faces, color: t.color, glyph: t.glyph,
+});
+
+export async function createMediaType(t) {
+  // 목록 맨 뒤에 붙인다 — sort_order가 겹치면 순서가 들쭉날쭉해진다.
+  const { data: last } = await supabase.from('media_types').select('sort_order').order('sort_order', { ascending: false }).limit(1);
+  const { error } = await supabase.from('media_types')
+    .insert({ code: t.code, ...typeRow(t), sort_order: (last?.[0]?.sort_order ?? 0) + 1, active: true });
+  if (error) throw error;
+}
+
+export async function updateMediaType(code, patch) {
+  const row = {};
+  if (patch.label !== undefined) row.label = patch.label;
+  if (patch.spec !== undefined) row.default_spec = patch.spec || null;
+  if (patch.faces !== undefined) row.faces = patch.faces;
+  if (patch.color !== undefined) row.color = patch.color;
+  if (patch.glyph !== undefined) row.glyph = patch.glyph;
+  const { error } = await supabase.from('media_types').update(row).eq('code', code);
+  if (error) throw error;
+}
+
+export async function setMediaTypeActive(code, active) {
+  const { error } = await supabase.from('media_types').update({ active }).eq('code', code);
+  if (error) throw error;
+}
+
+// 이 유형을 쓰고 있는 것이 있는지 — 매체(보관된 것 포함)와 홍보물 규격 둘 다 본다.
+// 둘 다 FK로 묶여 있어서 남아 있으면 삭제가 DB에서 막히는데, 그때 뜨는 건 사람이 읽을 수
+// 없는 제약 위반 메시지다. 무엇 때문에 못 지우는지 미리 세어서 알려 준다.
+export async function countMediaTypeUsage(code) {
+  const [{ count: media }, { count: variants }] = await Promise.all([
+    supabase.from('media').select('id', { count: 'exact', head: true }).eq('type', code),
+    supabase.from('posting_variants').select('id', { count: 'exact', head: true }).eq('type', code),
+  ]);
+  return { media: media || 0, variants: variants || 0 };
+}
+
+export async function deleteMediaType(code) {
+  const { error } = await supabase.from('media_types').delete().eq('code', code);
+  if (error) throw error;
+}
+
+// 매체명 변경 — 처음엔 만들 때 정하면 끝이라고 봤는데, 실제로는 오타나 현장 표기가
+// 바뀌는 일이 흔하다. 이름만 바꾸는 것이라 배치 이력에는 영향이 없다(배치는 id로 묶인다).
+export async function updateMediaName(id, name) {
+  const { error } = await supabase.from('media').update({ name }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function fetchMedia() {
   const { data, error } = await supabase.from('media').select('*');
   if (error) throw error;
