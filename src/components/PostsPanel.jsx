@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { contentOf, subOf, days, ST, typeChipStyle, matches } from '../constants.js';
+import { contentOf, subOf, days, ST, typeChipStyle, matches, byName } from '../constants.js';
 import { useCodeFilter } from '../lib/useCodeFilter.js';
 import { sideOf } from '../constants.js';
 import { statusOf } from '../lib/status.js';
@@ -116,7 +116,10 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         const oa = order[sa] ?? 9, ob = order[sb] ?? 9;
         if (oa !== ob) return oa - ob;
         const ea = a.p?.end || '9999-12-31', eb = b.p?.end || '9999-12-31';
-        return ea.localeCompare(eb);
+        if (ea !== eb) return ea.localeCompare(eb);
+        // 여기까지 같으면(예: 전부 비어 있는 매체들) 순서를 정해 주는 게 아무것도 없어서
+        // DB가 준 순서 그대로 나왔다 — 목록이 매번 뒤죽박죽이고 같은 이름도 안 붙는다.
+        return byName(a.o.name, b.o.name);
       });
   }, [faceRows, typeSel, statusSel, showOverdue, side, q, refDate, T]);
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ZONES } from '../data/seed.js';
-import { typeChipStyle, matches, sideOf, nameTaken } from '../constants.js';
+import { typeChipStyle, matches, sideOf, nameTaken, byName } from '../constants.js';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
 // 이름이 말하는 쪽(DEH01 → EAST)과 핀이 놓인 구역(zone)이 어긋나면 표시해 준다.
@@ -85,7 +85,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
     const t = T[m.type];
     const haystack = [m.name, m.id, zoneLabel(m.zone), t?.label, m.faces, histOf(m.id) + '건'].join(' ');
     return matches(haystack, q);
-  });
+  }).sort((a, b) => byName(a.name, b.name));
 
   // "900×1800mm" 같은 규격 문자열 ↔ 가로/세로 숫자 두 칸. 저장 형식은 기존과 동일한
   // 문자열이라(AddModal의 비율 검사 정규식 등 다른 곳에서 그대로 읽는다), 입력만 숫자

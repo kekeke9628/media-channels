@@ -101,7 +101,9 @@ export async function updateMediaName(id, name) {
 }
 
 export async function fetchMedia() {
-  const { data, error } = await supabase.from('media').select('*');
+  // 정렬을 안 걸면 Postgres가 주는 순서는 정해져 있지 않다 — 화면 목록이 매번 뒤죽박죽으로
+  // 보이고, 같은 이름이 나란히 안 붙어서 중복이 있어도 눈에 안 띈다.
+  const { data, error } = await supabase.from('media').select('*').order('name');
   if (error) throw error;
   return data.map((m) => ({
     id: m.id,

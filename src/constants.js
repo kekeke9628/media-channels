@@ -86,3 +86,7 @@ export const installPhotoRequired = (start, refDate) => !!start && start <= refD
 export const sameName = (a, b) => (a || '').trim().toUpperCase() === (b || '').trim().toUpperCase();
 export const nameTaken = (media, name, exceptId) =>
   media.some((m) => m.id !== exceptId && sameName(m.name, name));
+
+// 매체명 정렬. 숫자를 숫자로 비교한다(numeric) — 문자열로만 비교하면 WEL10이 WEL2보다
+// 앞에 온다. 지금은 두 자리로 맞춰 쓰고 있어 티가 안 나지만, 10을 넘기는 순간 어긋난다.
+export const byName = (a, b) => (a || '').localeCompare(b || '', 'ko', { numeric: true, sensitivity: 'base' });
