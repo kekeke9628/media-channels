@@ -387,6 +387,12 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
                 onClick={() => !editMode && !addMode && setSelMedia(o.id)} onMouseEnter={() => setHover(o.id)} onMouseLeave={() => setHover(null)}>
                 <div className="pin-inner">
                   <span className="pdot">{t.glyph}</span>
+                  {/* 확대해서 보고 있으면 매체명을 핀 위에 그대로 띄운다 — 핀에 들어가는 건
+                      유형 약자(D·FW) 한두 글자뿐이라, 어느 자리인지는 하나씩 올려 봐야 알았다.
+                      호버·선택 중에는 아래 라벨이 이미 이름을 보여주므로 겹쳐 띄우지 않는다. */}
+                  {zoom >= 1.5 && hover !== o.id && selMedia !== o.id && (
+                    <span className="pname">{o.name}</span>
+                  )}
                   {(hover === o.id || selMedia === o.id) && (
                     <span className={'plabel' + (o.y > 55 ? ' up' : '')}>
                       {/* 지금 걸려 있는 시안. 여러 면이면 면마다 한 장씩(너무 길어지지 않게 6장까지). */}
