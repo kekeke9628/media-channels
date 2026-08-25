@@ -254,7 +254,10 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
       const wasClick = !panDragRef.current.moved;
       panDragRef.current = null;
       if (wasClick && addMode) {
-        setAddAt({ ...pointerToPct(e), clientX: e.clientX, clientY: e.clientY });
+        // 화면(client) 좌표가 아니라 문서(page) 좌표로 잡는다 — position:fixed + client 좌표는
+        // 화면에 붙어 있어서, 페이지를 스크롤하면 팝업만 따라오고 정작 누른 지도 위치에서
+        // 떨어져 나갔다. 문서 좌표 + position:absolute면 지도와 같이 움직인다.
+        setAddAt({ ...pointerToPct(e), pageX: e.pageX, pageY: e.pageY });
         setAddMode(false);
       }
     }
@@ -419,7 +422,7 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
   };
 
   return (
-    <div className="addpop" style={{ '--ax': at.clientX + 'px', '--ay': at.clientY + 'px' }} onClick={(e) => e.stopPropagation()}>
+    <div className="addpop" style={{ '--ax': at.pageX + 'px', '--ay': at.pageY + 'px' }} onClick={(e) => e.stopPropagation()}>
       <b>새 매체 추가</b>
       <select className="sel" value={type} onChange={(e) => setType(e.target.value)}>
         {types.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
