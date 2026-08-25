@@ -57,3 +57,19 @@ export const subOf = (p) => (p.title && p.title !== p.brand ? p.title : '');
 // 한글은 띄어쓰기가 사람마다 달라서(웨더워리어/웨더 워리어), 공백을 그대로 두면 0건이 나온다.
 export const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, '');
 export const matches = (haystack, query) => norm(haystack).includes(norm(query));
+
+// 매체명 두 번째 글자가 EAST/WEST 구분자다 — DEH01이면 D(듀라트란스) E(EAST) H(HIGH) 01.
+// 지도 핀 좌표로 계산하는 zone과 달리 이름은 현장에서 쓰는 실제 표기라, 이름이 있으면
+// 이름을 따른다. 규칙에 안 맞는 이름(예전에 자유롭게 붙인 것)은 좌표로 계산한 zone에서
+// 가져온다 — 어느 쪽으로도 못 정하면 null이고, 조회에서는 "구분 없음"으로 묶인다.
+export function sideOf(m) {
+  const c = (m?.name || '').trim().toUpperCase()[1];
+  if (c === 'E') return 'EAST';
+  if (c === 'W') return 'WEST';
+  if (typeof m?.zone === 'string') {
+    if (m.zone.startsWith('EAST')) return 'EAST';
+    if (m.zone.startsWith('WEST')) return 'WEST';
+  }
+  return null;
+}
+export const SIDE_LABEL = { EAST: 'EAST', WEST: 'WEST', null: '구분 없음' };

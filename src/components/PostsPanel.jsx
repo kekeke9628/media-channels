@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { contentOf, subOf, days, ST, typeChipStyle, matches } from '../constants.js';
 import { useCodeFilter } from '../lib/useCodeFilter.js';
+import { sideOf } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
@@ -35,6 +36,9 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
   const [typeSel, setTypeSel] = useCodeFilter(types.map((t) => t.code));
   // 드롭다운은 한 번에 하나만 — 매체 유형/상태 필터가 동시에 열려 겹쳐 보이던 문제.
   const [openDD, setOpenDD] = useState(null); // 'type' | 'status' | null
+  // EAST/WEST는 매체명 두 번째 글자로 갈린다(DEH01 → E) — 현장에서 쓰는 구분이라
+  // 목록에서도 바로 걸러 볼 수 있게 한다.
+  const [side, setSide] = useState('ALL');
   const [q, setQ] = useState('');
   const [rangeOn, setRangeOn] = useState(false);
   const [from, setFrom] = useState('2025-01-01');
@@ -56,6 +60,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
     if (!rangeOn) return [];
     return postings
       .filter((p) => typeSel.has(media.find((m) => m.id === p.mediaId)?.type))
+      .filter((p) => side === 'ALL' || sideOf(media.find((m) => m.id === p.mediaId)) === side)
       .filter((p) => (p.end || '9999-12-31') >= from && p.start <= to)
       .filter((p) => {
         if (!q) return true;
@@ -63,12 +68,13 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         return matches(haystack, q);
       })
       .sort((a, b) => b.start.localeCompare(a.start));
-  }, [rangeOn, postings, typeSel, from, to, q, media]);
+  }, [rangeOn, postings, typeSel, side, from, to, q, media]);
 
   const order = { overdue: 0, live: 1, open: 2, upcoming: 3 };
   const currentRows = useMemo(() => {
     return state
       .filter((o) => typeSel.has(o.type))
+      .filter((o) => side === 'ALL' || sideOf(o) === side)
       .filter((o) => { const cat = statusCat(o); return cat === 'overdue' ? showOverdue : statusSel.has(cat); })
       .filter((o) => {
         if (!q) return true;
@@ -86,7 +92,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         const ea = a.p?.end || '9999-12-31', eb = b.p?.end || '9999-12-31';
         return ea.localeCompare(eb);
       });
-  }, [state, typeSel, statusSel, showOverdue, q, refDate, T]);
+  }, [state, typeSel, statusSel, showOverdue, side, q, refDate, T]);
 
   return (
     <div>
@@ -102,6 +108,11 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         )}
       </div>
       <div className="toolrow">
+        <div className="seg">
+          {[['ALL', '전체'], ['EAST', 'EAST'], ['WEST', 'WEST']].map(([k, label]) => (
+            <button key={k} className={side === k ? 'on' : ''} onClick={() => setSide(k)}>{label}</button>
+          ))}
+        </div>
         <div className="dd">
           <button className="btn" onClick={() => setOpenDD((v) => (v === 'type' ? null : 'type'))}>매체 유형 {typeSel.size === types.length ? '전체' : typeSel.size} ▾</button>
           {openDD === 'type' && (

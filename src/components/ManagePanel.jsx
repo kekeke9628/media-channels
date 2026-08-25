@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
 import { ZONES } from '../data/seed.js';
-import { typeChipStyle, matches } from '../constants.js';
+import { typeChipStyle, matches, sideOf } from '../constants.js';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
+// 이름이 말하는 쪽(DEH01 → EAST)과 핀이 놓인 구역(zone)이 어긋나면 표시해 준다.
+// 핀을 반대쪽에 찍었거나 이름이 잘못됐다는 뜻이라, 놔두면 EAST로 조회했는데 목록에는
+// WEST라고 적힌 매체가 나오는 상황이 된다.
+const sideMismatch = (m) => {
+  const byName = (m?.name || '').trim().toUpperCase()[1];
+  if (byName !== 'E' && byName !== 'W') return false;
+  const byPin = typeof m?.zone === 'string' ? m.zone[0] : null;
+  return byPin === 'E' || byPin === 'W' ? byPin !== byName : false;
+};
 
 // 지도 핀에 찍히는 글자(아이콘)와 유형 색은 화면에서 유형을 구분하는 데 실제로 쓰인다 —
 // 핀 라벨, 필터 목록의 색점, 유형 칩이 전부 이 두 값을 읽는다. 다만 유형을 만드는 사람이
@@ -35,6 +44,9 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
   const [edit, setEdit] = useState({});
   const [nt, setNt] = useState({ label: '', specW: '', specH: '', faces: 1 });
   const [q, setQ] = useState('');
+  // EAST/WEST는 매체명 두 번째 글자로 갈린다(DEH01 → E) — 매체가 늘어나면 한쪽만
+  // 훑어보는 일이 많아 목록에서 바로 거를 수 있게 한다.
+  const [side, setSide] = useState('ALL');
 
   // 매체 하나의 면수 수정 — 듀라트란스처럼 자리마다 판 개수가 제각각인 유형은 유형 기본값
   // 하나로 못 맞추니 개별 매체마다 고칠 수 있어야 한다. 줄이는 쪽은 위험하다 — 안 보이게
@@ -65,6 +77,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
   const countOf = (code) => media.filter((m) => m.type === code && m.active).length;
   const histOf = (id) => postings.filter((p) => p.mediaId === id).length;
   const rows = media.filter((m) => {
+    if (side !== 'ALL' && sideOf(m) !== side) return false;
     if (!q) return true;
     const t = T[m.type];
     const haystack = [m.name, m.id, zoneLabel(m.zone), t?.label, m.faces, histOf(m.id) + '건'].join(' ');
@@ -208,7 +221,15 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
 
       {sec === 'media' && (
         <>
-          <div className="toolrow"><input className="inp" placeholder="매체명 · 유형 · 구역 검색" value={q} onChange={(e) => setQ(e.target.value)} /><span className="count mono">{rows.length}건</span></div>
+          <div className="toolrow">
+            <div className="seg">
+              {[['ALL', '전체'], ['EAST', 'EAST'], ['WEST', 'WEST']].map(([k, label]) => (
+                <button key={k} className={side === k ? 'on' : ''} onClick={() => setSide(k)}>{label}</button>
+              ))}
+            </div>
+            <input className="inp" placeholder="매체명 · 유형 · 구역 검색" value={q} onChange={(e) => setQ(e.target.value)} />
+            <span className="count mono">{rows.length}건</span>
+          </div>
           {rows.length === 0 ? (
             <p className="empty">
               {media.length === 0
@@ -230,6 +251,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                     </div>
                     <div className="mcard-meta">
                       <span className="sub">{zoneLabel(m.zone)}</span>
+                      {sideMismatch(m) && <span className="chip" style={{ background: '#FCF3F1', color: '#A74D46' }}>이름은 {sideOf(m)}</span>}
                       {editingMediaId === m.id ? (
                         <span className="sub mono" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           <input className="inp num" type="number" min="1" style={{ width: 56 }} value={edFaces} onChange={(e) => setEdFaces(e.target.value)} />면
@@ -273,7 +295,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                         ? <input className="inp" value={edName} onChange={(e) => setEdName(e.target.value)} placeholder="매체명" />
                         : <b>{m.name}</b>}</td>
                       <td>{t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}</td>
-                      <td>{zoneLabel(m.zone)}</td>
+                      <td>{zoneLabel(m.zone)}{sideMismatch(m) && <span className="chip" style={{ background: '#FCF3F1', color: '#A74D46', marginLeft: 5 }}>이름은 {sideOf(m)}</span>}</td>
                       <td className="r mono">
                         {editingMediaId === m.id ? (
                           <>
