@@ -245,10 +245,14 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                "이 사진을 인쇄 시안으로는 쓰지 않겠다"는 뜻이다 — 설치 사진은 그대로 둔다. */
             onClear={() => setResult(null)}
           >
-            <div className="rbox">
-              <div className="rline total"><span>용량</span><b className="mono">{fileSize(result.orig)} → {fileSize(result.view.bytes)}</b></div>
-              {mismatch && <p className="warnbox">⚠ 사진 가로세로 비율이 이 매체 규격({t.spec})과 달라, 실제 인쇄물에서는 잘려 보일 수 있습니다.</p>}
-            </div>
+            {/* JSX children은 PhotoField가 그리든 말든 여기서 먼저 평가된다 — result가 없을 때
+                result.orig을 읽어 팝업이 통째로 죽었다. 값을 읽기 전에 여기서 막는다. */}
+            {result && (
+              <div className="rbox">
+                <div className="rline total"><span>용량</span><b className="mono">{fileSize(result.orig)} → {fileSize(result.view.bytes)}</b></div>
+                {mismatch && <p className="warnbox">⚠ 사진 가로세로 비율이 이 매체 규격({t.spec})과 달라, 실제 인쇄물에서는 잘려 보일 수 있습니다.</p>}
+              </div>
+            )}
           </PhotoField>
 
           {initialMedia && (
