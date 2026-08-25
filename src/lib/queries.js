@@ -189,6 +189,19 @@ export async function getPostingImageUrls(paths) {
   return new Map((data || []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]));
 }
 
+// 홍보물 이미지는 DB 행만 지워도 스토리지에는 그대로 남는다 — 무료 요금제 1GB를 쓰면서
+// 화면에 사용량 게이지까지 두고 있는데, 지운 홍보물이 계속 자리를 차지하고 있었다(실제로
+// 5.7MB가 그렇게 떠 있었다). 행을 지우는 모든 경로에서 파일도 같이 지운다.
+// 파일 삭제가 실패해도 DB 삭제는 이미 끝났으므로 흐름을 막지 않는다 — 남은 건 아래
+// cleanupOrphanImages가 나중에 걷어낸다.
+async function removePostingFiles(paths) {
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (!unique.length) return 0;
+  const { error } = await supabase.storage.from(POSTING_BUCKET).remove(unique);
+  if (error) return 0;
+  return unique.length;
+}
+
 async function uploadPostingImage(path, dataUrl) {
   // contentType을 'image/webp'로 못박아 뒀는데 브라우저가 실제로는 PNG를 만들어 준
   // 적이 있어(convertImage 주석 참고) 기록된 형식과 내용이 어긋났다 — 만들어진 그대로 쓴다.
@@ -235,8 +248,12 @@ export async function addPostingVariant(postingId, type, result) {
 }
 
 export async function removePostingVariant(postingId, type) {
+  // 지울 행의 파일 경로를 먼저 확보한다 — 행이 사라지면 어떤 파일이 딸려 있었는지 알 수 없다.
+  const { data: doomed } = await supabase.from('posting_variants')
+    .select('thumb_path, view_path').eq('posting_id', postingId).eq('type', type);
   const { error } = await supabase.from('posting_variants').delete().eq('posting_id', postingId).eq('type', type);
   if (error) throw error;
+  await removePostingFiles((doomed || []).flatMap((v) => [v.thumb_path, v.view_path]));
   return fetchPosting(postingId);
 }
 
@@ -249,8 +266,18 @@ async function fetchPosting(id) {
 // 이미 등록된 홍보물이 매체·이미지 전부 없이 텍스트 실수 등으로 잘못 만들어졌을 때를 위한
 // 삭제 — 배치가 하나라도 있으면 이력이 걸린 셈이라 호출 쪽(App)에서 막는다.
 export async function deletePosting(id) {
+  // 규격(posting_variants)과 배치(placements)는 FK cascade로 함께 사라지므로, 거기 딸린
+  // 파일 경로까지 지우기 전에 모아 둔다.
+  const [{ data: vs }, { data: pls }] = await Promise.all([
+    supabase.from('posting_variants').select('thumb_path, view_path').eq('posting_id', id),
+    supabase.from('placements').select('install_photo_path').eq('posting_id', id),
+  ]);
   const { error } = await supabase.from('postings').delete().eq('id', id);
   if (error) throw error;
+  await removePostingFiles([
+    ...(vs || []).flatMap((v) => [v.thumb_path, v.view_path]),
+    ...(pls || []).map((p) => p.install_photo_path),
+  ]);
 }
 
 // 등록된 홍보물을 매체에 배치한다 — 처음 배치든, 이미 다른 매체(들)에 걸려 있는 홍보물의
@@ -311,8 +338,12 @@ export async function setPostingImage(posting, result, type) {
 // 배치를 잘못 만들었을 때(엉뚱한 매체 선택 등) 되돌리는 삭제 — 실제 철거 기록(removed_at)과는
 // 다르다. 실제 철거는 markPlacementRemoved를 쓴다.
 export async function deletePlacement(id) {
+  const { data: doomed } = await supabase.from('placements').select('install_photo_path').eq('id', id);
   const { error } = await supabase.from('placements').delete().eq('id', id);
   if (error) throw error;
+  // 철거 기록(markPlacementRemoved)은 이력이라 사진을 남기지만, 잘못 만든 배치를 지우는
+  // 이 경로는 그 배치가 없던 일이 되는 것이라 증빙 사진도 같이 지운다.
+  await removePostingFiles((doomed || []).map((p) => p.install_photo_path));
 }
 
 export async function markPlacementRemoved(id, removedAt) {
@@ -336,6 +367,49 @@ export async function fetchStorageUsage() {
   const { data, error } = await supabase.rpc('storage_usage');
   if (error) throw error;
   return (data || []).map((r) => ({ bucket: r.bucket, files: Number(r.files), bytes: Number(r.bytes) }));
+}
+
+// 어느 홍보물·배치도 더는 참조하지 않는 이미지를 찾아 지운다.
+//
+// 위의 삭제 경로들이 이제 파일을 같이 지우지만, 그 고침 이전에 지운 것들은 이미 스토리지에
+// 남아 있다. 파일 삭제가 실패하는 경우(일시적 네트워크 오류 등)에도 찌꺼기가 생길 수 있어,
+// 언제든 눌러서 걷어낼 수 있는 정리 경로를 따로 둔다.
+//
+// 버킷은 `<홍보물id>/파일명` 두 단계라 폴더를 훑어 내려간다. 살아 있는 경로 집합과 비교해
+// 없는 것만 지우므로, 방금 올리는 중인 파일을 잘못 지울 위험은 DB 행이 먼저 생기는 한 없다.
+export async function cleanupOrphanImages() {
+  const [{ data: vs, error: ve }, { data: pls, error: pe }] = await Promise.all([
+    supabase.from('posting_variants').select('thumb_path, view_path'),
+    supabase.from('placements').select('install_photo_path'),
+  ]);
+  if (ve) throw ve;
+  if (pe) throw pe;
+  const alive = new Set([
+    ...(vs || []).flatMap((v) => [v.thumb_path, v.view_path]),
+    ...(pls || []).map((p) => p.install_photo_path),
+  ].filter(Boolean));
+
+  const listAll = async (prefix) => {
+    const { data, error } = await supabase.storage.from(POSTING_BUCKET)
+      .list(prefix, { limit: 1000, sortBy: { column: 'name', order: 'asc' } });
+    if (error) throw error;
+    const out = [];
+    for (const e of data || []) {
+      const path = prefix ? `${prefix}/${e.name}` : e.name;
+      // id가 없으면 파일이 아니라 폴더다(스토리지가 폴더를 가상으로 만들어 준다).
+      if (e.id) out.push({ path, bytes: Number(e.metadata?.size) || 0 });
+      else out.push(...(await listAll(path)));
+    }
+    return out;
+  };
+
+  const all = await listAll('');
+  const orphans = all.filter((f) => !alive.has(f.path));
+  if (orphans.length) {
+    const { error } = await supabase.storage.from(POSTING_BUCKET).remove(orphans.map((f) => f.path));
+    if (error) throw error;
+  }
+  return { files: orphans.length, bytes: orphans.reduce((n, f) => n + f.bytes, 0) };
 }
 
 export async function fetchAdmins() {

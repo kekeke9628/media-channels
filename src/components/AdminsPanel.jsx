@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchAdmins, findUserIdByEmail, addAdmin, updateAdminRole, removeAdmin, fetchStorageUsage, STORAGE_LIMIT } from '../lib/queries.js';
+import { fetchAdmins, findUserIdByEmail, addAdmin, updateAdminRole, removeAdmin, fetchStorageUsage, cleanupOrphanImages, STORAGE_LIMIT } from '../lib/queries.js';
 
 // 관리자 관리 — admins 테이블 CRUD. auth.users를 직접 못 보므로, 이메일로 로그인 시도한
 // 적 있는지(user_id 존재) 먼저 조회한 뒤에만 admins에 추가할 수 있다(012 마이그레이션).
@@ -13,7 +13,21 @@ export default function AdminsPanel({ meId, narrow }) {
   const [form, setForm] = useState({ email: '', name: '', role: 'editor' });
   // 저장 공간 — 사진이 쌓이면 언젠가 한도에 닿으므로 지금 얼마나 쓰는지 보이게 한다.
   const [usage, setUsage] = useState(null);
-  useEffect(() => { fetchStorageUsage().then(setUsage).catch(() => setUsage(null)); }, []);
+  const loadUsage = () => fetchStorageUsage().then(setUsage).catch(() => setUsage(null));
+  useEffect(() => { loadUsage(); }, []);
+  // 어느 홍보물도 참조하지 않는 사진 걷어내기 — 삭제 경로가 파일을 안 지우던 시절의
+  // 찌꺼기와, 파일 삭제가 실패했을 때 남은 것들을 정리한다.
+  const [sweeping, setSweeping] = useState(false);
+  const [swept, setSwept] = useState('');
+  const sweep = async () => {
+    setSweeping(true); setSwept('');
+    try {
+      const r = await cleanupOrphanImages();
+      setSwept(r.files ? `사진 ${r.files}개(${mb(r.bytes)})를 지웠습니다.` : '지울 사진이 없습니다 — 모두 쓰이고 있습니다.');
+      await loadUsage();
+    } catch (e) { setSwept('정리하지 못했습니다: ' + e.message); }
+    setSweeping(false);
+  };
 
   const load = () => {
     setLoading(true);
@@ -89,6 +103,13 @@ export default function AdminsPanel({ meId, narrow }) {
               {pct < 1 ? ' (1%도 안 씀)' : ` (${pct.toFixed(pct < 10 ? 1 : 0)}%)`}
             </p>
             <p className="hint">한도에 가까워지면 요금제를 올리거나 오래된 홍보물의 사진을 지우면 됩니다.</p>
+            <div className="facerow" style={{ marginTop: 10, cursor: 'default' }}>
+              <span>안 쓰는 사진 정리 — 어느 홍보물도 참조하지 않는 파일을 찾아 지웁니다.</span>
+              <button className="mini" style={{ marginLeft: 'auto' }} onClick={sweep} disabled={sweeping}>
+                {sweeping ? '정리 중…' : '정리하기'}
+              </button>
+            </div>
+            {swept && <p className="hint" style={{ marginTop: 6 }}>{swept}</p>}
           </section>
         );
       })()}
