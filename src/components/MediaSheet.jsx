@@ -127,7 +127,7 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
   );
 }
 
-export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onAttachPhoto }) {
+export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onChangeMediaType, onAttachPhoto }) {
   const t = T[o.type];
   const zoneLabel = ZONES[o.zone]?.label || o.zone;
   const hasHistory = o.slots.some((s) => s.history.length > 0);
@@ -144,7 +144,8 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
   const [nameInput, setNameInput] = useState(o.name);
   const [facesInput, setFacesInput] = useState(o.faces);
   const [facesErr, setFacesErr] = useState('');
-  const startEditFaces = () => { setEditingFaces(true); setNameInput(o.name); setFacesInput(o.faces); setFacesErr(''); };
+  const [typeInput, setTypeInput] = useState(o.type);
+  const startEditFaces = () => { setEditingFaces(true); setNameInput(o.name); setFacesInput(o.faces); setTypeInput(o.type); setFacesErr(''); };
   const saveFaces = () => {
     const n = +facesInput;
     const name = (nameInput || '').trim();
@@ -157,6 +158,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
     }
     if (name !== o.name) onRenameMedia(o.id, name);
     if (n !== o.faces) onEditMediaFaces(o.id, n);
+    if (typeInput && typeInput !== o.type) onChangeMediaType(o.id, typeInput);
     setEditingFaces(false);
   };
 
@@ -190,7 +192,11 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
               : <b>{o.name}</b>}
             {editingFaces ? (
               <i className="headline">
-                <span>{zoneLabel} · {t.label} · {o.spec || t.spec} ·</span>
+                <span>{zoneLabel} ·</span>
+                <select className="sel" value={typeInput} onChange={(e) => setTypeInput(e.target.value)}>
+                  {Object.values(T).filter((x) => x.active || x.code === o.type).map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
+                </select>
+                <span>· {o.spec || t.spec} ·</span>
                 <input className="inp num" type="number" min="1" value={facesInput} onChange={(e) => setFacesInput(e.target.value)} />면
                 <button className="mini ok" onClick={saveFaces}>저장</button>
                 <button className="mini" onClick={() => setEditingFaces(false)}>취소</button>

@@ -38,7 +38,7 @@ const autoGlyph = (label, types) => {
 
 
 // 매체 관리 — 매체 유형 CRUD(보관), 매체 보관/복구/삭제. 매체 추가·위치 이동은 지도에서 한다.
-export default function ManagePanel({ T, types, media, postings, isEditor, narrow, onAddType, onToggleType, onEditType, onRemoveType, onEditMediaFaces, onRenameMedia, onRemoveMedia, onRestoreMedia }) {
+export default function ManagePanel({ T, types, media, postings, isEditor, narrow, onAddType, onToggleType, onEditType, onRemoveType, onEditMediaFaces, onRenameMedia, onChangeMediaType, onRemoveMedia, onRestoreMedia }) {
   const [sec, setSec] = useState('media');
   const [editing, setEditing] = useState(null);
   const [edit, setEdit] = useState({});
@@ -58,7 +58,8 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
   const [edName, setEdName] = useState('');
   const [edFaces, setEdFaces] = useState(1);
   const [faceErr, setFaceErr] = useState('');
-  const startEditMedia = (m) => { setEditingMediaId(m.id); setEdName(m.name); setEdFaces(m.faces); setFaceErr(''); };
+  const [edType, setEdType] = useState('');
+  const startEditMedia = (m) => { setEditingMediaId(m.id); setEdName(m.name); setEdFaces(m.faces); setEdType(m.type); setFaceErr(''); };
   const saveMedia = (m) => {
     const n = +edFaces;
     const name = (edName || '').trim();
@@ -71,6 +72,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
     }
     if (name !== m.name) onRenameMedia(m.id, name);
     if (n !== m.faces) onEditMediaFaces(m.id, n);
+    if (edType && edType !== m.type) onChangeMediaType(m.id, edType);
     setEditingMediaId(null);
   };
 
@@ -247,7 +249,11 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                       {editingMediaId === m.id
                         ? <input className="inp" value={edName} onChange={(e) => setEdName(e.target.value)} placeholder="매체명" />
                         : <b>{m.name}</b>}
-                      {t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}
+                      {editingMediaId === m.id
+                        ? <select className="sel" value={edType} onChange={(e) => setEdType(e.target.value)}>
+                            {types.filter((x) => x.active || x.code === m.type).map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
+                          </select>
+                        : t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}
                     </div>
                     <div className="mcard-meta">
                       <span className="sub">{zoneLabel(m.zone)}</span>
@@ -294,7 +300,11 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                       <td>{editingMediaId === m.id
                         ? <input className="inp" value={edName} onChange={(e) => setEdName(e.target.value)} placeholder="매체명" />
                         : <b>{m.name}</b>}</td>
-                      <td>{t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}</td>
+                      <td>{editingMediaId === m.id
+                        ? <select className="sel" value={edType} onChange={(e) => setEdType(e.target.value)}>
+                            {types.filter((x) => x.active || x.code === m.type).map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
+                          </select>
+                        : t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}</td>
                       <td>{zoneLabel(m.zone)}{sideMismatch(m) && <span className="chip" style={{ background: '#FCF3F1', color: '#A74D46', marginLeft: 5 }}>이름은 {sideOf(m)}</span>}</td>
                       <td className="r mono">
                         {editingMediaId === m.id ? (

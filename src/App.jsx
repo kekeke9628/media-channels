@@ -6,8 +6,8 @@ import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, updateMediaFaces, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
   createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, setPostingImage,
-  setPlacementInstallPhoto, variantFor, addPostingVariant,
-  createMediaType, updateMediaType, setMediaTypeActive, deleteMediaType, countMediaTypeUsage, updateMediaName,
+  setPlacementInstallPhoto, variantFor, canPlaceOn, addPostingVariant,
+  createMediaType, updateMediaType, setMediaTypeActive, deleteMediaType, countMediaTypeUsage, updateMediaName, setMediaType,
 } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
 import { useCodeFilter } from './lib/useCodeFilter.js';
@@ -350,6 +350,26 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     } catch (e) { flash('매체 유형 삭제에 실패했습니다: ' + e.message); }
   };
 
+  // 유형을 잘못 골라 등록했을 때 — 지우고 다시 만들면 배치 이력이 함께 사라지므로
+  // 유형만 바꾼다. 걸린 홍보물에 새 유형 규격이 없으면 이미지가 안 보이게 되니 알려 준다.
+  const changeMediaType = async (id, type) => {
+    const cur = media.find((m) => m.id === id);
+    if (!cur || cur.type === type) return;
+    try {
+      await setMediaType(id, type);
+      setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, type } : m)));
+      const missing = [...new Set(
+        placements.filter((pl) => pl.mediaId === id)
+          .map((pl) => postings.find((p) => p.id === pl.postingId))
+          .filter((p) => p && !canPlaceOn(p, type))
+          .map((p) => p.brand),
+      )];
+      flash(missing.length
+        ? `유형을 ${T[type]?.label || type}(으)로 바꿨습니다. ${missing.join(', ')}에는 이 규격 파일이 없어 이미지가 안 보입니다 — 홍보물 화면에서 규격을 추가하세요.`
+        : `유형을 ${T[type]?.label || type}(으)로 바꿨습니다.`);
+    } catch (e) { flash('매체 유형 변경에 실패했습니다: ' + e.message); }
+  };
+
   const renameMedia = async (id, name) => {
     const clean = (name || '').trim();
     if (!clean) return;
@@ -552,7 +572,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {tab === 'manage' && (
             <ManagePanel {...ctx} media={media} postings={placements}
               onAddType={addType} onToggleType={toggleType} onEditType={editType} onRemoveType={removeType}
-              onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia}
+              onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType}
               onRemoveMedia={removeMedia} onRestoreMedia={restoreMediaItem} />
           )}
           {tab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} isEditor={isEditor} onRemove={markRemoved} onPick={setSelMedia} />}
@@ -563,7 +583,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       {selMedia && byId[selMedia] && (
         <MediaSheet
           {...ctx} o={byId[selMedia]} onClose={() => setSelMedia(null)} onRemove={markRemoved} onDelete={removeMedia}
-          onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onAttachPhoto={attachInstallPhoto}
+          onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType} onAttachPhoto={attachInstallPhoto}
           onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}
         />
       )}

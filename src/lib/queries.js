@@ -82,6 +82,17 @@ export async function deleteMediaType(code) {
   if (error) throw error;
 }
 
+// 매체 유형 변경 — 등록할 때 유형을 잘못 고르면 지금까지는 지우고 다시 만드는 수밖에
+// 없었고, 그러면 배치 이력이 함께 사라졌다.
+//
+// 배치(placements)는 손댈 필요가 없다 — 어느 규격 파일을 보여줄지는 그 배치가 걸린 매체의
+// 유형이 정하므로(variantFor), 유형만 바꾸면 이력까지 새 유형 파일을 가리킨다. 다만 그
+// 캠페인에 새 유형 규격이 없으면 이미지가 안 보이게 되므로, 호출 쪽에서 미리 알려 준다.
+export async function setMediaType(id, type) {
+  const { error } = await supabase.from('media').update({ type }).eq('id', id);
+  if (error) throw error;
+}
+
 // 매체명 변경 — 처음엔 만들 때 정하면 끝이라고 봤는데, 실제로는 오타나 현장 표기가
 // 바뀌는 일이 흔하다. 이름만 바꾸는 것이라 배치 이력에는 영향이 없다(배치는 id로 묶인다).
 export async function updateMediaName(id, name) {
