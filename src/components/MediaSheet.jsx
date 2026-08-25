@@ -151,6 +151,8 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
     const name = (nameInput || '').trim();
     if (!n || n < 1) return;
     if (!name) { setFacesErr('매체명을 비워 둘 수 없습니다.'); return; }
+    // 여기서는 매체 목록을 들고 있지 않아 App이 최종 판정한다 — 겹치면 토스트로 알린다.
+
     const blocked = o.slots.filter((s) => s.face > n && s.history.some((p) => !p.removedAt));
     if (blocked.length > 0) {
       setFacesErr(`${Math.max(...blocked.map((s) => s.face))}면에 아직 철거하지 않은 배치가 있어 줄일 수 없습니다.`);

@@ -467,6 +467,10 @@ td.sub{display:table-cell}
 /* 추가 모드 안내 — 지도 위에 떠서 지금 무엇을 해야 하는지 알려 준다. */
 .addhint{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:26;background:rgba(35,33,30,.9);color:#fff;font-size:12px;padding:7px 10px 7px 14px;border-radius:20px;display:flex;align-items:center;gap:10px;word-break:keep-all;line-height:1.45;max-width:calc(100% - 20px)}
 .addhint span{min-width:0}
+/* 핀이 겹치는 자리를 눌렀을 때 — 같은 배너를 빨갛게 바꿔 눈이 다른 데를 안 찾게 한다. */
+.addhint.warn{background:rgba(167,77,70,.95)}
+/* 이미 쓰는 매체명을 입력했을 때 — 아래 문구와 함께 입력칸 테두리도 같이 바뀐다. */
+.inp.bad{border-color:#A74D46;background:#FCF3F1}
 /* 기준일이 오늘이 아닐 때만 뜨는 배너 — 과거/미래 기준으로 보는 걸 잊고 판단하는 사고 방지. */
 .refwarn{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#FBF6EC;border:1px solid #E7D9BC;color:#8A6A1F;border-radius:11px;padding:9px 13px;font-size:12.5px;word-break:keep-all}
 .refwarn button{margin-left:auto;border:1px solid #D9C79E;background:#fff;color:#8A6A1F;border-radius:8px;padding:5px 12px;font-size:12px;font-family:inherit;font-weight:600;cursor:pointer;white-space:nowrap}

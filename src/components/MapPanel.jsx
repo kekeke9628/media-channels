@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { clamp } from '../constants.js';
+import { clamp, nameTaken } from '../constants.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { ZONES } from '../data/seed.js';
 import MapCropModal from './MapCropModal.jsx';
@@ -38,6 +38,17 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   const [zoom, setZoom] = useState(1);
   const [hover, setHover] = useState(null);
   const [addAt, setAddAt] = useState(null); // { x, y }
+  // 매체 추가 중에 기존 핀 위를 누르면 아무 일도 안 일어났다 — 핀에서 시작한 포인터는
+  // 지도 핸들러가 무시하기 때문인데(핀 드래그용), 화면에는 아무 표시가 없어 "안 눌린다"로만
+  // 보였다. 겹쳐 놓지 못한다는 사실을 그 자리에서 알려 준다.
+  const [pinBump, setPinBump] = useState(false);
+  const bumpRef = useRef(null);
+  const showBump = () => {
+    setPinBump(true);
+    clearTimeout(bumpRef.current);
+    bumpRef.current = setTimeout(() => setPinBump(false), 2600);
+  };
+  useEffect(() => () => clearTimeout(bumpRef.current), []);
   const [open, setOpen] = useState(false);
   const [cropFile, setCropFile] = useState(null);
   const active = types.filter((t) => t.active);
@@ -347,8 +358,8 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
             "위치를 고르는 중"인지 알기 어려웠다 — 지도 위에 직접 알려 준다.
             배너에서 시작된 포인터가 지도 클릭으로 이어지지 않게 전파를 막는다. */}
         {addMode && (
-          <div className="addhint" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
-            <span>새 매체를 놓을 위치를 눌러 주세요</span>
+          <div className={'addhint' + (pinBump ? ' warn' : '')} onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
+            <span>{pinBump ? '이미 매체가 있는 자리입니다 — 핀이 겹치지 않게 조금 떨어진 곳을 눌러 주세요' : '새 매체를 놓을 위치를 눌러 주세요'}</span>
             <button onClick={() => setAddMode(false)}>취소</button>
           </div>
         )}
@@ -384,7 +395,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
                   e.currentTarget.setPointerCapture(e.pointerId);
                   dragPinRef.current = o.id;
                 }}
-                onClick={() => !editMode && !addMode && setSelMedia(o.id)} onMouseEnter={() => setHover(o.id)} onMouseLeave={() => setHover(null)}>
+                onClick={() => { if (addMode) { showBump(); return; } if (!editMode) setSelMedia(o.id); }} onMouseEnter={() => setHover(o.id)} onMouseLeave={() => setHover(null)}>
                 <div className="pin-inner">
                   <span className="pdot">{t.glyph}</span>
                   {/* 확대해서 보고 있으면 매체명을 핀 위에 그대로 띄운다 — 핀에 들어가는 건
@@ -432,7 +443,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
 
       {addAt && createPortal(
         <AddMediaPopover
-          types={active} at={addAt}
+          types={active} at={addAt} allMedia={allMedia}
           archived={allMedia.filter((m) => !m.active)} zoneLabel={zoneLabel}
           onCancel={() => setAddAt(null)}
           onSubmit={(payload) => {
@@ -469,7 +480,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   );
 }
 
-function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit }) {
+function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit, allMedia }) {
   const [source, setSource] = useState('new'); // 'new' | 'existing' — 보관 중이던 매체를 이 자리로 옮겨 복구
   const [type, setType] = useState(types[0]?.code || '');
   const t = types.find((x) => x.code === type);
@@ -488,9 +499,12 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
+  // 이미 쓰는 이름이면 누르기 전에 알려 준다 — 눌러 봐야 토스트로 튕기면 왜 안 되는지
+  // 알기 어렵고, 이름을 다시 지어야 한다는 것도 그때야 알게 된다.
+  const dup = !!name.trim() && nameTaken(allMedia || [], name);
   const submit = () => {
     if (source === 'existing') { if (existingId) onSubmit({ mode: 'existing', id: existingId }); }
-    else if (name && faces) onSubmit({ mode: 'new', type, name, faces: +faces });
+    else if (name && faces && !dup) onSubmit({ mode: 'new', type, name, faces: +faces });
   };
 
   return (
@@ -505,7 +519,8 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
       </div>
       {source === 'new' ? (
         <>
-          <input className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="매체명을 입력해주세요" />
+          <input className={'inp' + (dup ? ' bad' : '')} value={name} onChange={(e) => setName(e.target.value)} placeholder="매체명을 입력해주세요" />
+          {dup && <p className="sub" style={{ color: '#A74D46', margin: 0 }}>이미 있는 매체명입니다</p>}
           <input className="inp" type="number" min="1" value={faces} onChange={(e) => setFaces(e.target.value)} placeholder="면수를 입력해주세요" />
         </>
       ) : archivedOfType.length > 0 ? (
@@ -517,7 +532,7 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit })
       )}
       <div className="addpop-btns">
         <button className="mini" onClick={onCancel}>취소</button>
-        <button className="mini ok" disabled={source === 'new' ? (!name || !faces) : !existingId} onClick={submit}>{source === 'existing' ? '이 자리로 복구' : '추가'}</button>
+        <button className="mini ok" disabled={source === 'new' ? (!name || !faces || dup) : !existingId} onClick={submit}>{source === 'existing' ? '이 자리로 복구' : '추가'}</button>
       </div>
     </div>
   );

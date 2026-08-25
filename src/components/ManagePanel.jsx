@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ZONES } from '../data/seed.js';
-import { typeChipStyle, matches, sideOf } from '../constants.js';
+import { typeChipStyle, matches, sideOf, nameTaken } from '../constants.js';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
 // 이름이 말하는 쪽(DEH01 → EAST)과 핀이 놓인 구역(zone)이 어긋나면 표시해 준다.
@@ -65,6 +65,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
     const name = (edName || '').trim();
     if (!n || n < 1) return;
     if (!name) { setFaceErr('매체명을 비워 둘 수 없습니다.'); return; }
+    if (nameTaken(media, name, m.id)) { setFaceErr(`"${name}"은(는) 이미 있는 매체명입니다.`); return; }
     const blocking = postings.filter((p) => p.mediaId === m.id && !p.removedAt && (p.face || 1) > n);
     if (blocking.length > 0) {
       setFaceErr(`${Math.max(...blocking.map((p) => p.face || 1))}면에 아직 철거하지 않은 배치가 있어 줄일 수 없습니다.`);

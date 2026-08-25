@@ -78,3 +78,11 @@ export const SIDE_LABEL = { EAST: 'EAST', WEST: 'WEST', null: '구분 없음' };
 // 다만 게시예정(시작일이 미래) 배치는 아직 안 걸렸으니 찍을 수가 없다 — 오늘부터 걸리는
 // 배치에서만 필수로 본다. 미래 예약은 그냥 두고, 시작일이 지나면 알람이 대신 쫓아간다.
 export const installPhotoRequired = (start, refDate) => !!start && start <= refDate;
+
+// 매체명은 현장에서 그 자리를 부르는 이름이라 겹치면 안 된다 — 목록·검색·알람이 전부
+// 이름으로 사람에게 보이는데, 같은 이름이 둘이면 어느 쪽 이야기인지 알 수가 없다.
+// 대소문자와 앞뒤 공백은 같은 이름으로 본다(WEL01과 wel01 을 따로 두면 더 헷갈린다).
+// 보관된 매체까지 포함해서 본다 — 복구하면 그때 겹치기 때문.
+export const sameName = (a, b) => (a || '').trim().toUpperCase() === (b || '').trim().toUpperCase();
+export const nameTaken = (media, name, exceptId) =>
+  media.some((m) => m.id !== exceptId && sameName(m.name, name));

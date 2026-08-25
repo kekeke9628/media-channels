@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { ALERT_DAYS, LONG_OPEN, getToday } from './constants.js';
+import { ALERT_DAYS, LONG_OPEN, getToday, nameTaken } from './constants.js';
 import { autoClose, buildState, flattenSlots } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
@@ -179,6 +179,8 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     }
   };
   const addMediaAt = async ({ type, name, faces }, x, y) => {
+    // 같은 이름이 둘이면 목록·검색·알람에서 어느 쪽 이야기인지 알 수가 없다.
+    if (nameTaken(media, name)) { flash(`"${name.trim()}"은(는) 이미 있는 매체명입니다.`); return; }
     const zone = zoneAt(x, y);
     const id = 'M' + Date.now().toString(36).toUpperCase();
     try {
@@ -380,6 +382,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const renameMedia = async (id, name) => {
     const clean = (name || '').trim();
     if (!clean) return;
+    if (nameTaken(media, clean, id)) { flash(`"${clean}"은(는) 이미 있는 매체명입니다.`); return; }
     try {
       await updateMediaName(id, clean);
       setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, name: clean } : m)));
