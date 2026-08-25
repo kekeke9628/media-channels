@@ -70,9 +70,35 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       .sort((a, b) => b.start.localeCompare(a.start));
   }, [rangeOn, postings, typeSel, side, from, to, q, media]);
 
+  // 면(face)은 진짜 재고 단위다 — 웨더워리어 2면은 앞/뒤에 서로 다른 광고주가 다른 기간으로
+  // 걸리고, 철거도 면 단위로 한다. 그래서 뭔가 걸려 있는 면은 한 줄씩 따로 보여야 한다
+  // (합쳐 놓으면 "철거 처리"가 어느 면을 내리는 건지 알 수 없다).
+  //
+  // 다만 한 매체의 면이 전부 비어 있으면 줄마다 똑같은 "걸려 있는 홍보물 없음"이 반복될
+  // 뿐이라, 목록만 두 배로 길어지고 새로 알게 되는 건 없다 — 그 경우에만 한 줄로 합친다.
+  const faceRows = useMemo(() => {
+    const byMedia = new Map();
+    for (const o of state) {
+      if (!byMedia.has(o.mediaId)) byMedia.set(o.mediaId, []);
+      byMedia.get(o.mediaId).push(o);
+    }
+    const out = [];
+    for (const [mediaId, group] of byMedia) {
+      const allEmpty = group.length > 1 && group.every((o) => o.isEmpty && !o.next && !o.overdue);
+      if (!allEmpty) { out.push(...group); continue; }
+      out.push({
+        ...group[0],
+        id: mediaId,
+        name: media.find((m) => m.id === mediaId)?.name || group[0].name,
+        facesNote: `${group.length}면`,
+      });
+    }
+    return out;
+  }, [state, media]);
+
   const order = { overdue: 0, live: 1, open: 2, upcoming: 3 };
   const currentRows = useMemo(() => {
-    return state
+    return faceRows
       .filter((o) => typeSel.has(o.type))
       .filter((o) => side === 'ALL' || sideOf(o) === side)
       .filter((o) => { const cat = statusCat(o); return cat === 'overdue' ? showOverdue : statusSel.has(cat); })
@@ -92,7 +118,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         const ea = a.p?.end || '9999-12-31', eb = b.p?.end || '9999-12-31';
         return ea.localeCompare(eb);
       });
-  }, [state, typeSel, statusSel, showOverdue, side, q, refDate, T]);
+  }, [faceRows, typeSel, statusSel, showOverdue, side, q, refDate, T]);
 
   return (
     <div>
@@ -160,6 +186,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                 <div className="mcard-meta">
                   <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>
                   <span className="sub">{zoneLabel(o.zone)}</span>
+                  {o.facesNote && <span className="sub">{o.facesNote}</span>}
                 </div>
                 {p ? (
                   <>
@@ -203,7 +230,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                 const t = T[o.type];
                 return (
                   <tr key={o.id} onClick={() => onPick(o.mediaId)}>
-                    <td><b>{o.name}</b></td>
+                    <td><b>{o.name}</b>{o.facesNote && <span className="sub"> · {o.facesNote}</span>}</td>
                     <td><span className="chip" style={typeChipStyle(t.color)}>{t.label}</span></td>
                     <td>{zoneLabel(o.zone)}</td>
                     <td>{p ? p.brand : <span className="sub">—</span>}</td>
