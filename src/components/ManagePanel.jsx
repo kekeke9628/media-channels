@@ -183,7 +183,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
           {rows.length === 0 ? (
             <p className="empty">
               {media.length === 0
-                ? '아직 등록된 매체가 없습니다. 위 지도에서 "+매체 추가"로 등록하세요.'
+                ? '아직 등록된 매체가 없습니다. "+매체 추가"를 누른 뒤 배치도에서 위치를 찍어 등록하세요.'
                 : '조건에 맞는 매체가 없습니다.'}
             </p>
           ) : narrow ? (

@@ -135,7 +135,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       {!rangeOn && currentRows.length === 0 ? (
         <p className="empty">
           {state.length === 0
-            ? '아직 등록된 매체가 없습니다. 위 지도에서 "+매체 추가"로 매체를 먼저 등록하세요.'
+            ? '아직 등록된 매체가 없습니다. "+매체 추가"를 누른 뒤 배치도에서 위치를 찍어 등록하세요.'
             : '조건에 맞는 매체가 없습니다. 위의 검색어나 필터를 확인해 보세요.'}
         </p>
       ) : !rangeOn && narrow ? (
