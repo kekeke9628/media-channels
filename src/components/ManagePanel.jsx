@@ -3,15 +3,8 @@ import { ZONES } from '../data/seed.js';
 import { typeChipStyle, matches, sideOf, nameTaken, byName } from '../constants.js';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
-// 이름이 말하는 쪽(DEH01 → EAST)과 핀이 놓인 구역(zone)이 어긋나면 표시해 준다.
-// 핀을 반대쪽에 찍었거나 이름이 잘못됐다는 뜻이라, 놔두면 EAST로 조회했는데 목록에는
-// WEST라고 적힌 매체가 나오는 상황이 된다.
-const sideMismatch = (m) => {
-  const byName = (m?.name || '').trim().toUpperCase()[1];
-  if (byName !== 'E' && byName !== 'W') return false;
-  const byPin = typeof m?.zone === 'string' ? m.zone[0] : null;
-  return byPin === 'E' || byPin === 'W' ? byPin !== byName : false;
-};
+// 구역은 이제 매체명에서 읽는다(constants.zoneOf) — 이름과 구역이 어긋날 수가 없어서
+// 예전의 "이름은 EAST" 경고는 걷어냈다.
 
 // 지도 핀에 찍히는 글자(아이콘)와 유형 색은 화면에서 유형을 구분하는 데 실제로 쓰인다 —
 // 핀 라벨, 필터 목록의 색점, 유형 칩이 전부 이 두 값을 읽는다. 다만 유형을 만드는 사람이
@@ -258,7 +251,6 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                     </div>
                     <div className="mcard-meta">
                       <span className="sub">{zoneLabel(m.zone)}</span>
-                      {sideMismatch(m) && <span className="chip" style={{ background: '#FCF3F1', color: '#A74D46' }}>이름은 {sideOf(m)}</span>}
                       {editingMediaId === m.id ? (
                         <span className="sub mono" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           <input className="inp num" type="number" min="1" style={{ width: 56 }} value={edFaces} onChange={(e) => setEdFaces(e.target.value)} />면
@@ -306,7 +298,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                             {types.filter((x) => x.active || x.code === m.type).map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
                           </select>
                         : t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}</td>
-                      <td>{zoneLabel(m.zone)}{sideMismatch(m) && <span className="chip" style={{ background: '#FCF3F1', color: '#A74D46', marginLeft: 5 }}>이름은 {sideOf(m)}</span>}</td>
+                      <td>{zoneLabel(m.zone)}</td>
                       <td className="r mono">
                         {editingMediaId === m.id ? (
                           <>

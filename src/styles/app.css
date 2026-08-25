@@ -78,6 +78,16 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 
 .mapwrap{position:relative;width:100%;aspect-ratio:16/8;touch-action:none;overflow:hidden;cursor:grab}
 .mapwrap:active{cursor:grabbing}
+/* 지도 높이 손잡이 — 가로는 화면에 맞출 수밖에 없지만 세로는 직접 잡게 한다.
+   손가락으로도 잡을 수 있게 높이를 14px 주고, 가운데 막대만 눈에 보이게 둔다. */
+.mapgrab{height:14px;display:flex;align-items:center;justify-content:center;gap:10px;
+  cursor:ns-resize;touch-action:none;background:#FBF9F5;border-top:1px solid var(--line);position:relative}
+.mapgrab:hover{background:#F4F1EA}
+.mapgrab i{display:block;width:44px;height:4px;border-radius:3px;background:#C9C2B4}
+.mapgrab:hover i{background:#A99F8C}
+.mapgrab-reset{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;
+  border:1px solid var(--line);background:#fff;border-radius:10px;padding:1px 8px;
+  font-size:10.5px;font-family:inherit;color:var(--ink2);line-height:1.5}
 .mapwrap.addmode{cursor:crosshair}
 .mapwrap.addmode:active{cursor:crosshair}
 .mapstage{position:absolute;inset:0;transform-origin:0 0;will-change:transform}

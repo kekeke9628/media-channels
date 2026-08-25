@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { ALERT_DAYS, LONG_OPEN, getToday, nameTaken } from './constants.js';
+import { ALERT_DAYS, LONG_OPEN, getToday, nameTaken, zoneOf } from './constants.js';
 import { autoClose, buildState, flattenSlots } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
@@ -385,7 +385,9 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     if (nameTaken(media, clean, id)) { flash(`"${clean}"은(는) 이미 있는 매체명입니다.`); return; }
     try {
       await updateMediaName(id, clean);
-      setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, name: clean } : m)));
+      // 구역은 이름에서 읽으므로(zoneOf) 이름을 바꾸면 구역도 같이 바뀐다 — 여기서 다시
+      // 계산하지 않으면 새로고침 전까지 옛 구역이 그대로 보인다.
+      setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, name: clean, zone: zoneOf({ ...m, name: clean }) } : m)));
       flash('매체명을 바꿨습니다.');
     } catch (e) { flash('매체명 변경에 실패했습니다: ' + e.message); }
   };

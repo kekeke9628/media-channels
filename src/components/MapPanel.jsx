@@ -41,6 +41,30 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   // 매체 추가 중에 기존 핀 위를 누르면 아무 일도 안 일어났다 — 핀에서 시작한 포인터는
   // 지도 핸들러가 무시하기 때문인데(핀 드래그용), 화면에는 아무 표시가 없어 "안 눌린다"로만
   // 보였다. 겹쳐 놓지 못한다는 사실을 그 자리에서 알려 준다.
+  // 지도 프레임 높이. 가로는 화면 폭에 맞춰야 하니 어쩔 수 없지만, 세로는 배치도마다·
+  // 보는 사람마다 원하는 게 달라서 직접 잡을 수 있게 한다(아래 손잡이를 끌면 된다).
+  // 0이면 기본값(가로:세로 = 16:8)을 그대로 쓴다. 이 기기에서만 기억한다.
+  const [mapH, setMapH] = useState(() => {
+    try { return +localStorage.getItem('mapHeight') || 0; } catch { return 0; }
+  });
+  const saveMapH = (h) => {
+    setMapH(h);
+    try { h ? localStorage.setItem('mapHeight', String(h)) : localStorage.removeItem('mapHeight'); } catch { /* 저장 못 해도 이번 세션엔 적용된다 */ }
+  };
+  const grabRef = useRef(null);
+  const onGrabDown = (e) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    grabRef.current = { y: e.clientY, h: wrapRef.current?.getBoundingClientRect().height || 0 };
+  };
+  const onGrabMove = (e) => {
+    if (!grabRef.current) return;
+    const next = grabRef.current.h + (e.clientY - grabRef.current.y);
+    // 너무 납작하면 핀이 겹쳐 못 쓰고, 화면을 다 먹으면 아래 목록이 안 보인다.
+    saveMapH(Math.round(clamp(next, 220, window.innerHeight * 0.85)));
+  };
+  const onGrabUp = (e) => { grabRef.current = null; e.currentTarget.releasePointerCapture?.(e.pointerId); };
+
   const [pinBump, setPinBump] = useState(false);
   const bumpRef = useRef(null);
   const showBump = () => {
@@ -348,6 +372,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
 
       <div
         className={'mapwrap' + (addMode ? ' addmode' : '')}
+        style={mapH ? { height: mapH + 'px', aspectRatio: 'auto' } : undefined}
         ref={wrapRef}
         onPointerDown={onWrapPointerDown}
         onPointerMove={onWrapPointerMove}
@@ -454,6 +479,15 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
         />,
         document.body
       )}
+
+      {/* 지도 아래 손잡이 — 끌어서 높이 조절, 두 번 누르면 기본값으로 되돌린다. */}
+      <div className="mapgrab" onPointerDown={onGrabDown} onPointerMove={onGrabMove}
+        onPointerUp={onGrabUp} onPointerCancel={onGrabUp}
+        onDoubleClick={() => saveMapH(0)}
+        title="끌어서 지도 높이 조절 · 두 번 누르면 기본 높이">
+        <i />
+        {mapH > 0 && <button className="mapgrab-reset" onPointerDown={(e) => e.stopPropagation()} onClick={() => saveMapH(0)}>기본 높이로</button>}
+      </div>
 
       <div className="legend">
         <span><i className="lg full" />정상</span><span><i className="lg stale" />만료</span><span><i className="lg vacant" />비어있음</span>

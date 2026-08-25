@@ -62,6 +62,23 @@ export const matches = (haystack, query) => norm(haystack).includes(norm(query))
 // 지도 핀 좌표로 계산하는 zone과 달리 이름은 현장에서 쓰는 실제 표기라, 이름이 있으면
 // 이름을 따른다. 규칙에 안 맞는 이름(예전에 자유롭게 붙인 것)은 좌표로 계산한 zone에서
 // 가져온다 — 어느 쪽으로도 못 정하면 null이고, 조회에서는 "구분 없음"으로 묶인다.
+// 매체명이 곧 자리다 — DEL01이면 D(듀라트란스) E(EAST) L(LOW) 01.
+//
+// 구역은 원래 핀 좌표로 계산했는데(zoneAt), 그 기준 사각형은 배치도를 올리기 전 회색
+// 도면에 맞춰 잡아둔 값이라 실제 배치도와 아무 관계가 없다 — 26개 중 19개의 층(HIGH/
+// MIDDLE/LOW)이 이름과 어긋나 있었다. 게다가 HIGH·LOW는 층이 아니라 거리 이름이라
+// (East High Street / East Low Street) 좌표를 사각형으로 잘라서는 애초에 못 나눈다.
+// 그 자리를 아는 사람이 붙인 이름을 따르고, 규칙에 안 맞는 이름만 좌표 계산으로 넘긴다.
+const SIDES = { E: 'EAST', W: 'WEST' };
+const LEVELS = { H: 'HIGH', M: 'MIDDLE', L: 'LOW' };
+// data/seed.js가 이 파일을 불러오므로 여기서 seed를 불러오면 순환이 된다 — 목록을 직접 둔다.
+const VALID_ZONES = new Set(['WEST_HIGH', 'WEST_MIDDLE', 'WEST_LOW', 'EAST_HIGH', 'EAST_LOW']);
+export function zoneOf(m) {
+  const n = (m?.name || '').trim().toUpperCase();
+  const z = `${SIDES[n[1]] || ''}_${LEVELS[n[2]] || ''}`;
+  return VALID_ZONES.has(z) ? z : (m?.zone || null);
+}
+
 export function sideOf(m) {
   const c = (m?.name || '').trim().toUpperCase()[1];
   if (c === 'E') return 'EAST';

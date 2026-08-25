@@ -9,6 +9,7 @@
 //   - fetchPlacements(): 배치 + 해당 홍보물 정보를 평탄화한 목록 — 매체별 현재 상태·타임라인·
 //     이력처럼 "어느 매체에 무엇이 걸려 있는가" 관점의 화면에서 예전 postings와 같은 모양으로 쓴다.
 import { supabase } from './supabaseClient.js';
+import { zoneOf } from '../constants.js';
 
 // 갤러리·매체 상세 카드의 그라데이션 색상 — 실 이미지가 없는 동안 id로 결정적으로 생성한다.
 function hueOf(id) {
@@ -112,7 +113,8 @@ export async function fetchMedia() {
     faces: m.faces,
     spec: m.spec || '',
     active: m.active,
-    zone: m.zone,
+    // 이름이 자리를 말한다 — 화면·필터가 전부 이 값을 쓰므로 들어오는 자리에서 한 번만 맞춘다.
+    zone: zoneOf(m),
     x: +m.x,
     y: +m.y,
   }));
@@ -139,7 +141,7 @@ export async function createMedia({ id, type, name, faces, spec, x, y, zone }) {
     .select()
     .single();
   if (error) throw error;
-  return { id: data.id, type: data.type, name: data.name, faces: data.faces, spec: data.spec || '', active: data.active, zone: data.zone, x: +data.x, y: +data.y };
+  return { id: data.id, type: data.type, name: data.name, faces: data.faces, spec: data.spec || '', active: data.active, zone: zoneOf(data), x: +data.x, y: +data.y };
 }
 
 export async function archiveMedia(id) {
@@ -157,7 +159,7 @@ export async function restoreMedia(id) {
 export async function restoreMediaAt(id, x, y, zone) {
   const { data, error } = await supabase.from('media').update({ active: true, x, y, zone }).eq('id', id).select().single();
   if (error) throw error;
-  return { id: data.id, type: data.type, name: data.name, faces: data.faces, spec: data.spec || '', active: data.active, zone: data.zone, x: +data.x, y: +data.y };
+  return { id: data.id, type: data.type, name: data.name, faces: data.faces, spec: data.spec || '', active: data.active, zone: zoneOf(data), x: +data.x, y: +data.y };
 }
 
 export async function deleteMedia(id) {
