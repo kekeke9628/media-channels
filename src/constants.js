@@ -73,3 +73,8 @@ export function sideOf(m) {
   return null;
 }
 export const SIDE_LABEL = { EAST: 'EAST', WEST: 'WEST', null: '구분 없음' };
+
+// 설치 확인 사진은 "실제로 이 자리에 걸렸다"는 증빙이라, 관리 목적에서는 이게 본체다.
+// 다만 게시예정(시작일이 미래) 배치는 아직 안 걸렸으니 찍을 수가 없다 — 오늘부터 걸리는
+// 배치에서만 필수로 본다. 미래 예약은 그냥 두고, 시작일이 지나면 알람이 대신 쫓아간다.
+export const installPhotoRequired = (start, refDate) => !!start && start <= refDate;

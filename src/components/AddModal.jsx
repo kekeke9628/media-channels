@@ -3,6 +3,7 @@ import { iso, DAY } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
+import { installPhotoRequired } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
 
@@ -176,7 +177,13 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     })();
   };
 
-  const canSubmit = !!brand && (!bulkOn || selected.size > 0);
+  // 관리 목적에서 "실제로 걸렸다"를 증명하는 건 설치 확인 사진뿐이라, 오늘부터 걸리는
+  // 배치는 사진 없이 등록하지 못하게 한다. 게시예정(미래 시작)은 아직 못 찍으니 예외.
+  // 여러 매체에 한 번에 거는 경우도 예외다 — 한 장으로 여러 자리를 증명할 수 없으니
+  // 각 자리에서 따로 찍는 게 맞고, 빠진 건 알람이 쫓아간다.
+  const needInstall = !!initialMedia && !bulkOn && installPhotoRequired(start, refDate);
+  const missingInstall = needInstall && !installPhoto;
+  const canSubmit = !!brand && (!bulkOn || selected.size > 0) && !missingInstall;
   // 겹침 확인(conflict/bulkConfirm)이 떠 있을 때는 Enter로 건너뛰지 못하게 막는다.
   useModalKeys({ onClose, onSubmit: submit, canSubmit: canSubmit && !conflict && !bulkConfirm, busy: saving });
 
@@ -227,7 +234,10 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
           <label className="fld"><span>업체명</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: 나이키" /></label>
           <label className="fld"><span>내용 (선택)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="비워두면 업체명이 그대로 들어갑니다" /></label>
+          {/* 인쇄 시안은 있으면 좋지만 매번 있는 게 아니다(현장에서 등록할 때는 대개 없다).
+              접어 두고, 설치 확인 사진만 넣어도 그게 홍보물 이미지로 함께 저장된다. */}
           <PhotoField
+            collapsible collapsedLabel="인쇄 시안 첨부 (선택)"
             label="홍보물 이미지 (선택)" hint="사진은 올릴 때 자동으로 용량을 줄여 저장합니다."
             caption="등록될 이미지" result={result} busy={busy}
             onPick={process}
@@ -244,12 +254,13 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
           {initialMedia && (
             <>
               <PhotoField
-                label="설치 확인 사진 (선택)" capture
+                label={needInstall ? '설치 확인 사진 (필수)' : '설치 확인 사진 (선택)'} capture
                 hint={'현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.'}
                 caption="설치 확인 사진" result={installPhoto} busy={installBusy}
                 onPick={processInstallPhoto}
                 onClear={() => { if (syncedFromInstall) setResult(null); setInstallPhoto(null); }}
               />
+              {missingInstall && <p className="warnbox">오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)</p>}
               {syncedFromInstall && <p className="hint">홍보물 이미지가 비어 있어, 이 사진을 홍보물 이미지로도 함께 등록합니다. 인쇄 시안이 따로 있으면 위에서 올려 주세요.</p>}
 
               <div className="fld2">

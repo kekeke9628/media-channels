@@ -43,8 +43,26 @@ export default function AlertPanel({ alerts, kpi, isEditor, onRemove, onPick }) 
         )}
       </section>
 
+      {/* 관리 목적에서 "실제로 걸렸다"를 증명하는 건 설치 확인 사진뿐이다 — 등록만 해두고
+          현장 확인이 빠진 건을 여기서 쫓아간다. 매체명을 눌러 상세로 가면 바로 찍을 수 있다. */}
       <section className="block">
-        <h3>③ 주간 요약 <span>매주 월 09:00</span></h3>
+        <h3>③ 설치 확인 사진 없음 <span>{alerts.noPhoto.length}건</span></h3>
+        {alerts.noPhoto.length === 0 && <p className="empty">해당 없음</p>}
+        {alerts.noPhoto.map((o) => {
+          const pl = o.overdue || o.current;
+          return (
+            <div className="slack" key={'np' + o.id}>
+              <b>📷 사진 없음</b>
+              <span>
+                <button className="linklike" onClick={() => onPick(o.mediaId)}>[{o.name}]</button> {pl.brand} ({pl.start}부터)
+              </span>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="block">
+        <h3>④ 주간 요약 <span>매주 월 09:00</span></h3>
         <div className="slack"><b>📋 이번 주 점내 홍보매체</b><span>게시중 {kpi.live + kpi.open}/{kpi.total} · 만료 {kpi.stale} · 종료일 미정 {kpi.open}건(1년 초과 {kpi.longOpen})</span></div>
       </section>
     </div>

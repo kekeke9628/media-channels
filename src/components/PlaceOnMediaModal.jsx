@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY, contentOf, subOf, matches } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
+import { installPhotoRequired } from '../constants.js';
 import { getPostingImageUrls, canPlaceOn, variantFor } from '../lib/queries.js';
 import { statusOf } from '../lib/status.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
@@ -110,7 +111,11 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
     if (ok) onClose();
   };
 
-  useModalKeys({ onClose, onSubmit: submit, canSubmit: !!posting && !conflict, busy: saving });
+  // 오늘부터 걸리는 배치는 설치 확인 사진이 있어야 등록된다(게시예정은 예외) — 관리
+  // 목적에서 "실제로 걸렸다"를 증명하는 건 이 사진뿐이다.
+  const needInstall = installPhotoRequired(start, refDate);
+  const missingInstall = needInstall && !installPhoto;
+  useModalKeys({ onClose, onSubmit: submit, canSubmit: !!posting && !conflict && !missingInstall, busy: saving });
 
   return (
     <div className="modal" onClick={onClose}>
@@ -174,11 +179,12 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
               <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
 
               <PhotoField
-                label="설치 확인 사진 (선택)" capture
+                label={needInstall ? '설치 확인 사진 (필수)' : '설치 확인 사진 (선택)'} capture
                 hint={'현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.'}
                 caption="설치 확인 사진" result={installPhoto} busy={installBusy}
                 onPick={processInstallPhoto} onClear={() => setInstallPhoto(null)}
               />
+              {missingInstall && <p className="warnbox">오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)</p>}
               {willFillPostingImage && <p className="hint">이 홍보물에는 아직 이미지가 없어, 이 사진을 홍보물 이미지로도 함께 등록합니다.</p>}
 
               {conflict && (
@@ -193,7 +199,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
         </div>
         <div className="mfoot">
           <button className="btn" disabled={saving} onClick={onClose}>취소</button>
-          {posting && <button className="btn primary" onClick={submit} disabled={saving}>{saving ? '저장 중…' : '배치'}</button>}
+          {posting && <button className="btn primary" onClick={submit} disabled={saving || missingInstall}>{saving ? '저장 중…' : '배치'}</button>}
         </div>
       </div>
     </div>

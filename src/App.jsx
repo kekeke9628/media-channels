@@ -155,7 +155,14 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const alerts = useMemo(() => ({
     soon: slots.filter((o) => o.live && o.dToRemove >= 0 && o.dToRemove <= ALERT_DAYS).sort((a, b) => a.dToRemove - b.dToRemove),
     stale: slots.filter((o) => o.overdue).sort((a, b) => b.overdueDays - a.overdueDays),
-  }), [slots]);
+    // 시작일이 지났는데 설치 확인 사진이 없는 배치 — 등록만 해두고 현장 확인이 빠진 것이다.
+    // 게시예정일 때는 못 찍는 게 정상이라 시작일이 지난 것만 본다.
+    noPhoto: slots
+      .map((o) => ({ o, pl: o.overdue || o.current }))
+      .filter(({ pl }) => pl && !pl.installPhotoPath && pl.start <= refDate)
+      .map(({ o }) => o)
+      .sort((a, b) => (a.overdue || a.current).start.localeCompare((b.overdue || b.current).start)),
+  }), [slots, refDate]);
 
   // 지도 드래그 중 실시간 시각 피드백(로컬만, 서버 호출 없음)
   const moveMediaLocal = (id, x, y) => {
