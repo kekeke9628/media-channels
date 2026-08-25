@@ -4,12 +4,36 @@ import { typeChipStyle, matches } from '../constants.js';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
 
+// 지도 핀에 찍히는 글자(아이콘)와 유형 색은 화면에서 유형을 구분하는 데 실제로 쓰인다 —
+// 핀 라벨, 필터 목록의 색점, 유형 칩이 전부 이 두 값을 읽는다. 다만 유형을 만드는 사람이
+// 매번 고를 일은 아니라(무엇을 골라야 할지도 알 수 없다) 이름에서 자동으로 정한다.
+// 마음에 안 들면 아래 유형 목록에서 언제든 고칠 수 있다.
+const PALETTE = ['#4B7B58', '#3C6E9E', '#B4834B', '#7A5AA6', '#C2703D', '#8E6B2C', '#5E7B8A', '#A74D46'];
+const autoColor = (types) => {
+  const used = new Set(types.map((t) => (t.color || '').toUpperCase()));
+  return PALETTE.find((c) => !used.has(c)) || PALETTE[types.length % PALETTE.length];
+};
+// 한글은 한 글자로 충분하고(핀이 모바일에서 19px까지 줄어든다), 영문은 두 글자를 쓴다.
+// 이미 있는 유형과 겹치면 한 글자 늘려 구분한다.
+const autoGlyph = (label, types) => {
+  const t = (label || '').replace(/\s+/g, '');
+  if (!t) return '▪';
+  const hangul = /[\uAC00-\uD7A3]/.test(t[0]);
+  const used = new Set(types.map((x) => x.glyph));
+  for (const n of hangul ? [1, 2] : [2, 3]) {
+    const g = t.slice(0, n).toUpperCase();
+    if (!used.has(g)) return g;
+  }
+  return t.slice(0, hangul ? 1 : 2).toUpperCase();
+};
+
+
 // 매체 관리 — 매체 유형 CRUD(보관), 매체 보관/복구/삭제. 매체 추가·위치 이동은 지도에서 한다.
 export default function ManagePanel({ T, types, media, postings, isEditor, narrow, onAddType, onToggleType, onEditType, onEditMediaFaces, onRemoveMedia, onRestoreMedia }) {
   const [sec, setSec] = useState('media');
   const [editing, setEditing] = useState(null);
   const [edit, setEdit] = useState({});
-  const [nt, setNt] = useState({ label: '', specW: '', specH: '', faces: 1, color: '#5E7B8A', glyph: '▪', movable: false, openEnded: false });
+  const [nt, setNt] = useState({ label: '', specW: '', specH: '', faces: 1 });
   const [q, setQ] = useState('');
 
   // 매체 하나의 면수 수정 — 듀라트란스처럼 자리마다 판 개수가 제각각인 유형은 유형 기본값
@@ -98,7 +122,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                           <span className="sub mono">{t.spec || '규격 미정'} · {t.faces}면</span>
                         </div>
                         <div className="mcard-date">
-                          등록 매체 {countOf(t.code)}개{t.movable ? ' · 이동형' : ''}{t.openEnded ? ' · 종료일 기본 미정' : ''}
+                          등록 매체 {countOf(t.code)}개
                         </div>
                         {isEditor && (
                           <div className="conflictbtns" style={{ marginTop: 9 }}>
@@ -115,7 +139,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
           ) : (
           <div className="scroll" style={{ maxHeight: 340, marginBottom: 16 }}>
             <table>
-              <thead><tr><th>아이콘</th><th>유형</th><th>기본 규격</th><th className="r">면수</th><th>이동형</th><th>종료일 기본값</th><th className="r">등록 매체</th><th className="r">관리</th></tr></thead>
+              <thead><tr><th>아이콘</th><th>유형</th><th>기본 규격</th><th className="r">면수</th><th className="r">등록 매체</th><th className="r">관리</th></tr></thead>
               <tbody>
                 {types.map((t) => {
                   const isEd = editing === t.code;
@@ -133,8 +157,6 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                         ) : (t.spec || '—')}
                       </td>
                       <td className="r mono">{isEd ? <input className="inp num" type="number" min="1" value={edit.faces} onChange={(e) => setEdit({ ...edit, faces: +e.target.value })} /> : t.faces}</td>
-                      <td className="sub">{t.movable ? '예' : '—'}</td>
-                      <td className="sub">{t.openEnded ? '미정' : '직접 입력'}</td>
                       <td className="r mono">{countOf(t.code)}</td>
                       <td className="r">
                         {!isEditor ? <span className="sub">—</span> : isEd ? (
@@ -160,16 +182,16 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                   <label className="fld"><span>세로 (mm)</span><input type="number" min="1" placeholder="1800" value={nt.specH} onChange={(e) => setNt({ ...nt, specH: e.target.value })} /></label>
                 </div>
                 <label className="fld"><span>면수</span><input type="number" min="1" value={nt.faces} onChange={(e) => setNt({ ...nt, faces: +e.target.value })} /></label>
-                <label className="fld"><span>아이콘</span><input className="iconinp" value={nt.glyph} onChange={(e) => setNt({ ...nt, glyph: e.target.value })} maxLength={2} /></label>
-                <label className="fld"><span>색상</span><input className="colorinp" type="color" value={nt.color} onChange={(e) => setNt({ ...nt, color: e.target.value })} /></label>
-                <label className="chk"><input type="checkbox" checked={nt.movable} onChange={(e) => setNt({ ...nt, movable: e.target.checked })} />위치를 자주 옮기는 유형</label>
-                <label className="chk"><input type="checkbox" checked={nt.openEnded} onChange={(e) => setNt({ ...nt, openEnded: e.target.checked })} />종료일을 보통 정하지 않는 유형</label>
+                {nt.label && (
+                  <p className="hint">지도 핀 — <span className="chip" style={typeChipStyle(autoColor(types))}>{autoGlyph(nt.label, types)}</span> 색과 글자는 이름에서 자동으로 정해집니다. 아래 목록에서 고칠 수 있습니다.</p>
+                )}
                 <button className="btn primary" disabled={!nt.label} onClick={() => {
                   onAddType({
-                    label: nt.label, spec: joinSpec(nt.specW, nt.specH), faces: nt.faces, color: nt.color, glyph: nt.glyph,
-                    movable: nt.movable, openEnded: nt.openEnded, code: 't' + Date.now(), active: true,
+                    label: nt.label, spec: joinSpec(nt.specW, nt.specH), faces: nt.faces,
+                    color: autoColor(types), glyph: autoGlyph(nt.label, types),
+                    code: 't' + Date.now(), active: true,
                   });
-                  setNt({ label: '', specW: '', specH: '', faces: 1, color: '#5E7B8A', glyph: '▪', movable: false, openEnded: false });
+                  setNt({ label: '', specW: '', specH: '', faces: 1 });
                 }}>추가</button>
               </div>
             </section>
