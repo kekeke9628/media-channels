@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { contentOf, subOf, matches, typeChipStyle } from '../constants.js';
+import { useCodeFilter } from '../lib/useCodeFilter.js';
 import { statusOf } from '../lib/status.js';
 import { getPostingImageUrls, variantFor } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
@@ -9,7 +10,7 @@ import StatusChip from './StatusChip.jsx';
 // 추가할 수 있다(동시에 여러 매체에 걸거나, 시간차를 두고 다시 거는 것 모두 여기서 시작).
 
 export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRepeat, onRemove, onUndo, onCancel, onDeletePosting, onAddVariant }) {
-  const [typeSel, setTypeSel] = useState(new Set(types.map((t) => t.code)));
+  const [typeSel, setTypeSel] = useCodeFilter(types.map((t) => t.code));
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
   const [q, setQ] = useState('');

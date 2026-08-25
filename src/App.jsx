@@ -10,6 +10,7 @@ import {
   createMediaType, updateMediaType, setMediaTypeActive, deleteMediaType, countMediaTypeUsage, updateMediaName,
 } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
+import { useCodeFilter } from './lib/useCodeFilter.js';
 import { useAuth, OWNER_EMAIL, resetAdminPassword } from './lib/useAuth.js';
 
 import Login from './components/Login.jsx';
@@ -56,6 +57,9 @@ export default function App() {
 function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, updatePassword }) {
   const [refDate, setRefDate] = useState(getToday());
   const [types, setTypes] = useState([]);
+  // 유형 목록이 바뀌면(추가·삭제) 지도의 유형 필터도 같이 맞춘다 — 안 맞으면 개수가
+  // 틀리게 나오거나, 새로 만든 유형의 매체가 지도에서 안 보인다.
+  const [typeFilter, setTypeFilter] = useCodeFilter(types.map((t) => t.code));
   const [media, setMedia] = useState([]);
   // postings = 홍보물(브랜드·내용·이미지, 매체와 무관) / placements = 배치(홍보물이 얹혀
   // 평탄화된 것, 매체별 현재 상태·타임라인·이력 화면이 예전 postings와 같은 모양으로 쓴다).
@@ -64,7 +68,6 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const [dataLoading, setDataLoading] = useState(true);
   const [tab, setTab] = useState('posts');
   const [selMedia, setSelMedia] = useState(null);
-  const [typeFilter, setTypeFilter] = useState(new Set());
   const [zoneFilter, setZoneFilter] = useState('ALL');
   const [toast, setToast] = useState(null); // { msg, undo? }
   const [narrow, setNarrow] = useState(false);
@@ -91,7 +94,6 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   useEffect(() => {
     Promise.all([fetchMediaTypes(), fetchMedia(), fetchPostings(), fetchPlacements()]).then(([t, m, p, pl]) => {
       setTypes(t);
-      setTypeFilter(new Set(t.map((x) => x.code)));
       setMedia(m);
       setPostings(p);
       setPlacements(pl);

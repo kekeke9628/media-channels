@@ -272,12 +272,14 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
         <div className="mtitle"><b>구역 배치도</b></div>
         <div className="mtools">
           <div className="dd">
-            <button className="btn" onClick={() => setOpen((v) => !v)}>매체 유형 {typeFilter.size === active.length ? '전체' : typeFilter.size} ▾</button>
+            <button className="btn" onClick={() => setOpen((v) => !v)}>매체 유형 {typeFilter.size === types.length ? '전체' : typeFilter.size} ▾</button>
             {open && (
               <div className="ddmenu" onMouseLeave={() => setOpen(false)}>
-                <div className="ddtop"><button onClick={() => setTypeFilter(new Set(active.map((t) => t.code)))}>전체</button><button onClick={() => setTypeFilter(new Set())}>해제</button></div>
-                {active.map((t) => (
-                  <label key={t.code}><input type="checkbox" checked={typeFilter.has(t.code)} onChange={() => tog(t.code)} /><i style={{ background: t.color }} />{t.label}</label>
+                <div className="ddtop"><button onClick={() => setTypeFilter(new Set(types.map((t) => t.code)))}>전체</button><button onClick={() => setTypeFilter(new Set())}>해제</button></div>
+                {/* 보관한 유형에도 지도에 남아 있는 매체가 있을 수 있어, 목록에서 빼면 그 매체를
+                    다시 보이게 할 방법이 없어진다 — 전체 유형을 보여주고 보관된 것만 표시한다. */}
+                {types.map((t) => (
+                  <label key={t.code}><input type="checkbox" checked={typeFilter.has(t.code)} onChange={() => tog(t.code)} /><i style={{ background: t.color }} />{t.label}{!t.active && <em className="sub" style={{ fontStyle: 'normal', marginLeft: 4 }}>(보관)</em>}</label>
                 ))}
               </div>
             )}

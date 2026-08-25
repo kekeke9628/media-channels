@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { contentOf, subOf, days, ST, typeChipStyle, matches } from '../constants.js';
+import { useCodeFilter } from '../lib/useCodeFilter.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
@@ -31,7 +32,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
   // 홍보물 화면과 달리 기본 ON — 이 화면의 핵심 목적이 만료 건을 놓치지 않고 조치하는
   // 것이라(맨 위 정렬 + 철거 완료 버튼), 기본으로 숨기면 화면 목적과 어긋난다.
   const [showOverdue, setShowOverdue] = useState(true);
-  const [typeSel, setTypeSel] = useState(new Set(types.map((t) => t.code)));
+  const [typeSel, setTypeSel] = useCodeFilter(types.map((t) => t.code));
   // 드롭다운은 한 번에 하나만 — 매체 유형/상태 필터가 동시에 열려 겹쳐 보이던 문제.
   const [openDD, setOpenDD] = useState(null); // 'type' | 'status' | null
   const [q, setQ] = useState('');
