@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
+import PhotoField from './PhotoField.jsx';
 import { statusOf } from '../lib/status.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
 
@@ -226,31 +227,29 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
           <label className="fld"><span>업체명</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: 나이키" /></label>
           <label className="fld"><span>내용 (선택)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="비워두면 업체명이 그대로 들어갑니다" /></label>
-          <label className="fld"><span>홍보물 이미지 (선택)</span></label>
-          <label className="drop">
-            <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && process(e.target.files[0])} />
-            <span className="dropbtn">사진 선택</span>
-            <p>사진은 올릴 때 자동으로 용량을 줄여 저장합니다.</p>
-          </label>
-          {busy && <p className="hint">변환 중…</p>}
-          {result && (
+          <PhotoField
+            label="홍보물 이미지 (선택)" hint="사진은 올릴 때 자동으로 용량을 줄여 저장합니다."
+            caption="등록될 이미지" result={result} busy={busy}
+            onPick={process}
+            /* 설치 사진이 홍보물 이미지 자리를 대신 채우고 있었더라도, 여기서 지우는 건
+               "이 사진을 인쇄 시안으로는 쓰지 않겠다"는 뜻이다 — 설치 사진은 그대로 둔다. */
+            onClear={() => setResult(null)}
+          >
             <div className="rbox">
               <div className="rline total"><span>용량</span><b className="mono">{fileSize(result.orig)} → {fileSize(result.view.bytes)}</b></div>
               {mismatch && <p className="warnbox">⚠ 사진 가로세로 비율이 이 매체 규격({t.spec})과 달라, 실제 인쇄물에서는 잘려 보일 수 있습니다.</p>}
-              <div className="rprev"><img src={result.thumb.url} alt="" /><i className="sub">등록될 이미지</i></div>
             </div>
-          )}
+          </PhotoField>
 
           {initialMedia && (
             <>
-              <label className="fld"><span>설치 확인 사진 (선택)</span></label>
-              <label className="drop">
-                <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
-                <span className="dropbtn">사진 선택</span>
-                <p>현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.</p>
-              </label>
-              {installBusy && <p className="hint">변환 중…</p>}
-              {installPhoto && <div className="rprev"><img src={installPhoto.thumb.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
+              <PhotoField
+                label="설치 확인 사진 (선택)" capture
+                hint={'현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.'}
+                caption="설치 확인 사진" result={installPhoto} busy={installBusy}
+                onPick={processInstallPhoto}
+                onClear={() => { if (syncedFromInstall) setResult(null); setInstallPhoto(null); }}
+              />
               {syncedFromInstall && <p className="hint">홍보물 이미지가 비어 있어, 이 사진을 홍보물 이미지로도 함께 등록합니다. 인쇄 시안이 따로 있으면 위에서 올려 주세요.</p>}
 
               <div className="fld2">

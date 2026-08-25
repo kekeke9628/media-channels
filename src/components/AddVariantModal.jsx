@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { convertImage } from '../lib/convertImage.js';
+import PhotoField from './PhotoField.jsx';
 import { useModalKeys } from '../lib/useModalKeys.js';
 
 // 이미 만든 캠페인에 다른 규격(매체 유형)의 인쇄 파일을 더한다.
@@ -55,15 +56,14 @@ export default function AddVariantModal({ posting, T, types, onClose, onSubmit }
               </label>
               {t && <p className="hint">이 규격으로 인쇄 파일을 준비하세요 — <b>{t.spec}</b></p>}
 
-              <label className="fld"><span>인쇄 파일 (선택)</span></label>
-              <label className="drop">
-                <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && process(e.target.files[0])} />
-                <span className="dropbtn">사진 선택</span>
-                <p>지금 없으면 비워두고 나중에 올려도 됩니다. 규격만 먼저 등록해 두면 배치는 가능합니다.</p>
-              </label>
-              {busy && <p className="hint">변환 중…</p>}
-              {mismatch && <p className="warnbox">⚠ 사진 가로세로 비율이 이 규격({t.spec})과 달라, 실제 인쇄물에서는 잘려 보일 수 있습니다.</p>}
-              {result && <div className="rprev"><img src={result.thumb.url} alt="" /><i className="sub">등록될 이미지</i></div>}
+              <PhotoField
+                label="인쇄 파일 (선택)"
+                hint="지금 없으면 비워두고 나중에 올려도 됩니다. 규격만 먼저 등록해 두면 배치는 가능합니다."
+                caption="등록될 이미지" result={result} busy={busy}
+                onPick={process} onClear={() => setResult(null)}
+              >
+                {mismatch && <p className="warnbox">⚠ 사진 가로세로 비율이 이 규격({t.spec})과 달라, 실제 인쇄물에서는 잘려 보일 수 있습니다.</p>}
+              </PhotoField>
             </>
           )}
         </div>

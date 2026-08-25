@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY, contentOf, subOf, matches } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
+import PhotoField from './PhotoField.jsx';
 import { getPostingImageUrls, canPlaceOn, variantFor } from '../lib/queries.js';
 import { statusOf } from '../lib/status.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
@@ -172,14 +173,12 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
               </div>
               <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
 
-              <label className="fld"><span>설치 확인 사진 (선택)</span></label>
-              <label className="drop">
-                <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
-                <span className="dropbtn">사진 선택</span>
-                <p>현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.</p>
-              </label>
-              {installBusy && <p className="hint">변환 중…</p>}
-              {installPhoto && <div className="rprev"><img src={installPhoto.thumb.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
+              <PhotoField
+                label="설치 확인 사진 (선택)" capture
+                hint={'현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.'}
+                caption="설치 확인 사진" result={installPhoto} busy={installBusy}
+                onPick={processInstallPhoto} onClear={() => setInstallPhoto(null)}
+              />
               {willFillPostingImage && <p className="hint">이 홍보물에는 아직 이미지가 없어, 이 사진을 홍보물 이미지로도 함께 등록합니다.</p>}
 
               {conflict && (

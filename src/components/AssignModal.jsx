@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { iso, DAY } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
+import PhotoField from './PhotoField.jsx';
 import { statusOf } from '../lib/status.js';
 import { canPlaceOn } from '../lib/queries.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
@@ -181,14 +182,12 @@ export default function AssignModal({ posting, T, media, placements, refDate, pr
 
           {mode === 'single' && (
             <>
-              <label className="fld"><span>설치 확인 사진 (선택)</span></label>
-              <label className="drop">
-                <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && processInstallPhoto(e.target.files[0])} />
-                <span className="dropbtn">사진 선택</span>
-                <p>현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.</p>
-              </label>
-              {installBusy && <p className="hint">변환 중…</p>}
-              {installPhoto && <div className="rprev"><img src={installPhoto.thumb.url} alt="" /><i className="sub">설치 확인 사진</i></div>}
+              <PhotoField
+                label="설치 확인 사진 (선택)" capture
+                hint={'현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.'}
+                caption="설치 확인 사진" result={installPhoto} busy={installBusy}
+                onPick={processInstallPhoto} onClear={() => setInstallPhoto(null)}
+              />
               {willFillPostingImage && <p className="hint">이 홍보물에는 아직 이미지가 없어, 이 사진을 홍보물 이미지로도 함께 등록합니다.</p>}
             </>
           )}
