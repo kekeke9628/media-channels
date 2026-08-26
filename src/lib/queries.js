@@ -286,6 +286,17 @@ export async function createPosting({ brand, title, singleResult }) {
   return fetchPosting(inserted.id);
 }
 
+// 홍보물의 업체명·내용 수정. 홍보물은 여러 자리에 걸릴 수 있으므로 여기서 바꾸면 그
+// 홍보물이 걸린 모든 자리의 표시가 함께 바뀐다 — 호출 쪽에서 그 사실을 알려 준다.
+export async function updatePostingText(id, { brand, title }) {
+  const row = {};
+  if (brand !== undefined) row.brand = brand;
+  if (title !== undefined) row.title = title || null;
+  const { data, error } = await supabase.from('postings').update(row).eq('id', id).select().single();
+  if (error) throw error;
+  return mapPosting(data);
+}
+
 // 홍보물의 디자인 시안을 넣거나 갈아 끼운다. 같은 경로에 덮어쓰므로 옛 파일이 남지 않는다.
 export async function setPostingImage(posting, result) {
   if (!result) return fetchPosting(posting.id);

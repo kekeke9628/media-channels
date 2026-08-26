@@ -8,38 +8,118 @@ import { convertImage } from '../lib/convertImage.js';
 // 면(face) 하나의 "현재 배치 + 지난 배치" — 단일 면 매체는 이 컴포넌트가 정확히 하나만
 // 그려지고 라벨도 안 붙어서, 지금까지와 완전히 같은 화면으로 보인다. 2면 이상이면 면마다
 // 따로 그려서, 앞/뒤가 서로 다른 업체·기간으로 걸린 것도 각자 정확히 보여줄 수 있다.
-// 면마다 기간 고치기 — 종료일을 잘못 넣는 일이 잦은데(현장에서 급히 넣으니), 고치려면
-// 배치를 지우고 다시 만드는 수밖에 없었고 그러면 이력이 사라진다.
-function DateEdit({ pl, onSave }) {
-  const [open, setOpen] = useState(false);
+function StatsEditor({ pl, isEditor, onEditText, onEditDates }) {
+  const [brand, setBrand] = useState(pl.brand);
+  const [title, setTitle] = useState(pl.title || '');
   const [start, setStart] = useState(pl.start);
   const [end, setEnd] = useState(pl.end || '');
   const [noEnd, setNoEnd] = useState(!pl.end);
+  // 다른 면으로 옮겨 가거나 값이 서버에서 바뀌면 편집칸도 따라간다.
+  useEffect(() => {
+    setBrand(pl.brand); setTitle(pl.title || '');
+    setStart(pl.start); setEnd(pl.end || ''); setNoEnd(!pl.end);
+  }, [pl.id, pl.brand, pl.title, pl.start, pl.end]);
+
+  const canText = isEditor && !!onEditText;
+  const canDate = isEditor && !!onEditDates;
+  const saveDates = (s2, e2) => onEditDates(pl.id, { start: s2, end: e2 });
+
+  return (
+    <div className="statgrid">
+      <StatCell label="업체명" value={pl.brand} editable={canText}
+        onSave={() => onEditText(pl.postingId, { brand: brand.trim() })}>
+        {({ close, commit, saving }) => (
+          <>
+            <input className="inp" value={brand} autoFocus onChange={(e) => setBrand(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) commit(brand.trim() ? null : '업체명을 비워 둘 수 없습니다.'); }} />
+            <div className="statcell-btns">
+              <button className="mini ok" disabled={saving} onClick={() => commit(brand.trim() ? null : '업체명을 비워 둘 수 없습니다.')}>저장</button>
+              <button className="mini" disabled={saving} onClick={() => { setBrand(pl.brand); close(); }}>취소</button>
+            </div>
+          </>
+        )}
+      </StatCell>
+
+      <StatCell label="내용" value={subOf(pl) || '—'} editable={canText}
+        onSave={() => onEditText(pl.postingId, { title: title.trim() })}>
+        {({ close, commit, saving }) => (
+          <>
+            <input className="inp" value={title} autoFocus placeholder="비워두면 업체명만 표시됩니다"
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) commit(null); }} />
+            <div className="statcell-btns">
+              <button className="mini ok" disabled={saving} onClick={() => commit(null)}>저장</button>
+              <button className="mini" disabled={saving} onClick={() => { setTitle(pl.title || ''); close(); }}>취소</button>
+            </div>
+          </>
+        )}
+      </StatCell>
+
+      <StatCell label="시작일" value={pl.start} mono editable={canDate}
+        onSave={() => saveDates(start, noEnd ? null : end)}>
+        {({ close, commit, saving }) => (
+          <>
+            <input className="inp" type="date" value={start} autoFocus onChange={(e) => setStart(e.target.value)} />
+            <div className="statcell-btns">
+              <button className="mini ok" disabled={saving}
+                onClick={() => commit(!start ? '시작일을 넣어 주세요.' : (!noEnd && end && end < start) ? '종료일이 시작일보다 앞섭니다.' : null)}>저장</button>
+              <button className="mini" disabled={saving} onClick={() => { setStart(pl.start); close(); }}>취소</button>
+            </div>
+          </>
+        )}
+      </StatCell>
+
+      <StatCell label="종료일" value={pl.end || '미정'} mono editable={canDate}
+        onSave={() => saveDates(start, noEnd ? null : end)}>
+        {({ close, commit, saving }) => (
+          <>
+            <input className="inp" type="date" value={end} disabled={noEnd} autoFocus onChange={(e) => setEnd(e.target.value)} />
+            <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => setNoEnd(e.target.checked)} />미정</label>
+            <div className="statcell-btns">
+              <button className="mini ok" disabled={saving}
+                onClick={() => commit(!noEnd && !end ? '종료일을 넣거나 "미정"을 선택하세요.' : (!noEnd && end < start) ? '종료일이 시작일보다 앞섭니다.' : null)}>저장</button>
+              <button className="mini" disabled={saving} onClick={() => { setEnd(pl.end || ''); setNoEnd(!pl.end); close(); }}>취소</button>
+            </div>
+          </>
+        )}
+      </StatCell>
+    </div>
+  );
+}
+
+// 값이 적힌 칸을 그대로 누르면 그 자리에서 고친다.
+//
+// 예전에는 "기간 수정" 버튼을 따로 눌러야 했다 — 고칠 값 바로 옆이 아니라 아래에 버튼이
+// 있으니 무엇을 고치는 버튼인지 한 번 더 생각하게 되고, 업체명은 아예 고칠 방법이 없었다.
+// 보이는 값을 눌러서 고치는 게 가장 짧다.
+function StatCell({ label, value, mono, onSave, children, editable }) {
+  const [editing, setEditing] = useState(false);
   const [err, setErr] = useState('');
   const [saving, setSaving] = useState(false);
-  const begin = () => { setStart(pl.start); setEnd(pl.end || ''); setNoEnd(!pl.end); setErr(''); setOpen(true); };
-  const save = async () => {
-    if (!start) { setErr('시작일을 넣어 주세요.'); return; }
-    if (!noEnd && !end) { setErr('종료일을 넣거나 "미정"을 선택하세요.'); return; }
-    if (!noEnd && end < start) { setErr('종료일이 시작일보다 앞설 수 없습니다.'); return; }
+  if (!editable) return <div><em>{label}</em><b className={mono ? 'mono' : undefined}>{value}</b></div>;
+  if (!editing) {
+    return (
+      <button type="button" className="statcell" onClick={() => { setErr(''); setEditing(true); }} title="눌러서 수정">
+        <em>{label}</em>
+        <b className={mono ? 'mono' : undefined}>{value}</b>
+        <i className="statcell-pen">✎</i>
+      </button>
+    );
+  }
+  const commit = async (next) => {
+    const msg = typeof next === 'string' ? next : null;
+    if (msg) { setErr(msg); return; }
     setSaving(true);
-    const ok = await onSave(pl.id, { start, end: noEnd ? null : end });
+    const ok = await onSave();
     setSaving(false);
-    if (ok) setOpen(false); else setErr('저장하지 못했습니다. 같은 면에 기간이 겹치는 배치가 있는지 확인해 주세요.');
+    if (ok) { setEditing(false); setErr(''); }
+    else setErr('저장하지 못했습니다.');
   };
-  if (!open) return <button className="mini wide" style={{ marginTop: 8 }} onClick={begin}>기간 수정</button>;
   return (
-    <div className="dateedit">
-      <div className="fld2">
-        <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
-        <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => setEnd(e.target.value)} /></label>
-      </div>
-      <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => setNoEnd(e.target.checked)} />종료일 미정 — 철거 알람을 보내지 않습니다</label>
-      {err && <p className="warnbox">{err}</p>}
-      <div className="conflictbtns">
-        <button className="btn primary" disabled={saving} onClick={save}>{saving ? '저장 중…' : '저장'}</button>
-        <button className="btn" disabled={saving} onClick={() => setOpen(false)}>취소</button>
-      </div>
+    <div className="statcell editing">
+      <em>{label}</em>
+      {children({ close: () => { setEditing(false); setErr(''); }, commit, saving, setErr })}
+      {err && <span className="statcell-err">{err}</span>}
     </div>
   );
 }
@@ -66,7 +146,7 @@ function DesignShot({ url }) {
   );
 }
 
-function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd, onAttachPhoto, onEditDates, collapsible }) {
+function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd, onAttachPhoto, onEditDates, onEditText, collapsible }) {
   const cur = slot.overdue || slot.current;
   // 아직 시작하지 않은(게시예정) 배치는 "지난 배치"가 아니다 — 예전에는 cur만 빼고 나머지를
   // 전부 지난 배치로 묶어서, 다음 달에 걸릴 예약이 이력 표에 "지난 배치"로 들어가 있었다.
@@ -128,15 +208,9 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
               </>
             );
           })()}
-          <div className="statgrid">
-            <div><em>업체명</em><b>{cur.brand}</b></div>
-            {subOf(cur) && <div><em>내용</em><b>{subOf(cur)}</b></div>}
-            <div><em>시작일</em><b className="mono">{cur.start}</b></div>
-            <div><em>종료일</em><b className="mono">{cur.end || '미정'}</b></div>
-          </div>
-          {/* 날짜는 등록할 때 한 번 넣으면 끝이라 잘못 넣으면 고칠 방법이 없었다 — 배치를
-              지우고 다시 만들면 이력이 사라진다. 면마다 그 자리에서 고친다. */}
-          {isEditor && onEditDates && <DateEdit pl={cur} onSave={onEditDates} />}
+          {/* 값이 적힌 칸을 그대로 눌러 고친다 — 업체명·내용은 홍보물의 값이라 그 홍보물이
+              걸린 모든 자리에 함께 반영되고, 시작일·종료일은 이 면의 값이라 여기만 바뀐다. */}
+          <StatsEditor pl={cur} isEditor={isEditor} onEditText={onEditText} onEditDates={onEditDates} />
           {/* 실제 업무는 "사무실에서 배치 등록 → 현장에서 부착 → 그 자리에서 촬영" 순서라,
               사진을 나중에 붙일 수 있어야 한다. 예전에는 배치를 만드는 순간에만 첨부할 수
               있어서, 현장 사진을 넣으려면 배치를 지우고 다시 만들어야 했다. */}
@@ -210,7 +284,7 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
   );
 }
 
-export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onChangeMediaType, onAttachPhoto, onEditDates, focusFace }) {
+export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onChangeMediaType, onAttachPhoto, onEditDates, onEditText, focusFace }) {
   const t = T[o.type];
   const zoneLabel = ZONES[o.zone]?.label || o.zone;
   const hasHistory = o.slots.some((s) => s.history.length > 0);
@@ -309,7 +383,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
         <div className="sbody">
         {/* 면이 4개 이상일 때만 접기를 켠다 — 1~2면(웨더워리어 등)은 지금까지처럼 전부 펼친 채. */}
         {o.slots.map((slot) => (
-          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} collapsible={o.faces >= 4} />
+          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} collapsible={o.faces >= 4} />
         ))}
 
         {/* 위쪽 "홍보물 철거"와 헷갈리지 않게, 여기가 매체(틀) 자체를 다루는 자리임을 밝힌다. */}

@@ -5,7 +5,7 @@ import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, updateMediaFaces, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
-  createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, updatePlacementDates, setPostingImage,
+  createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, updatePlacementDates, updatePostingText, setPostingImage,
   setPlacementInstallPhoto,
   createMediaType, updateMediaType, setMediaTypeActive, deleteMediaType, countMediaTypeUsage, updateMediaName, setMediaType,
 } from './lib/queries.js';
@@ -278,6 +278,20 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       return true;
     } catch (e) { if (!silent) flash('배치에 실패했습니다: ' + e.message); return false; }
   };
+  // 업체명·내용 수정 — 홍보물은 여러 자리에 걸릴 수 있으므로 한 곳에서 고치면 그 홍보물이
+  // 걸린 모든 자리가 함께 바뀐다. 몇 곳이 바뀌는지 알려 준다.
+  const editPostingText = async (postingId, patch) => {
+    try {
+      const updated = await updatePostingText(postingId, patch);
+      setPostings((prev) => prev.map((p) => (p.id === postingId ? { ...p, ...updated } : p)));
+      setPlacements((prev) => prev.map((pl) => (pl.postingId === postingId
+        ? { ...pl, brand: updated.brand, title: updated.title } : pl)));
+      const n = placements.filter((pl) => pl.postingId === postingId).length;
+      flash(n > 1 ? `홍보물 정보를 고쳤습니다 — 이 홍보물이 걸린 ${n}곳에 모두 반영됩니다.` : '홍보물 정보를 고쳤습니다.');
+      return true;
+    } catch (e) { flash('수정에 실패했습니다: ' + e.message); return false; }
+  };
+
   // 배치 기간 수정 — 종료일을 잘못 넣는 일이 잦다(현장에서 급히 넣으니). 예전에는 고치려면
   // 배치를 지우고 다시 만드는 수밖에 없었고, 그러면 이력이 사라졌다.
   // 같은 면에 기간이 겹치면 DB 제약이 막는다 — 실패를 그대로 돌려줘 화면에서 안내한다.
@@ -603,7 +617,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         <MediaSheet
           {...ctx} o={byId[selMedia]} onClose={() => { setSelMedia(null); setFocusFace(null); }} onRemove={markRemoved} onDelete={removeMedia}
           onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType} onAttachPhoto={attachInstallPhoto}
-          onEditDates={editPlacementDates} focusFace={focusFace}
+          onEditDates={editPlacementDates} onEditText={editPostingText} focusFace={focusFace}
           onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}
         />
       )}

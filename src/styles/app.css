@@ -622,3 +622,20 @@ td.sub{display:table-cell}
 .cthumb{position:relative}
 .cthumb-tag{position:absolute;left:6px;bottom:6px;font-style:normal;font-size:10px;font-weight:600;
   background:rgba(35,33,30,.78);color:#fff;padding:2px 6px;border-radius:6px}
+
+/* 값이 적힌 칸을 눌러 그 자리에서 고친다 — 버튼을 따로 두지 않고 보이는 값을 누르게 한다.
+   평소에는 다른 칸(.statgrid div)과 똑같아 보이고, 누를 수 있다는 것만 연필로 알린다. */
+.statcell{display:block;width:100%;text-align:left;position:relative;font-family:inherit;
+  border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:#fff;cursor:pointer}
+.statcell:hover{background:#FBF9F5}
+.statcell em{font-style:normal;font-size:11px;color:var(--ink2);display:block}
+.statcell b{font-size:13.5px}
+.statcell-pen{position:absolute;right:8px;top:8px;font-style:normal;font-size:10.5px;color:#C9C2B4}
+.statcell:hover .statcell-pen{color:#8E6B2C}
+.statcell.editing{cursor:default;background:#FCFBF8;border-color:#D9CDB2}
+.statcell.editing .inp{width:100%;margin-top:4px}
+.statcell.editing .chk{margin-top:5px;font-size:11.5px}
+.statcell-btns{display:flex;gap:6px;margin-top:7px}
+.statcell-err{display:block;margin-top:5px;font-size:11px;color:#A74D46}
+/* 편집 중에는 두 칸 폭을 다 써야 날짜 입력칸과 버튼이 눌릴 만큼 넓어진다. */
+.statgrid .statcell.editing{grid-column:1 / -1}
