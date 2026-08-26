@@ -5,7 +5,7 @@ import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, updateMediaFaces, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
-  createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, setPostingImage,
+  createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, updatePlacementDates, setPostingImage,
   setPlacementInstallPhoto,
   createMediaType, updateMediaType, setMediaTypeActive, deleteMediaType, countMediaTypeUsage, updateMediaName, setMediaType,
 } from './lib/queries.js';
@@ -70,6 +70,9 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   // 로그인은 살아 있으니 보고 있던 자리만 되살리면 "창이 닫힌" 느낌이 없어진다.
   const [tab, setTab] = useSticky('ui.tab', 'posts');
   const [selMedia, setSelMedia] = useSticky('ui.selMedia', null);
+  // 목록에서 "3면"을 눌러 들어온 경우 그 면으로 스크롤하기 위한 값(기억하지 않는다).
+  const [focusFace, setFocusFace] = useState(null);
+  const pickMedia = (id, face = null) => { setSelMedia(id); setFocusFace(face); };
   const [zoneFilter, setZoneFilter] = useState('ALL');
   const [toast, setToast] = useState(null); // { msg, undo? }
   const [narrow, setNarrow] = useState(false);
@@ -275,6 +278,21 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       return true;
     } catch (e) { if (!silent) flash('배치에 실패했습니다: ' + e.message); return false; }
   };
+  // 배치 기간 수정 — 종료일을 잘못 넣는 일이 잦다(현장에서 급히 넣으니). 예전에는 고치려면
+  // 배치를 지우고 다시 만드는 수밖에 없었고, 그러면 이력이 사라졌다.
+  // 같은 면에 기간이 겹치면 DB 제약이 막는다 — 실패를 그대로 돌려줘 화면에서 안내한다.
+  const editPlacementDates = async (id, { start, end }) => {
+    try {
+      const updated = await updatePlacementDates(id, start, end);
+      setPlacements((prev) => prev.map((p) => (p.id === id ? { ...p, start: updated.start, end: updated.end } : p)));
+      flash('기간을 수정했습니다.');
+      return true;
+    } catch (e) {
+      flash('기간 수정에 실패했습니다: ' + (/exclusion|overlap|23P01/i.test(e.message || '') ? '같은 면에 기간이 겹치는 배치가 있습니다.' : e.message));
+      return false;
+    }
+  };
+
   // 현장에서 찍은 설치 확인 사진을 이미 걸려 있는 배치에 나중에 붙인다.
   const attachInstallPhoto = async (placementId, result) => {
     try {
@@ -562,29 +580,30 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         </div>
 
         <div className="panel">
-          {activeTab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
+          {activeTab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={pickMedia} />}
           {activeTab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
-              onPick={setSelMedia} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem}
+              onPick={pickMedia} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem}
               onAssign={(id) => { setAssignPreset(null); setAssigningId(id); }}
               onRepeat={(pl) => { setAssignPreset({ mediaId: pl.mediaId, face: pl.face || 1 }); setAssigningId(pl.postingId); }} />
           )}
-          {activeTab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={setSelMedia} />}
+          {activeTab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={pickMedia} />}
           {activeTab === 'manage' && (
             <ManagePanel {...ctx} media={media} postings={placements}
               onAddType={addType} onToggleType={toggleType} onEditType={editType} onRemoveType={removeType}
               onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType}
               onRemoveMedia={removeMedia} onRestoreMedia={restoreMediaItem} />
           )}
-          {activeTab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} isEditor={isEditor} onRemove={markRemoved} onPick={setSelMedia} />}
+          {activeTab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} isEditor={isEditor} onRemove={markRemoved} onPick={pickMedia} />}
           {activeTab === 'admins' && isEditor && <AdminsPanel meId={meId} narrow={narrow} />}
         </div>
       </main>
 
       {selMedia && byId[selMedia] && (
         <MediaSheet
-          {...ctx} o={byId[selMedia]} onClose={() => setSelMedia(null)} onRemove={markRemoved} onDelete={removeMedia}
+          {...ctx} o={byId[selMedia]} onClose={() => { setSelMedia(null); setFocusFace(null); }} onRemove={markRemoved} onDelete={removeMedia}
           onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType} onAttachPhoto={attachInstallPhoto}
+          onEditDates={editPlacementDates} focusFace={focusFace}
           onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}
         />
       )}

@@ -333,6 +333,10 @@ td.sub{display:table-cell}
    label로 만들어 어디를 눌러도 열리게 한다. */
 .drop{border:1.5px dashed var(--line);border-radius:11px;padding:14px;text-align:center;background:#FCFBF8;display:block;position:relative;cursor:pointer}
 .drop input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+/* 찍기 / 보관함 두 갈래 — 현장에서 바로 찍는 경우와 아까 찍어 둔 걸 올리는 경우가 반반이다. */
+.dropbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.dropbtns .dropbtn{cursor:pointer;position:relative}
+.dropbtn.ghost{background:#fff;color:#23211E;border:1px solid var(--line)}
 .dropbtn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:9px;background:#23211E;color:#fff;font-size:13px;font-weight:600}
 .drop p{font-size:11.5px;color:var(--ink2);margin:9px 0 0}
 .rbox{border:1px solid var(--line);border-radius:11px;padding:12px}
@@ -598,7 +602,11 @@ td.sub{display:table-cell}
 /* 매체 카드 안의 면 줄 — 면마다 카드를 내지 않고 한 카드에 텍스트로 쌓는다. */
 .facelines{display:flex;flex-direction:column;gap:2px;margin-top:8px}
 .faceline{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:8px;
-  background:#FBF9F5;font-size:12.5px;min-width:0}
+  background:#FBF9F5;font-size:12.5px;min-width:0;cursor:pointer}
+.faceline:hover{background:#F4F1EA}
+/* 면 구획으로 옮겨 올 때 헤더에 가리지 않게 여유를 둔다. */
+.facesheet{scroll-margin-top:12px}
+.dateedit{margin-top:9px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#FCFBF8}
 .faceline em{font-style:normal;font-weight:700;color:#8E6B2C;font-size:11.5px;flex:none;min-width:2.6em}
 .faceline b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .faceline .sub{flex:none}

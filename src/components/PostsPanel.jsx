@@ -49,7 +49,8 @@ function MediaCard({ g, T, isEditor, onPick, onRemove, zoneLabel }) {
       </div>
       <div className="facelines">
         {shown.map(({ o, p }) => (
-          <div className="faceline" key={o.face}>
+          <div className="faceline" key={o.face}
+            onClick={(e) => { e.stopPropagation(); onPick(g.mediaId, o.face); }}>
             <em>{o.faceLabel}</em>
             {p ? (
               <>

@@ -394,6 +394,15 @@ export async function undoPlacementRemoval(id) {
   if (error) throw error;
 }
 
+// 배치 기간 수정. 같은 매체·같은 면에 기간이 겹치면 DB의 배제 제약이 막는다 — 그 오류를
+// 그대로 올려 호출 쪽에서 사람이 읽을 수 있는 문구로 바꾼다.
+export async function updatePlacementDates(id, start, end) {
+  const { data, error } = await supabase.from('placements')
+    .update({ start_date: start, end_date: end || null }).eq('id', id).select().single();
+  if (error) throw error;
+  return { start: data.start_date, end: data.end_date };
+}
+
 export async function adjustPlacementEnd(id, newEnd) {
   const { error } = await supabase.from('placements').update({ end_date: newEnd }).eq('id', id);
   if (error) throw error;

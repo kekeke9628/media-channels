@@ -32,12 +32,26 @@ export default function PhotoField({ label, hint, caption, result, busy, onPick,
         </label>
       )}
       {!result ? (
-        <label className="drop">
-          <input type="file" accept="image/*" {...(capture ? { capture: 'environment' } : {})}
-            onChange={(e) => { if (e.target.files[0]) onPick(e.target.files[0]); e.target.value = ''; }} />
-          <span className="dropbtn">사진 선택</span>
+        <div className="drop">
+          {/* 설치 확인 사진은 대개 그 자리에서 찍지만, 아까 찍어 둔 걸 나중에 올리는 경우도
+              흔하다 — 카메라만 열리면 그때마다 다시 찍어야 한다. 두 길을 다 연다.
+              capture 속성이 붙은 input은 카메라로, 없는 쪽은 사진 보관함으로 열린다. */}
+          <div className="dropbtns">
+            {capture && (
+              <label className="dropbtn">
+                <input type="file" accept="image/*" capture="environment"
+                  onChange={(e) => { if (e.target.files[0]) onPick(e.target.files[0]); e.target.value = ''; }} />
+                사진 찍기
+              </label>
+            )}
+            <label className={capture ? 'dropbtn ghost' : 'dropbtn'}>
+              <input type="file" accept="image/*"
+                onChange={(e) => { if (e.target.files[0]) onPick(e.target.files[0]); e.target.value = ''; }} />
+              {capture ? '보관함에서 선택' : '사진 선택'}
+            </label>
+          </div>
           {hint && <p>{hint}</p>}
-        </label>
+        </div>
       ) : (
         <div className="photoedit">
           <img src={result.thumb.url} alt="" />

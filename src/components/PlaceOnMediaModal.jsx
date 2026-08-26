@@ -123,11 +123,15 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
         <div className="mbody">
           {!posting ? (
             <>
-              <p className="hint">{t?.label}{t?.spec ? ' · ' + t.spec : ''} — 등록된 홍보물 중에서 골라 거세요.</p>
+              <p className="hint">{t?.label}{t?.spec ? ' · ' + t.spec : ''}</p>
+              {/* 현장에서 새로 걸 때는 대개 아직 등록 안 한 홍보물이다 — 목록을 훑고 맨 아래까지
+                  내려가서야 이 버튼을 만나면 늦다. 가장 먼저 보이게 둔다. */}
+              <button className="btn primary wide" onClick={onCreateNew}>+ 새 홍보물 등록해서 바로 배치</button>
+              <p className="hint">또는 이미 등록된 홍보물 중에서 고르세요.</p>
               <label className="fld"><span>홍보물 검색</span><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="업체명 · 내용" /></label>
               {rows.length === 0 ? (
                 <p className="sub" style={{ padding: '8px 0' }}>
-                  {options.length === 0 ? '아직 등록된 홍보물이 없습니다. 아래 "새 홍보물 등록"으로 만들어 주세요.' : '검색 결과가 없습니다.'}
+                  {options.length === 0 ? '아직 등록된 홍보물이 없습니다. 위 버튼으로 새로 만들어 거세요.' : '검색 결과가 없습니다.'}
                 </p>
               ) : (
                 <div className="medialist wide">
@@ -146,7 +150,6 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
                   })}
                 </div>
               )}
-              <button className="btn wide" onClick={onCreateNew}>+ 새 홍보물 등록해서 바로 배치</button>
             </>
           ) : (
             <>
