@@ -11,6 +11,7 @@ import {
 } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
 import { useCodeFilter } from './lib/useCodeFilter.js';
+import { useSticky, useStickyScroll } from './lib/useSticky.js';
 import { useAuth, OWNER_EMAIL, resetAdminPassword } from './lib/useAuth.js';
 
 import Login from './components/Login.jsx';
@@ -65,8 +66,10 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const [postings, setPostings] = useState([]);
   const [placements, setPlacements] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const [tab, setTab] = useState('posts');
-  const [selMedia, setSelMedia] = useState(null);
+  // 다른 앱을 보고 돌아오면 브라우저가 탭을 버렸다 다시 여는 일이 잦다(특히 iOS).
+  // 로그인은 살아 있으니 보고 있던 자리만 되살리면 "창이 닫힌" 느낌이 없어진다.
+  const [tab, setTab] = useSticky('ui.tab', 'posts');
+  const [selMedia, setSelMedia] = useSticky('ui.selMedia', null);
   const [zoneFilter, setZoneFilter] = useState('ALL');
   const [toast, setToast] = useState(null); // { msg, undo? }
   const [narrow, setNarrow] = useState(false);
@@ -432,7 +435,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
 
   // narrow는 패널이 표 대신 모바일 카드 목록을 그릴지 정하는 데 쓴다.
   const ctx = { T, types, refDate, isEditor, narrow };
+  // 목록을 한참 내려보다 돌아왔을 때 맨 위로 튕기지 않게 한다.
+  useStickyScroll('ui.scroll', !dataLoading);
+
   const tabEntries = Object.entries(TABS).filter(([k]) => isEditor || !EDITOR_ONLY_TABS.has(k));
+  // 되살린 탭이 지금 권한으로는 못 보는 탭일 수 있다(편집자 전용 탭을 보던 계정이 바뀐 경우).
+  const activeTab = tabEntries.some(([k]) => k === tab) ? tab : 'posts';
   // 사이드바(왼쪽) 탭 버튼은 지도 아래 본문 영역까지 화면을 안 움직여 줘서, 지도를 스크롤해
   // 내려간 상태에서 누르면 바뀐 내용이 화면 밖에 있는 것처럼 보였다 — 탭 바까지 스크롤해준다.
   const panelTopRef = useRef(null);
@@ -483,7 +491,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         </div>
         <nav>
           {tabEntries.map(([k, v]) => (
-            <button key={k} className={tab === k ? 'on' : ''} onClick={() => goTab(k)}>
+            <button key={k} className={activeTab === k ? 'on' : ''} onClick={() => goTab(k)}>
               {v}{k === 'posts' && kpi.stale > 0 && <em className="red">{kpi.stale}</em>}
             </button>
           ))}
@@ -547,27 +555,27 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
 
         <div className="tabs" ref={panelTopRef}>
           {tabEntries.map(([k, v]) => (
-            <button key={k} className={tab === k ? 'on' : ''} onClick={() => goTab(k)}>{v}{k === 'posts' && kpi.stale > 0 && <em>{kpi.stale}</em>}</button>
+            <button key={k} className={activeTab === k ? 'on' : ''} onClick={() => goTab(k)}>{v}{k === 'posts' && kpi.stale > 0 && <em>{kpi.stale}</em>}</button>
           ))}
         </div>
 
         <div className="panel">
-          {tab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
-          {tab === 'promos' && (
+          {activeTab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={setSelMedia} />}
+          {activeTab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
               onPick={setSelMedia} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem}
               onAssign={(id) => { setAssignPreset(null); setAssigningId(id); }}
               onRepeat={(pl) => { setAssignPreset({ mediaId: pl.mediaId, face: pl.face || 1 }); setAssigningId(pl.postingId); }} />
           )}
-          {tab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={setSelMedia} />}
-          {tab === 'manage' && (
+          {activeTab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={setSelMedia} />}
+          {activeTab === 'manage' && (
             <ManagePanel {...ctx} media={media} postings={placements}
               onAddType={addType} onToggleType={toggleType} onEditType={editType} onRemoveType={removeType}
               onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType}
               onRemoveMedia={removeMedia} onRestoreMedia={restoreMediaItem} />
           )}
-          {tab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} isEditor={isEditor} onRemove={markRemoved} onPick={setSelMedia} />}
-          {tab === 'admins' && isEditor && <AdminsPanel meId={meId} narrow={narrow} />}
+          {activeTab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} isEditor={isEditor} onRemove={markRemoved} onPick={setSelMedia} />}
+          {activeTab === 'admins' && isEditor && <AdminsPanel meId={meId} narrow={narrow} />}
         </div>
       </main>
 
