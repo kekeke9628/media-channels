@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { iso, DAY, periodLabel, placementDefaults } from '../constants.js';
+import { iso, DAY, placementDefaults, endMismatch } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
@@ -184,7 +184,9 @@ export default function AssignModal({ posting, T, media, placements, refDate, pr
             <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
           </div>
           <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
-          {dflt.from && <p className="hint">홍보물 게시 기간({periodLabel(posting)})을 기본값으로 넣었습니다 — 실제로 걸어 두는 기간이 다르면 고치세요.</p>}
+          {endMismatch(posting.end, noEnd ? null : end) && (
+            <p className="warnbox">홍보물 게시 기간과 매체 배치 기간이 상이합니다 — 홍보물 종료일 <b>{posting.end}</b>, 배치 종료일 <b>{noEnd ? '미정' : end}</b>.</p>
+          )}
 
           {mode === 'single' && (
             <>

@@ -131,3 +131,9 @@ export const placementDefaults = (posting, fallbackStart, fallbackEnd) => ({
   forceEnd: !!posting?.end,
   from: !!(posting?.start || posting?.end),
 });
+
+// 홍보물 게시 기간과 배치 기간이 어긋났는지 — 종료일만 본다. 시작일은 캠페인이 시작된
+// 뒤에 뒤늦게 거는 일이 흔해 달라도 이상할 게 없지만, 종료일이 다르면 캠페인이 끝난
+// 뒤에도 걸려 있거나 반대로 일찍 내려가는 뜻이라 짚어 줘야 한다.
+// placementEnd는 "종료일 미정"이면 null.
+export const endMismatch = (postingEnd, placementEnd) => !!postingEnd && (placementEnd || null) !== postingEnd;
