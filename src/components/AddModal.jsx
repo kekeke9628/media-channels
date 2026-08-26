@@ -113,7 +113,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const syncedFromInstall = !!installPhoto && result === installPhoto;
 
   const specRatio = useMemo(() => { const spec = t?.spec || ''; const n = spec.match(/(\d+)\D+(\d+)/); return n ? +n[1] / +n[2] : null; }, [t]);
-  // 규격 비율 경고는 인쇄 시안에 대한 것이라, 현장 사진을 끌어다 채운 경우엔 띄우지 않는다.
+  // 비율 경고는 디자인 시안에 대한 것이라, 현장 사진을 끌어다 채운 경우엔 띄우지 않는다.
   const mismatch = result && !syncedFromInstall && specRatio && Math.abs(+result.ratio - specRatio) / specRatio > 0.08;
 
   const buildPayload = () => ({ type: typeCode, brand, title, singleResult: result });
@@ -192,15 +192,6 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
       <div className="mbox" onClick={(e) => e.stopPropagation()}>
         <div className="mhead"><b>{initialMedia ? `${initialMedia.name}에 새로 등록` : '홍보물 등록'}</b><button onClick={onClose}>✕</button></div>
         <div className="mbody">
-          <label className="fld"><span>규격 (매체 유형)</span>
-            <select value={typeCode} onChange={(e) => setTypeCode(e.target.value)} disabled={!!initialMedia}>
-              {activeTypes.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
-            </select>
-          </label>
-          {/* 면수는 매체의 속성이지 홍보물의 속성이 아니다 — 인쇄물 한 장에 "2면"은 뜻이 없다
-              (postings.faces는 마이그레이션 018에서 이미 제거했는데 문구만 남아 있었다).
-              여기서 뜻이 있는 건 규격뿐이다: 어떤 크기로 파일을 준비해야 하는지 알려 준다. */}
-          {t && <p className="hint">이 규격으로 디자인 시안을 준비하세요 — <b>{t.spec}</b></p>}
 
           {initialMedia ? (
             mediaFaces > 1 && (
@@ -250,7 +241,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
             {result && (
               <div className="rbox">
                 <div className="rline total"><span>용량</span><b className="mono">{fileSize(result.orig)} → {fileSize(result.view.bytes)}</b></div>
-                {mismatch && <p className="warnbox">⚠ 사진 가로세로 비율이 이 매체 규격({t.spec})과 달라, 실제 인쇄물에서는 잘려 보일 수 있습니다.</p>}
+                {mismatch && <p className="warnbox">⚠ 사진 가로세로 비율이 이 매체 규격({t.spec})과 많이 다릅니다 — 실제로 걸린 모습과 달라 보일 수 있습니다.</p>}
               </div>
             )}
           </PhotoField>

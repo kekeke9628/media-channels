@@ -6,7 +6,7 @@ import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, updateMediaFaces, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
   createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, setPostingImage,
-  setPlacementInstallPhoto, variantFor, canPlaceOn, addPostingVariant,
+  setPlacementInstallPhoto,
   createMediaType, updateMediaType, setMediaTypeActive, deleteMediaType, countMediaTypeUsage, updateMediaName, setMediaType,
 } from './lib/queries.js';
 import { zoneAt } from './data/seed.js';
@@ -28,7 +28,6 @@ import MediaSheet from './components/MediaSheet.jsx';
 import AddModal from './components/AddModal.jsx';
 import AssignModal from './components/AssignModal.jsx';
 import PlaceOnMediaModal from './components/PlaceOnMediaModal.jsx';
-import AddVariantModal from './components/AddVariantModal.jsx';
 
 const TABS = { posts: '매체 현황', promos: '홍보물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
 const EDITOR_ONLY_TABS = new Set(['alert', 'admins']);
@@ -80,7 +79,6 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   // "다시 걸기" — 지난 배치와 같은 매체·면을 미리 채운 채로 배치 화면을 연다. 매달 같은
   // 업체를 같은 자리에 다시 거는 일이 잦은데, 지금까지는 매번 목록에서 매체를 다시 찾아야 했다.
   const [assignPreset, setAssignPreset] = useState(null); // { mediaId, face }
-  const [variantFor_, setVariantFor_] = useState(null); // 규격 추가 대상 홍보물
   const [editMode, setEditMode] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const [mapImage, setMapImage] = useState(null);
@@ -123,16 +121,15 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   // slots = 면(face) 단위로 펼친 것(매체 현황·타임라인·알람이 씀 — 2면 매체는 항목 2개).
   // 진짜 재고 단위는 매체가 아니라 면이라, 카운트·알람도 면 기준이 맞다 — 웨더워리어처럼
   // 2면인 매체는 앞/뒤가 서로 다른 광고주로 독립적으로 걸릴 수 있기 때문이다.
-  // 캠페인에 규격이 여러 벌 있어도, 웨더워리어에 걸린 배치에 보여줄 것은 웨더워리어용
-  // 인쇄 파일이다 — 어느 파일인지는 그 배치가 걸린 매체의 유형이 정한다.
+  // 배치에 홍보물 정보(업체명·시안 이미지)를 얹어 둔다 — 화면들이 배치 한 줄만 보고
+  // 무엇이 걸렸는지 그릴 수 있어야 한다.
   const placementsView = useMemo(() => {
-    const typeOf = Object.fromEntries(media.map((m) => [m.id, m.type]));
     const postingById = Object.fromEntries(postings.map((p) => [p.id, p]));
     return placements.map((pl) => {
-      const v = variantFor(postingById[pl.postingId], typeOf[pl.mediaId]);
-      return v ? { ...pl, thumbPath: v.thumbPath, viewPath: v.viewPath } : pl;
+      const po = postingById[pl.postingId];
+      return po ? { ...po, ...pl } : pl;
     });
-  }, [placements, media, postings]);
+  }, [placements, postings]);
 
   const state = useMemo(() => buildState(media, autoClose(placementsView, refDate), refDate), [media, placementsView, refDate]);
   const slots = useMemo(() => flattenSlots(state), [state]);
@@ -246,7 +243,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       // 되돌리지 않고 이미지만 비운 채 넘어간다.
       let p = posting;
       const mediaType = media.find((m) => m.id === mediaId)?.type;
-      if (installPhoto && mediaType && !variantFor(posting, mediaType)?.thumbPath) {
+      if (installPhoto && !posting.thumbPath) {
         try {
           p = await setPostingImage(posting, installPhoto, mediaType);
           setPostings((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...p } : x)));
@@ -272,7 +269,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       const target = placements.find((p) => p.id === placementId);
       const posting = target && postings.find((x) => x.id === target.postingId);
       const mType = target && media.find((m) => m.id === target.mediaId)?.type;
-      if (posting && mType && !variantFor(posting, mType)?.thumbPath) {
+      if (posting && !posting.thumbPath) {
         try {
           const np = await setPostingImage(posting, result, mType);
           setPostings((prev) => prev.map((x) => (x.id === np.id ? { ...x, ...np } : x)));
@@ -306,15 +303,6 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     } catch (e) { flash('종료일 조정에 실패했습니다: ' + e.message); return false; }
   };
 
-  // 이미 만든 캠페인에 다른 규격의 인쇄 파일을 더한다.
-  const addVariant = async (postingId, type, result) => {
-    try {
-      const updated = await addPostingVariant(postingId, type, result);
-      setPostings((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-      flash(`${T[type]?.label || type} 규격을 추가했습니다.`);
-      return true;
-    } catch (e) { flash('규격 추가에 실패했습니다: ' + e.message); return false; }
-  };
 
   // 이 네 가지는 여태 화면 상태만 바꾸고 DB에 쓰지 않았다 — 유형을 만들어도 새로고침하면
   // 사라졌다. 저장이 실패하면 화면도 되돌린다(반쯤 반영된 채로 두면 다음 동작이 엉킨다).
@@ -348,7 +336,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     try {
       const { media: mc, variants: vc } = await countMediaTypeUsage(code);
       if (mc || vc) {
-        const parts = [mc && `등록된 매체 ${mc}개`, vc && `홍보물 규격 ${vc}건`].filter(Boolean).join(', ');
+        const parts = [mc && `등록된 매체 ${mc}개`].filter(Boolean).join(', ');
         flash(`"${label}"은(는) ${parts}에서 쓰고 있어 삭제할 수 없습니다. 대신 "보관"하면 새 등록에서만 빠집니다.`);
         return;
       }
@@ -367,15 +355,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     try {
       await setMediaType(id, type);
       setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, type } : m)));
-      const missing = [...new Set(
-        placements.filter((pl) => pl.mediaId === id)
-          .map((pl) => postings.find((p) => p.id === pl.postingId))
-          .filter((p) => p && !canPlaceOn(p, type))
-          .map((p) => p.brand),
-      )];
-      flash(missing.length
-        ? `유형을 ${T[type]?.label || type}(으)로 바꿨습니다. ${missing.join(', ')}에는 이 규격 파일이 없어 이미지가 안 보입니다 — 홍보물 화면에서 규격을 추가하세요.`
-        : `유형을 ${T[type]?.label || type}(으)로 바꿨습니다.`);
+      flash(`유형을 ${T[type]?.label || type}(으)로 바꿨습니다.`);
     } catch (e) { flash('매체 유형 변경에 실패했습니다: ' + e.message); }
   };
 
@@ -577,8 +557,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
               onPick={setSelMedia} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem}
               onAssign={(id) => { setAssignPreset(null); setAssigningId(id); }}
-              onRepeat={(pl) => { setAssignPreset({ mediaId: pl.mediaId, face: pl.face || 1 }); setAssigningId(pl.postingId); }}
-              onAddVariant={setVariantFor_} />
+              onRepeat={(pl) => { setAssignPreset({ mediaId: pl.mediaId, face: pl.face || 1 }); setAssigningId(pl.postingId); }} />
           )}
           {tab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={setSelMedia} />}
           {tab === 'manage' && (
@@ -633,12 +612,6 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           preset={assignPreset}
           onClose={() => { setAssigningId(null); setAssignPreset(null); }} onAssign={addPlacement} onAdjustEnd={adjustEnd}
           onDone={(ok, failed) => flash(`${ok}건 배치 완료${failed ? ` · ${failed}건 실패` : ''}`)}
-        />
-      )}
-      {variantFor_ && isEditor && (
-        <AddVariantModal
-          {...ctx} posting={postings.find((p) => p.id === variantFor_.id) || variantFor_}
-          onClose={() => setVariantFor_(null)} onSubmit={addVariant}
         />
       )}
       {toast && (

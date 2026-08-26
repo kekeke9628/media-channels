@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { contentOf, subOf, matches, typeChipStyle } from '../constants.js';
-import { useCodeFilter } from '../lib/useCodeFilter.js';
+import { contentOf, subOf, matches } from '../constants.js';
 import { statusOf } from '../lib/status.js';
-import { getPostingImageUrls, variantFor } from '../lib/queries.js';
+import { getPostingImageUrls } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
 
 // 홍보물 — 매체·일정과 무관하게 홍보물(브랜드·내용·이미지) 자체를 관리하는 화면.
 // 매체 배치는 홍보물에 딸린 부가 정보로 아래 미니 표에서 보여주고, "+ 배치 추가"로 몇 곳이든
 // 추가할 수 있다(동시에 여러 매체에 걸거나, 시간차를 두고 다시 거는 것 모두 여기서 시작).
 
-export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRepeat, onRemove, onUndo, onCancel, onDeletePosting, onAddVariant }) {
-  const [typeSel, setTypeSel] = useCodeFilter(types.map((t) => t.code));
+export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRepeat, onRemove, onUndo, onCancel, onDeletePosting }) {
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
   const [q, setQ] = useState('');
@@ -32,9 +30,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
     return () => { cancelled = true; };
   }, [postings]);
 
-  useEffect(() => { setLimit(60); }, [q, draftOnly, typeSel]); // 조건이 바뀌면 처음부터 다시
-
-  const toggleType = (c) => setTypeSel((prev) => { const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n; });
+  useEffect(() => { setLimit(60); }, [q, draftOnly]); // 조건이 바뀌면 처음부터 다시
 
   const placementsOf = useMemo(() => {
     const by = {};
@@ -44,7 +40,6 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
   }, [placements]);
 
   const rows = postings
-    .filter((p) => (p.types || []).some((c) => typeSel.has(c)))
     .filter((p) => !draftOnly || !(placementsOf[p.id]?.length))
     .filter((p) => {
       if (!q) return true;
@@ -66,17 +61,6 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
       <p className="hint" style={{ marginBottom: 10 }}>홍보물은 매체와 따로 관리됩니다 — 먼저 등록해 두고, 필요한 매체에 원하는 만큼 <b>배치</b>하세요.</p>
       <div className="toolrow">
         <input className="inp" placeholder="업체명 · 내용 · 매체명 검색" value={q} onChange={(e) => setQ(e.target.value)} />
-        <div className="dd right">
-          <button className="btn" onClick={() => setOpenDD((v) => !v)}>매체 유형 {typeSel.size === types.length ? '전체' : typeSel.size} ▾</button>
-          {openDD && (
-            <div className="ddmenu" onMouseLeave={() => setOpenDD(false)}>
-              <div className="ddtop"><button onClick={() => setTypeSel(new Set(types.map((t) => t.code)))}>전체</button><button onClick={() => setTypeSel(new Set())}>해제</button></div>
-              {types.map((t) => (
-                <label key={t.code}><input type="checkbox" checked={typeSel.has(t.code)} onChange={() => toggleType(t.code)} /><i style={{ background: t.color }} />{t.label}</label>
-              ))}
-            </div>
-          )}
-        </div>
         <label className="chk"><input type="checkbox" checked={draftOnly} onChange={(e) => setDraftOnly(e.target.checked)} />미배치만 보기</label>
         <span className="count mono">{rows.length}건</span>
       </div>
@@ -97,16 +81,6 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
               </div>
               <div className="cbody">
                 <b>{p.brand}</b>{subOf(p) && <i className="sub">{subOf(p)}</i>}
-                {/* 같은 캠페인이라도 웨더워리어용·듀라트란스용은 규격이 달라 인쇄 파일이 따로다.
-                    이 캠페인이 어떤 규격을 갖고 있는지 한눈에 보여주고, 없는 규격은 여기서 더한다. */}
-                <div className="varrow">
-                  {(p.variants || []).map((v) => (
-                    <span key={v.type} className="chip" style={typeChipStyle(T[v.type]?.color)} title={T[v.type]?.spec || ''}>
-                      {T[v.type]?.label || v.type}{!v.thumbPath && ' · 파일없음'}
-                    </span>
-                  ))}
-                  {isEditor && <button className="mini" onClick={() => onAddVariant(p)}>+ 규격 추가</button>}
-                </div>
                 <div className="crow">
                   {pls.length === 0 ? <span className="tag vacant">미배치</span> : <span className="sub mono">{pls.length}곳에 배치</span>}
                 </div>
