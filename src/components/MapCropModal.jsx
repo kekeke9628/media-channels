@@ -2,9 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { clamp } from '../constants.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
 
-// PDF/이미지 배치도 업로드 크롭 — 배너 시스템과 동일하게, PDF의 특정 페이지 일부를
-// 지도 프레임 비율(2:1)로 크롭해 배경으로 쓴다. 자동 중앙 크롭이 아니라 팬/줌으로
-// 정확히 원하는 영역을 고른다(지도 패널의 pan/zoom과 동일한 조작 방식).
+// 배치도 업로드 — 두 가지 방식이 있다.
+//
+// ① 전체 그대로: 원본을 자르지 않고 비율 그대로 저장한다. 2:1로 잘라 저장하면 지도
+//    프레임 높이를 키워도 아래에 빈 공간만 생기고 지도가 더 보이지 않는다(잘려 나간
+//    부분은 애초에 저장돼 있지 않으므로). 기본값.
+// ② 영역 선택: PDF 센터맵처럼 범례·미니맵 같은 장식이 붙어 있을 때 필요한 부분만
+//    2:1로 잘라낸다. 팬/줌으로 고른다(지도 패널과 같은 조작).
 const FRAME_W = 640;
 const FRAME_H = 320; // 2:1
 const MIN_ZOOM = 1;
@@ -32,6 +36,8 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
   const [srcImg, setSrcImg] = useState(null); // HTMLImageElement (렌더링된 페이지 또는 원본 이미지)
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  // 기본은 자르지 않고 전체를 그대로 저장한다.
+  const [whole, setWhole] = useState(true);
 
   const frameRef = useRef(null);
   const imgElRef = useRef(null);
@@ -194,8 +200,28 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
 
   useModalKeys({ onClose: onCancel, busy });
 
+  // 자르지 않을 때의 저장 크기 — 긴 변 3200px(지도에서 최대 4배까지 확대하므로 글자가
+  // 뭉개지지 않을 정도), 짧은 변은 2000px을 넘기지 않는다(세로로 긴 원본 대비).
+  const OUT_LONG = 3200;
+  const OUT_SHORT = 2000;
+  const wholeSize = () => {
+    const iw = srcImg?.naturalWidth || 1, ih = srcImg?.naturalHeight || 1;
+    let s2 = Math.min(OUT_LONG / Math.max(iw, ih), OUT_SHORT / Math.min(iw, ih), 1);
+    return { w: Math.max(1, Math.round(iw * s2)), h: Math.max(1, Math.round(ih * s2)) };
+  };
+
   const confirm = () => {
     setBusy(true);
+    if (whole) {
+      const { w, h } = wholeSize();
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      const ctx = cv.getContext('2d');
+      ctx.filter = 'grayscale(1)';
+      ctx.drawImage(srcImg, 0, 0, srcImg.naturalWidth, srcImg.naturalHeight, 0, 0, w, h);
+      cv.toBlob((blob) => { setBusy(false); onConfirm(blob); }, 'image/png');
+      return;
+    }
     const { x, y, zoom, baseScale } = stateRef.current;
     const scale = baseScale * zoom;
     const cv = document.createElement('canvas');
@@ -215,7 +241,7 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
     <div className="modal" onClick={onCancel}>
       <div className="mbox cropbox" onClick={(e) => e.stopPropagation()}>
         <div className="mhead">
-          <b>배치도 영역 선택</b>
+          <b>배치도 업로드</b>
           {isPdf && pageCount > 1 && (
             <div className="pagepick">
               <button className="mini" disabled={pageNum <= 1} onClick={() => setPageNum((p) => p - 1)}>‹</button>
@@ -230,16 +256,36 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
             <p className="hint">불러오는 중…</p>
           ) : (
             <>
-              <div className="cropframe" ref={frameRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-                {srcImg && <img ref={imgElRef} src={srcImg.src} alt="" draggable={false} style={{ filter: 'grayscale(1)' }} />}
+              <div className="seg">
+                <button className={whole ? 'on' : ''} onClick={() => setWhole(true)}>전체 그대로</button>
+                <button className={!whole ? 'on' : ''} onClick={() => setWhole(false)}>영역 선택 (2:1)</button>
               </div>
-              <p className="hint">휠(PC)로 확대/축소, 두 손가락(모바일)으로 확대·축소, 드래그로 이동해 영역을 프레임 안에 맞추세요.</p>
+              {whole ? (
+                <>
+                  {/* 잘리는 곳 없이 저장되는 그대로를 보여준다 — 미리보기 틀도 원본 비율을 따른다. */}
+                  <div className="cropframe whole">
+                    {srcImg && <img src={srcImg.src} alt="" draggable={false} style={{ filter: 'grayscale(1)' }} />}
+                  </div>
+                  <p className="hint">
+                    자르지 않고 원본 비율 그대로 저장합니다{srcImg && ` — ${wholeSize().w}×${wholeSize().h}px`}.
+                    지도 높이를 키우면 그만큼 더 보입니다. 범례·미니맵처럼 지도가 아닌 부분이
+                    섞여 있으면 "영역 선택"으로 잘라내세요.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="cropframe" ref={frameRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+                    {srcImg && <img ref={imgElRef} src={srcImg.src} alt="" draggable={false} style={{ filter: 'grayscale(1)' }} />}
+                  </div>
+                  <p className="hint">휠(PC)로 확대/축소, 두 손가락(모바일)으로 확대·축소, 드래그로 이동해 영역을 프레임 안에 맞추세요.</p>
+                </>
+              )}
             </>
           )}
         </div>
         <div className="mfoot">
           <button className="btn" onClick={onCancel}>취소</button>
-          <button className="btn primary" disabled={loading || busy} onClick={confirm}>{busy ? '처리 중…' : '이 영역으로 적용'}</button>
+          <button className="btn primary" disabled={loading || busy} onClick={confirm}>{busy ? '처리 중…' : (whole ? '이대로 적용' : '이 영역으로 적용')}</button>
         </div>
       </div>
     </div>
