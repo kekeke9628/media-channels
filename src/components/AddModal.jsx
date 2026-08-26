@@ -51,24 +51,38 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const [faceLabel, setFaceLabel] = useState('');
   const [labelTouched, setLabelTouched] = useState(false);
   const mediaPlacements = (id, f) => placements.filter((pl) => pl.mediaId === id && (pl.face || 1) === f).sort((a, b) => b.start.localeCompare(a.start));
+  // 그 면이 비는 날 — 마지막 배치의 다음 날, 없으면 오늘.
+  const vacantStart = (f) => {
+    const last = initialMedia ? mediaPlacements(initialMedia.id, f)[0] : null;
+    return last ? (last.end ? iso(Date.parse(last.end) + DAY) : refDate) : refDate;
+  };
+  // 배치 기간을 손으로 고쳤으면 그 뒤로는 게시 기간을 따라가지 않는다.
+  const [dateTouched, setDateTouched] = useState(false);
   useEffect(() => {
     if (!initialMedia) return;
     const faces = Array.from({ length: mediaFaces }, (_, i) => i + 1);
     const vacant = faces.find((f) => !mediaPlacements(initialMedia.id, f).some((pl) => statusOf(pl, refDate) === 'live' || statusOf(pl, refDate) === 'open'));
     const nextFace = initialFace && faces.includes(initialFace) ? initialFace : (vacant || 1);
     setFace(nextFace);
-    const last = mediaPlacements(initialMedia.id, nextFace)[0];
-    setStart(last ? (last.end ? iso(Date.parse(last.end) + DAY) : refDate) : refDate);
+    setStart(vacantStart(nextFace));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     if (!initialMedia) return;
-    const last = mediaPlacements(initialMedia.id, face)[0];
-    setStart(last ? (last.end ? iso(Date.parse(last.end) + DAY) : refDate) : refDate);
+    setStart(pStart || vacantStart(face));
     setConflict(null);
     if (!labelTouched) setFaceLabel(face + '면');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [face]);
+  // 위쪽에서 홍보물 게시 기간을 넣으면 아래 배치 기간도 그대로 따라 채운다 — 같은 날짜를
+  // 두 번 입력하게 하면 한쪽만 고쳐 두고 넘어가기 쉽다.
+  useEffect(() => {
+    if (dateTouched) return;
+    setStart(pStart || vacantStart(face));
+    if (pEnd) { setEnd(pEnd); setNoEnd(false); }
+    setConflict(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pStart, pEnd]);
   const findOverlap = (id, f) => {
     const newEndEff = noEnd ? '9999-12-31' : end;
     return mediaPlacements(id, f).find((pl) => {
@@ -280,10 +294,11 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               {missingInstall && <p className="warnbox">오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)</p>}
 
               <div className="fld2">
-                <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
-                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
+                <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
+                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
               </div>
-              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
+              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setDateTouched(true); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
+              {!dateTouched && (pStart || pEnd) && <p className="hint">위에 넣은 게시 기간을 그대로 가져왔습니다 — 실제로 걸어 두는 기간이 다르면 고치세요.</p>}
 
               {conflict && (
                 <div className="conflictbox">
@@ -298,10 +313,10 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
           {!initialMedia && bulkOn && targets.length > 0 && (
             <>
               <div className="fld2">
-                <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
-                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
+                <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
+                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
               </div>
-              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => setNoEnd(e.target.checked)} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
+              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setDateTouched(true); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
 
               {bulkConflictCount > 0 && !bulkConfirm && (
                 <p className="warnbox">⚠ 선택된 매체 중 {bulkConflictCount}곳은 이미 걸린 홍보물이 있습니다 — 그대로 진행하면 그 홍보물의 종료일이 앞당겨집니다.</p>

@@ -118,3 +118,16 @@ export const periodLabel = (p) => {
 // 종료일이 지난 홍보물 — 새로 걸 후보에서 뺀다. 시작일만 미래인 것은 뺄 이유가 없다
 // (미리 잡아 두는 경우가 있다).
 export const postingExpired = (p, refDate) => !!p?.end && p.end < refDate;
+
+// 배치 기간의 기본값을 홍보물의 게시 기간에서 가져온다. 둘은 별개의 개념이지만(위 주석)
+// 실제로는 "캠페인 도는 동안 걸어 둔다"가 대부분이라, 같은 날짜를 두 번 입력하게 하는
+// 것보다 채워 주고 필요할 때 고치게 하는 쪽이 현장에서 훨씬 덜 틀린다.
+// 기간을 안 넣은 홍보물(상시)이면 원래 기본값(비어 있는 면의 다음 날 / 오늘+30일)을 쓴다.
+export const placementDefaults = (posting, fallbackStart, fallbackEnd) => ({
+  start: posting?.start || fallbackStart,
+  end: posting?.end || fallbackEnd,
+  // 홍보물이 종료일을 갖고 있으면 "종료일 미정" 체크는 풀어 준다 — 기간이 있는데
+  // 철거 알람이 안 가면 그게 더 문제다.
+  forceEnd: !!posting?.end,
+  from: !!(posting?.start || posting?.end),
+});

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel } from '../constants.js';
+import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel, placementDefaults } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
 import { installPhotoRequired } from '../constants.js';
@@ -64,6 +64,11 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
   };
 
   const mediaPlacements = (f) => placements.filter((pl) => pl.mediaId === media.id && (pl.face || 1) === f).sort((a, b) => b.start.localeCompare(a.start));
+  // 그 면이 비는 날 — 마지막 배치의 다음 날, 없으면 오늘.
+  const vacantStart = (f) => {
+    const last = mediaPlacements(f)[0];
+    return last ? (last.end ? iso(Date.parse(last.end) + DAY) : refDate) : refDate;
+  };
   const findOverlap = (f) => {
     const newEndEff = noEnd ? '9999-12-31' : end;
     return mediaPlacements(f).find((pl) => {
@@ -76,7 +81,6 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
   // 마지막 배치 다음 날로 시작일을 맞춘다.
   const pick = (p) => {
     setPosting(p);
-    setNoEnd(!!t?.openEnded);
     // 매체 상세의 "N면에 홍보물 배치" 버튼으로 들어왔으면 그 면을 그대로 쓰고, 아니면
     // 비어 있는 면을 자동으로 고른다.
     const faces = Array.from({ length: mediaFaces }, (_, i) => i + 1);
@@ -85,15 +89,20 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
     setFace(nextFace);
     setLabelTouched(false);
     setFaceLabel(nextFace + '면');
-    const last = mediaPlacements(nextFace)[0];
-    setStart(last ? (last.end ? iso(Date.parse(last.end) + DAY) : refDate) : refDate);
+    // 기간은 고른 홍보물의 게시 기간을 기본값으로 채운다(상시면 예전대로 빈 면 다음 날).
+    const d = placementDefaults(p, vacantStart(nextFace), iso(Date.parse(refDate) + 30 * DAY));
+    setStart(d.start);
+    setEnd(d.end);
+    setNoEnd(d.forceEnd ? false : !!t?.openEnded);
     setConflict(null);
   };
   useEffect(() => {
     if (!labelTouched) setFaceLabel(face + '면');
     setConflict(null);
-    const last = mediaPlacements(face)[0];
-    setStart(last ? (last.end ? iso(Date.parse(last.end) + DAY) : refDate) : refDate);
+    // 홍보물 게시 기간에서 가져온 시작일은 면을 바꿔도 그대로 둔다 — 어느 면에 걸든
+    // 캠페인이 도는 기간은 같다.
+    if (posting?.start) return;
+    setStart(vacantStart(face));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [face]);
 
@@ -180,6 +189,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
                 <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
               </div>
               <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
+              {(posting.start || posting.end) && <p className="hint">홍보물 게시 기간({periodLabel(posting)})을 기본값으로 넣었습니다 — 실제로 걸어 두는 기간이 다르면 고치세요.</p>}
 
               <PhotoField
                 label={needInstall ? '설치 확인 사진 (필수)' : '설치 확인 사진 (선택)'} capture

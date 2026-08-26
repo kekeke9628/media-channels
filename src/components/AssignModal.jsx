@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { iso, DAY } from '../constants.js';
+import { iso, DAY, periodLabel, placementDefaults } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
@@ -20,9 +20,11 @@ export default function AssignModal({ posting, T, media, placements, refDate, pr
 
   // preset이 있으면("다시 걸기") 그 매체를 미리 골라 둔다.
   const [mediaId, setMediaId] = useState(preset?.mediaId || targets[0]?.id || '');
-  const [start, setStart] = useState(refDate);
-  const [noEnd, setNoEnd] = useState(!!t?.openEnded);
-  const [end, setEnd] = useState(iso(Date.parse(refDate) + 30 * DAY));
+  // 배치 기간의 기본값은 이 홍보물의 게시 기간에서 가져온다(상시면 오늘 ~ 오늘+30일).
+  const dflt = placementDefaults(posting, refDate, iso(Date.parse(refDate) + 30 * DAY));
+  const [start, setStart] = useState(dflt.start);
+  const [noEnd, setNoEnd] = useState(dflt.forceEnd ? false : !!t?.openEnded);
+  const [end, setEnd] = useState(dflt.end);
   const [conflict, setConflict] = useState(null);
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState(null);
@@ -182,6 +184,7 @@ export default function AssignModal({ posting, T, media, placements, refDate, pr
             <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
           </div>
           <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
+          {dflt.from && <p className="hint">홍보물 게시 기간({periodLabel(posting)})을 기본값으로 넣었습니다 — 실제로 걸어 두는 기간이 다르면 고치세요.</p>}
 
           {mode === 'single' && (
             <>
