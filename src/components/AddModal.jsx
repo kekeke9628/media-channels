@@ -99,22 +99,20 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     setBusy(false);
   };
 
-  // 설치 확인 사진 — 홍보물 이미지가 아직 비어 있으면 이 사진을 홍보물 이미지로도 채운다.
-  // 인쇄 시안 파일이 없어 이미지 없이 등록되는 홍보물이 흔했고, 그러면 목록이 계속 빈
-  // 칸으로 남아 무엇이 걸려 있는지 알 수 없었다. 같은 객체를 넣어 두므로, 나중에 시안을
-  // 직접 올리면 그걸로 덮이고 아래 안내도 저절로 사라진다.
+  // 설치 확인 사진은 설치 확인 사진일 뿐이다 — 한때 디자인 시안 칸이 비어 있으면 이 사진을
+  // 그 자리에도 넣어 줬는데, 현장에서 사진을 붙일 때마다 시안 칸에 같은 사진이 튀어나와
+  // 지우는 일이 반복됐다. 목록이 빈 칸으로 남는 문제는 홍보물 목록이 배치의 설치 사진을
+  // 대신 보여주는 쪽으로 푼다(PromosPanel).
   const processInstallPhoto = async (f) => {
     setInstallBusy(true);
     const r = await convertImage(f);
     setInstallPhoto(r);
     setInstallBusy(false);
-    if (r) setResult((prev) => prev || r);
   };
-  const syncedFromInstall = !!installPhoto && result === installPhoto;
 
   const specRatio = useMemo(() => { const spec = t?.spec || ''; const n = spec.match(/(\d+)\D+(\d+)/); return n ? +n[1] / +n[2] : null; }, [t]);
   // 비율 경고는 디자인 시안에 대한 것이라, 현장 사진을 끌어다 채운 경우엔 띄우지 않는다.
-  const mismatch = result && !syncedFromInstall && specRatio && Math.abs(+result.ratio - specRatio) / specRatio > 0.08;
+  const mismatch = result && specRatio && Math.abs(+result.ratio - specRatio) / specRatio > 0.08;
 
   const buildPayload = () => ({ type: typeCode, brand, title, singleResult: result });
 
@@ -232,8 +230,6 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
             label="디자인 시안 (선택)" hint="사진은 올릴 때 자동으로 용량을 줄여 저장합니다."
             caption="등록될 이미지" result={result} busy={busy}
             onPick={process}
-            /* 설치 사진이 홍보물 이미지 자리를 대신 채우고 있었더라도, 여기서 지우는 건
-               "이 사진을 인쇄 시안으로는 쓰지 않겠다"는 뜻이다 — 설치 사진은 그대로 둔다. */
             onClear={() => setResult(null)}
           >
             {/* JSX children은 PhotoField가 그리든 말든 여기서 먼저 평가된다 — result가 없을 때
@@ -253,10 +249,9 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                 hint={'현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.'}
                 caption="설치 확인 사진" result={installPhoto} busy={installBusy}
                 onPick={processInstallPhoto}
-                onClear={() => { if (syncedFromInstall) setResult(null); setInstallPhoto(null); }}
+                onClear={() => setInstallPhoto(null)}
               />
               {missingInstall && <p className="warnbox">오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)</p>}
-              {syncedFromInstall && <p className="hint">디자인 시안이 비어 있어, 이 사진을 시안 자리에도 함께 넣습니다. 실제 시안이 따로 있으면 위에서 올려 주세요.</p>}
 
               <div className="fld2">
                 <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>

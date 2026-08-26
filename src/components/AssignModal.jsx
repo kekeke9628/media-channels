@@ -38,7 +38,6 @@ export default function AssignModal({ posting, T, media, placements, refDate, pr
   };
   // 이미지 없이 등록된 홍보물이면 이 현장 사진이 홍보물 이미지도 겸한다 — 실제 반영은
   // 배치 저장 쪽(App.addPlacement)에서 하고, 여기서는 그렇게 된다는 안내만 미리 보여준다.
-  const willFillPostingImage = !!installPhoto && !posting.thumbPath;
 
   // 단일 배치에서 고를 면 — 매체를 바꾸면 그 매체의 면수·현재 비어있는 면에 맞춰 다시 정한다.
   const selectedMedia = targets.find((x) => x.id === mediaId);
@@ -193,7 +192,6 @@ export default function AssignModal({ posting, T, media, placements, refDate, pr
                 onPick={processInstallPhoto} onClear={() => setInstallPhoto(null)}
               />
               {missingInstall && <p className="warnbox">오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)</p>}
-              {willFillPostingImage && <p className="hint">이 홍보물에는 아직 디자인 시안이 없어, 이 사진을 시안 자리에도 함께 넣습니다.</p>}
             </>
           )}
 

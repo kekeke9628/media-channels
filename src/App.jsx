@@ -265,49 +265,24 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const addPlacement = async (posting, { mediaId, start, end, installPhoto, face, faceLabel }, { silent } = {}) => {
     try {
       const created = await createPlacement({ postingId: posting.id, mediaId, start, end, installPhoto, face, faceLabel });
-      // 인쇄 시안 없이 등록해 둔 홍보물에 현장 사진이 처음 올라오면, 그 사진을 홍보물
-      // 이미지로도 채운다 — 그러지 않으면 목록이 계속 빈 칸이라 무엇이 걸려 있는지 모른다.
-      // 이미 이미지가 있으면 덮지 않는다. 여기서 실패해도 배치 자체는 이미 저장됐으므로
-      // 되돌리지 않고 이미지만 비운 채 넘어간다.
-      let p = posting;
-      const mediaType = media.find((m) => m.id === mediaId)?.type;
-      if (installPhoto && !posting.thumbPath) {
-        try {
-          p = await setPostingImage(posting, installPhoto, mediaType);
-          setPostings((prev) => prev.map((x) => (x.id === p.id ? { ...x, ...p } : x)));
-          setPlacements((prev) => prev.map((pl) => (pl.postingId === p.id
-            ? { ...pl, thumbPath: p.thumbPath, viewPath: p.viewPath, bytesOrig: p.bytesOrig, bytesLight: p.bytesLight }
-            : pl)));
-        } catch { p = posting; }
-      }
-      setPlacements((prev) => [...prev, { ...p, ...created }]);
+      // 설치 확인 사진은 이 배치의 증빙일 뿐, 홍보물의 디자인 시안이 아니다 — 예전에는
+      // 시안이 비어 있으면 이 사진으로 채웠는데, 현장에서 사진을 붙일 때마다 시안 칸에
+      // 같은 사진이 들어가 매번 지워야 했다.
+      setPlacements((prev) => [...prev, { ...posting, ...created }]);
       // 엉뚱한 매체·기간에 잘못 건 걸 바로 무를 수 있게 한다. "철거 처리"로는 못 무른다 —
       // 그건 실제로 걸렸다가 뗀 기록이라, 걸린 적도 없는 배치가 이력에 영구히 남는다.
       if (!silent) flash('매체에 배치했습니다.', () => cancelPlacement(created.id));
       return true;
     } catch (e) { if (!silent) flash('배치에 실패했습니다: ' + e.message); return false; }
   };
-  // 현장에서 찍은 설치 확인 사진을 이미 걸려 있는 배치에 나중에 붙인다. 홍보물 이미지가
-  // 아직 비어 있으면 배치 생성 때와 동일하게 그 사진으로 함께 채운다.
+  // 현장에서 찍은 설치 확인 사진을 이미 걸려 있는 배치에 나중에 붙인다.
   const attachInstallPhoto = async (placementId, result) => {
     try {
       const updated = await setPlacementInstallPhoto(placementId, result);
       setPlacements((prev) => prev.map((p) => (p.id === placementId
         ? { ...p, installPhoto: true, installPhotoPath: updated.installPhotoPath } : p)));
-      const target = placements.find((p) => p.id === placementId);
-      const posting = target && postings.find((x) => x.id === target.postingId);
-      const mType = target && media.find((m) => m.id === target.mediaId)?.type;
-      if (posting && !posting.thumbPath) {
-        try {
-          const np = await setPostingImage(posting, result, mType);
-          setPostings((prev) => prev.map((x) => (x.id === np.id ? { ...x, ...np } : x)));
-          setPlacements((prev) => prev.map((pl) => (pl.postingId === np.id
-            ? { ...pl, thumbPath: np.thumbPath, viewPath: np.viewPath } : pl)));
-        } catch { /* 사진은 이미 배치에 붙었으므로 홍보물 이미지 채우기 실패는 넘어간다 */ }
-      }
-      flash('설치 확인 사진을 등록했습니다.');
-      return true;
-    } catch (e) { flash('사진 등록에 실패했습니다: ' + e.message); return false; }
+      flash('설치 확인 사진을 올렸습니다.');
+    } catch (e) { flash('사진 첨부에 실패했습니다: ' + e.message); }
   };
 
   // 잘못 만든 배치를 기록째 지운다 — 실제 철거(markPlacementRemoved)와는 다르다. 철거는

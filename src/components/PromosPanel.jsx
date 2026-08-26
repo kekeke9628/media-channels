@@ -26,7 +26,11 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
 
   useEffect(() => {
     let cancelled = false;
-    getPostingImageUrls(postings.map((p) => p.thumbPath)).then((m) => { if (!cancelled) setThumbUrls(m); });
+    // 디자인 시안이 없는 홍보물도 있다(현장에서 사진만 찍고 등록하는 경우). 그럴 때는
+    // 그 홍보물이 실제로 걸린 자리의 설치 확인 사진을 대신 보여준다 — 카드가 빈 칸으로
+    // 남으면 목록에서 무엇이 무엇인지 알아볼 수가 없다.
+    getPostingImageUrls([...postings.map((p) => p.thumbPath), ...placements.map((pl) => pl.installPhotoPath)])
+      .then((m) => { if (!cancelled) setThumbUrls(m); });
     return () => { cancelled = true; };
   }, [postings]);
 
@@ -76,9 +80,17 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
           const pls = placementsOf[p.id] || [];
           return (
             <div className="ccard" key={p.id}>
-              <div className="cthumb" style={thumbUrls.has(p.thumbPath) ? undefined : { background: `linear-gradient(150deg, hsl(${p.hue} 42% 52%), hsl(${(p.hue + 40) % 360} 38% 38%))` }}>
-                {thumbUrls.has(p.thumbPath) && <img className="cthumb-img" src={thumbUrls.get(p.thumbPath)} alt="" />}
-              </div>
+              {(() => {
+                const design = thumbUrls.get(p.thumbPath);
+                // 시안이 없으면 가장 최근에 실제로 걸린 자리의 설치 사진으로 대신한다.
+                const shot = design || thumbUrls.get(pls.find((x) => x.installPhotoPath)?.installPhotoPath);
+                return (
+                  <div className="cthumb" style={shot ? undefined : { background: `linear-gradient(150deg, hsl(${p.hue} 42% 52%), hsl(${(p.hue + 40) % 360} 38% 38%))` }}>
+                    {shot && <img className="cthumb-img" src={shot} alt="" />}
+                    {!design && shot && <em className="cthumb-tag">설치 사진</em>}
+                  </div>
+                );
+              })()}
               <div className="cbody">
                 <b>{p.brand}</b>{subOf(p) && <i className="sub">{subOf(p)}</i>}
                 <div className="crow">

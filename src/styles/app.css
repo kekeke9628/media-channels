@@ -609,3 +609,8 @@ td.sub{display:table-cell}
 /* 정렬 줄 — 검색·필터와 구분되게 한 칸 띄우고 글자를 작게. */
 .sortrow{margin-top:-4px}
 .sortrow .sel{padding:6px 9px;font-size:12px}
+
+/* 홍보물 카드에 디자인 시안 대신 설치 사진을 쓴 경우 — 무엇을 보고 있는지 알려 준다. */
+.cthumb{position:relative}
+.cthumb-tag{position:absolute;left:6px;bottom:6px;font-style:normal;font-size:10px;font-weight:600;
+  background:rgba(35,33,30,.78);color:#fff;padding:2px 6px;border-radius:6px}
