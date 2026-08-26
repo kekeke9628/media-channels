@@ -257,17 +257,21 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               {/* label이 아니라 div다 — label 안의 버튼을 누르면 브라우저가 그 label의 첫
                   폼 요소로 클릭을 한 번 더 보낸다. "상시로"를 누르면 그 버튼이 사라지면서
                   전달된 클릭이 옆의 "접기"에 떨어져 같이 접혀 버렸다. */}
-              <div className="fld"><span>게시 기간 (선택)
-                {(pStart || pEnd) && (
-                  <button type="button" className="mini" style={{ marginLeft: 8, fontWeight: 600 }}
-                    onClick={() => { setPStart(''); setPEnd(''); }}>상시로</button>
-                )}
-                <button type="button" className="mini" style={{ marginLeft: 8, fontWeight: 600 }}
-                  onClick={() => setPOpen(false)}>접기</button>
+              <div className="fld"><span className="fldhead">게시 기간 (선택)
+                <span className="fldhead-btns">
+                  {(pStart || pEnd) && (
+                    <button type="button" className="mini" onClick={() => { setPStart(''); setPEnd(''); }}>상시로</button>
+                  )}
+                  <button type="button" className="mini" onClick={() => setPOpen(false)}>접기</button>
+                </span>
               </span></div>
               <div className="fld2">
-                <label className="fld"><span>시작일</span><input type="date" value={pStart} onChange={(e) => setPStart(e.target.value)} /></label>
-                <label className="fld"><span>종료일</span><input type="date" value={pEnd} onChange={(e) => setPEnd(e.target.value)} /></label>
+                <label className="fld"><span>시작일</span>
+                  <span className="datefld" data-empty={pStart ? '0' : '1'}><input type="date" value={pStart} onChange={(e) => setPStart(e.target.value)} /></span>
+                </label>
+                <label className="fld"><span>종료일</span>
+                  <span className="datefld" data-empty={pEnd ? '0' : '1'}><input type="date" value={pEnd} onChange={(e) => setPEnd(e.target.value)} /></span>
+                </label>
               </div>
               {pStart && pEnd && pEnd < pStart && <p className="warnbox">종료일이 시작일보다 앞섭니다.</p>}
               <p className="hint">이 홍보물을 쓰는 기간입니다 — 자리에 언제 걸었는지(배치 기간)와는 다릅니다. 비워두면 상시.</p>
