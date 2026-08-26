@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { iso, DAY } from '../constants.js';
+import { iso, DAY, periodLabel } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
@@ -79,7 +79,8 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   useEffect(() => {
     if (dateTouched) return;
     setStart(pStart || vacantStart(face));
-    if (pEnd) { setEnd(pEnd); setNoEnd(false); }
+    setEnd(pEnd || iso(Date.parse(refDate) + 30 * DAY));
+    if (pEnd) setNoEnd(false);
     setConflict(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pStart, pEnd]);
@@ -246,15 +247,24 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               비워 두면 상시로 보고, 지난 홍보물은 배치 팝업 후보에서 빠진다.
               매번 쓰는 값이 아니라 접어 둔다(기본값: 닫힘). */}
           {!pOpen ? (
+            // 접는 건 화면을 접는 것뿐이다 — 넣어 둔 기간은 그대로 두고, 접힌 줄에 그 값을
+            // 같이 보여준다(안 보이는 값이 저장되는 일이 없게).
             <button type="button" className="facerow" onClick={() => setPOpen(true)}>
-              <b>+</b> 게시 기간 (선택) <em>비워두면 상시</em>
+              <b>+</b> 게시 기간 (선택) <em>{pStart || pEnd ? periodLabel({ start: pStart, end: pEnd }) : '비워두면 상시'}</em>
             </button>
           ) : (
             <>
-              <label className="fld"><span>게시 기간 (선택)
+              {/* label이 아니라 div다 — label 안의 버튼을 누르면 브라우저가 그 label의 첫
+                  폼 요소로 클릭을 한 번 더 보낸다. "상시로"를 누르면 그 버튼이 사라지면서
+                  전달된 클릭이 옆의 "접기"에 떨어져 같이 접혀 버렸다. */}
+              <div className="fld"><span>게시 기간 (선택)
+                {(pStart || pEnd) && (
+                  <button type="button" className="mini" style={{ marginLeft: 8, fontWeight: 600 }}
+                    onClick={() => { setPStart(''); setPEnd(''); }}>상시로</button>
+                )}
                 <button type="button" className="mini" style={{ marginLeft: 8, fontWeight: 600 }}
-                  onClick={() => { setPStart(''); setPEnd(''); setPOpen(false); }}>접기</button>
-              </span></label>
+                  onClick={() => setPOpen(false)}>접기</button>
+              </span></div>
               <div className="fld2">
                 <label className="fld"><span>시작일</span><input type="date" value={pStart} onChange={(e) => setPStart(e.target.value)} /></label>
                 <label className="fld"><span>종료일</span><input type="date" value={pEnd} onChange={(e) => setPEnd(e.target.value)} /></label>
