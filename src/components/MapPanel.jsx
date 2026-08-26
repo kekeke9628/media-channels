@@ -55,13 +55,22 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   const onGrabDown = (e) => {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    grabRef.current = { y: e.clientY, h: wrapRef.current?.getBoundingClientRect().height || 0 };
+    grabRef.current = true;
   };
   const onGrabMove = (e) => {
     if (!grabRef.current) return;
-    const next = grabRef.current.h + (e.clientY - grabRef.current.y);
-    // 너무 납작하면 핀이 겹쳐 못 쓰고, 화면을 다 먹으면 아래 목록이 안 보인다.
-    saveMapH(Math.round(clamp(next, 220, window.innerHeight * 0.85)));
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    // 시작점 대비 이동량이 아니라 "지도 위 끝에서 손가락까지의 거리"로 잰다 — 프레임이
+    // 줄면 아래 내용이 따라 올라오면서 페이지 스크롤이 같이 움직이는데, 이동량 방식은
+    // 그때 기준점이 어긋나 드래그가 제자리걸음을 한다.
+    let next = e.clientY - rect.top;
+    // 지도 아래 빈 띠가 딱 없어지는 높이에 살짝 붙여 준다 — 대부분 여기서 멈추고 싶어 한다.
+    const fit = stageSize().h;
+    if (fit && Math.abs(next - fit) < 24) next = fit;
+    // 최소값을 고정 220px로 뒀더니 모바일 기본 높이(182px)보다 커서, 위로 끌면 오히려
+    // 늘어나고 거기서 멈췄다 — 손가락을 따라갈 수 있게 충분히 낮춘다.
+    saveMapH(Math.round(clamp(next, 120, window.innerHeight * 0.9)));
   };
   const onGrabUp = (e) => { grabRef.current = null; e.currentTarget.releasePointerCapture?.(e.pointerId); };
 
@@ -386,7 +395,9 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
 
       <div
         className={'mapwrap' + (addMode ? ' addmode' : '')}
-        style={mapH ? { height: mapH + 'px', aspectRatio: 'auto' } : undefined}
+        /* 기본 높이는 지도 이미지에 딱 맞춘다 — 16:8로 못 박아 두면 3:1 지도를 올렸을 때
+           아래에 빈 띠가 생긴 채로 시작하고, 사용자는 그걸 없애려고 매번 끌어야 한다. */
+        style={mapH ? { height: mapH + 'px', aspectRatio: 'auto' } : { aspectRatio: String(mapAR) }}
         ref={wrapRef}
         onPointerDown={onWrapPointerDown}
         onPointerMove={onWrapPointerMove}
