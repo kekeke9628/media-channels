@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { iso, DAY, contentOf, subOf, matches } from '../constants.js';
+import { iso, DAY, contentOf, subOf, matches, byName } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
 import { installPhotoRequired } from '../constants.js';
@@ -28,12 +28,10 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
   const rows = useMemo(() => {
     return options
       .filter((p) => !q || matches(p.brand + contentOf(p), q))
-      .sort((a, b) => {
-        const da = placementsOf[a.id]?.length ? 1 : 0, db = placementsOf[b.id]?.length ? 1 : 0;
-        if (da !== db) return da - db;
-        return (b.createdAt || '').localeCompare(a.createdAt || '');
-      });
-  }, [options, q, placementsOf]);
+      // 업체명 오름차순. 예전에는 "미배치 먼저, 그다음 최신순"이라 목록 순서가 등록한
+      // 순서에 따라 매번 달라졌다 — 찾으려는 이름이 어디쯤 있을지 짐작할 수가 없다.
+      .sort((a, b) => byName(a.brand, b.brand));
+  }, [options, q]);
 
   const [thumbUrls, setThumbUrls] = useState(new Map());
   useEffect(() => {
