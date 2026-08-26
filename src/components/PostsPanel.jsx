@@ -28,6 +28,53 @@ const statusTag = (o) => (
 // 평탄화된 목록이다(App이 fetchPlacements 결과를 넘긴다).
 // 모바일(narrow)에서는 표가 화면 폭의 2/3를 넘겨 상태·조치 버튼이 아예 안 보였기 때문에
 // 같은 데이터를 카드 목록으로 바꿔 그린다.
+// 매체 하나 = 카드 하나. 면은 카드 안에 한 줄씩 적는다 — 면마다 카드를 내면 같은 매체가
+// 여러 번 나오는데 어느 걸 눌러도 결국 같은 매체 상세로 간다.
+//
+// 면이 많은 매체(듀라트란스 10면 등)는 두 줄만 보이고 나머지는 접어 둔다. 다 펼쳐 두면
+// 카드 하나가 화면을 다 먹어서 정작 다른 매체를 훑을 수가 없다.
+const FACES_SHOWN = 2;
+function MediaCard({ g, T, isEditor, onPick, onRemove, zoneLabel }) {
+  const [open, setOpen] = useState(false);
+  const t = T[g.type];
+  const shown = open ? g.slots : g.slots.slice(0, FACES_SHOWN);
+  const hidden = g.slots.length - shown.length;
+  return (
+    <div className="mcard" onClick={() => onPick(g.mediaId)}>
+      <div className="mcard-top"><b>{g.name}</b>{statusTag(g.lead)}</div>
+      <div className="mcard-meta">
+        {t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}
+        <span className="sub">{zoneLabel(g.zone)}</span>
+        <span className="sub">{g.faces}면</span>
+      </div>
+      <div className="facelines">
+        {shown.map(({ o, p }) => (
+          <div className="faceline" key={o.face}>
+            <em>{o.faceLabel}</em>
+            {p ? (
+              <>
+                <b>{p.brand}</b>
+                <span className="sub mono">{p.end ? '~ ' + p.end.slice(2) : '~ 미정'}</span>
+                {o.overdue && <span className="tag over">+{o.overdueDays}일</span>}
+                {o.next && !o.current && <span className="tag upcoming">예정</span>}
+                {o.overdue && isEditor && (
+                  <button className="mini ok" onClick={(e) => { e.stopPropagation(); onRemove(o.overdue.id); }}>철거</button>
+                )}
+              </>
+            ) : <span className="sub">비어있음</span>}
+          </div>
+        ))}
+      </div>
+      {hidden > 0 && (
+        <button className="mini wide" onClick={(e) => { e.stopPropagation(); setOpen(true); }}>+{hidden}면 더 보기</button>
+      )}
+      {open && g.slots.length > FACES_SHOWN && (
+        <button className="mini wide" onClick={(e) => { e.stopPropagation(); setOpen(false); }}>접기</button>
+      )}
+    </div>
+  );
+}
+
 export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, narrow, onRemove, onUndo, onPick }) {
   const [statusSel, setStatusSel] = useState(new Set(STATUS_OPTS.map(([k]) => k)));
   // 홍보물 화면과 달리 기본 ON — 이 화면의 핵심 목적이 만료 건을 놓치지 않고 조치하는
@@ -39,6 +86,8 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
   // EAST/WEST는 매체명 두 번째 글자로 갈린다(DEH01 → E) — 현장에서 쓰는 구분이라
   // 목록에서도 바로 걸러 볼 수 있게 한다.
   const [side, setSide] = useState('ALL');
+  const [sortKey, setSortKey] = useState('status');
+  const [sortDir, setSortDir] = useState('asc');
   const [q, setQ] = useState('');
   const [rangeOn, setRangeOn] = useState(false);
   const [from, setFrom] = useState('2025-01-01');
@@ -70,58 +119,83 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       .sort((a, b) => b.start.localeCompare(a.start));
   }, [rangeOn, postings, typeSel, side, from, to, q, media]);
 
-  // 면(face)은 진짜 재고 단위다 — 웨더워리어 2면은 앞/뒤에 서로 다른 광고주가 다른 기간으로
-  // 걸리고, 철거도 면 단위로 한다. 그래서 뭔가 걸려 있는 면은 한 줄씩 따로 보여야 한다
-  // (합쳐 놓으면 "철거 처리"가 어느 면을 내리는 건지 알 수 없다).
-  //
-  // 다만 한 매체의 면이 전부 비어 있으면 줄마다 똑같은 "걸려 있는 홍보물 없음"이 반복될
-  // 뿐이라, 목록만 두 배로 길어지고 새로 알게 되는 건 없다 — 그 경우에만 한 줄로 합친다.
-  const faceRows = useMemo(() => {
-    const byMedia = new Map();
+  // 면(face)은 진짜 재고 단위지만, 목록에서 면마다 카드를 하나씩 내면 같은 매체가 여러 번
+  // 나오고 어느 걸 눌러도 결국 같은 매체 상세로 간다 — 매체 하나에 카드 하나로 묶고,
+  // 면은 그 안에 한 줄씩 적는다. 조치(철거)는 여전히 면 단위라 줄마다 따로 둔다.
+  const groups = useMemo(() => {
+    const by = new Map();
     for (const o of state) {
-      if (!byMedia.has(o.mediaId)) byMedia.set(o.mediaId, []);
-      byMedia.get(o.mediaId).push(o);
+      if (!by.has(o.mediaId)) by.set(o.mediaId, []);
+      by.get(o.mediaId).push(o);
     }
-    const out = [];
-    for (const [mediaId, group] of byMedia) {
-      const allEmpty = group.length > 1 && group.every((o) => o.isEmpty && !o.next && !o.overdue);
-      if (!allEmpty) { out.push(...group); continue; }
-      out.push({
-        ...group[0],
-        id: mediaId,
-        name: media.find((m) => m.id === mediaId)?.name || group[0].name,
-        facesNote: `${group.length}면`,
-      });
-    }
-    return out;
+    return [...by.entries()].map(([mediaId, slots]) => {
+      slots.sort((a, b) => (a.face || 1) - (b.face || 1));
+      const m = media.find((x) => x.id === mediaId);
+      // 카드 머리(상태 배지·정렬 기준)에 쓸 대표 면 — 가장 급한 것.
+      const rank = (o) => (o.overdue ? 0 : (o.live || o.open) ? 1 : o.next ? 2 : 3);
+      const lead = [...slots].sort((a, b) => rank(a) - rank(b) || (a.face || 1) - (b.face || 1))[0];
+      return {
+        mediaId,
+        name: m?.name || lead.name.replace(/\s·\s.*$/, ''),
+        type: lead.type,
+        zone: lead.zone,
+        faces: slots.length,
+        slots: slots.map((o) => ({ o, p: o.overdue || o.current || o.next })),
+        lead,
+        leadP: lead.overdue || lead.current || lead.next,
+      };
+    });
   }, [state, media]);
 
   const order = { overdue: 0, live: 1, open: 2, upcoming: 3 };
+  // 정렬 기준 — 무엇을 기준으로 보고 싶은지가 상황마다 다르다(철거할 것부터, 매체 순서대로,
+  // 업체별로 모아서 등). 매체 하나에 여러 면이 있으면 대표 면(가장 급한 면)의 값을 쓴다.
+  const SORTS = [
+    ['status', '상태순'],
+    ['media', '매체명'],
+    ['start', '설치일'],
+    ['end', '종료일'],
+    ['brand', '업체명'],
+    ['type', '매체유형'],
+  ];
+  // 면이 여럿이면 그 매체가 그 기준에서 갖는 "가장 앞선 값"을 쓴다 — 업체명으로 정렬했는데
+  // 카드에 보이는 업체 중 앞선 것이 아니라 엉뚱한 면의 값으로 줄이 서면 이유를 알 수 없다.
+  // 상태만은 가장 급한 면(대표)을 쓴다 — 만료가 하나라도 있으면 그 매체가 먼저 와야 한다.
+  const firstOf = (g, pick, fallback) => {
+    const vals = g.slots.map(({ p }) => (p ? pick(p) : null)).filter(Boolean);
+    return vals.length ? vals.sort((a, b) => String(a).localeCompare(String(b), 'ko'))[0] : fallback;
+  };
+  const sortValue = (g, key) => {
+    if (key === 'media') return g.name;
+    if (key === 'start') return firstOf(g, (p) => p.start, '9999-12-31');
+    if (key === 'end') return firstOf(g, (p) => p.end, '9999-12-31');
+    if (key === 'brand') return firstOf(g, (p) => p.brand, '\uffff');
+    if (key === 'type') return T[g.type]?.label || g.type;
+    const st = g.leadP ? statusOf(g.leadP, refDate) : 'none';
+    return String(order[st] ?? 9);
+  };
+
   const currentRows = useMemo(() => {
-    return faceRows
-      .filter((o) => typeSel.has(o.type))
-      .filter((o) => side === 'ALL' || sideOf(o) === side)
-      .filter((o) => { const cat = statusCat(o); return cat === 'overdue' ? showOverdue : statusSel.has(cat); })
-      .filter((o) => {
+    const rows = groups
+      .filter((g) => typeSel.has(g.type))
+      .filter((g) => side === 'ALL' || sideOf(g) === side)
+      // 면 중 하나라도 조건에 맞으면 그 매체를 보여준다 — 카드 안에 면이 다 들어 있으므로
+      // 매체 단위로 걸러야 "게시중만 보기"에서 그 매체가 통째로 사라지지 않는다.
+      .filter((g) => g.slots.some(({ o }) => { const c = statusCat(o); return c === 'overdue' ? showOverdue : statusSel.has(c); }))
+      .filter((g) => {
         if (!q) return true;
-        const p = o.overdue || o.current || o.next;
-        const haystack = [o.name, T[o.type]?.label, zoneLabel(o.zone), p?.brand, p ? contentOf(p) : '', p?.end, STATUS_LABEL[statusCat(o)]].join(' ');
-        return matches(haystack, q);
-      })
-      // next(게시예정)도 p로 포함시켜 시작일·종료일·업체명 컬럼이 "—"로 비지 않고
-      // 실제 예정 정보를 보여주게 한다 — 별도로 D-day 문구를 상태 배지에 반복할 필요가 없어진다.
-      .map((o) => ({ o, p: o.overdue || o.current || o.next }))
-      .sort((a, b) => {
-        const sa = a.p ? statusOf(a.p, refDate) : 'none', sb = b.p ? statusOf(b.p, refDate) : 'none';
-        const oa = order[sa] ?? 9, ob = order[sb] ?? 9;
-        if (oa !== ob) return oa - ob;
-        const ea = a.p?.end || '9999-12-31', eb = b.p?.end || '9999-12-31';
-        if (ea !== eb) return ea.localeCompare(eb);
-        // 여기까지 같으면(예: 전부 비어 있는 매체들) 순서를 정해 주는 게 아무것도 없어서
-        // DB가 준 순서 그대로 나왔다 — 목록이 매번 뒤죽박죽이고 같은 이름도 안 붙는다.
-        return byName(a.o.name, b.o.name);
+        const hay = [g.name, T[g.type]?.label, zoneLabel(g.zone),
+          ...g.slots.flatMap(({ o, p }) => [p?.brand, p ? contentOf(p) : '', p?.end, STATUS_LABEL[statusCat(o)], o.faceLabel])].join(' ');
+        return matches(hay, q);
       });
-  }, [faceRows, typeSel, statusSel, showOverdue, side, q, refDate, T]);
+    const dir = sortDir === 'desc' ? -1 : 1;
+    return rows.sort((a, b) => {
+      const va = sortValue(a, sortKey), vb = sortValue(b, sortKey);
+      if (va !== vb) return (sortKey === 'media' ? byName(va, vb) : String(va).localeCompare(String(vb), 'ko')) * dir;
+      // 기준이 같으면 항상 매체명 오름차순 — 그러지 않으면 순서가 매번 달라진다.
+      return byName(a.name, b.name);
+    });
+  }, [groups, typeSel, statusSel, showOverdue, side, q, refDate, T, sortKey, sortDir]);
 
   return (
     <div>
@@ -172,6 +246,20 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         <span className="count mono">{(rangeOn ? historyRows.length : currentRows.length)}건</span>
       </div>
 
+      {/* 무엇을 기준으로 볼지는 상황마다 다르다 — 철거할 것부터, 매체 순서대로, 업체별로.
+          표(데스크톱)는 머리글을 눌러 정렬하므로 카드 화면에서만 보여준다. */}
+      {!rangeOn && narrow && (
+        <div className="toolrow sortrow">
+          <span className="sub">정렬</span>
+          <select className="sel" value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
+            {SORTS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+          </select>
+          <button className="mini" onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}>
+            {sortDir === 'asc' ? '오름차순 ↑' : '내림차순 ↓'}
+          </button>
+        </div>
+      )}
+
       {/* 아무것도 없을 때 빈 화면만 나와서 처음 쓰는 사람이 다음에 뭘 할지 알 수 없었다. */}
       {!rangeOn && currentRows.length === 0 ? (
         <p className="empty">
@@ -181,28 +269,9 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
         </p>
       ) : !rangeOn && narrow ? (
         <div className="mlist">
-          {currentRows.map(({ o, p }) => {
-            const t = T[o.type];
-            return (
-              <div className="mcard" key={o.id} onClick={() => onPick(o.mediaId)}>
-                <div className="mcard-top"><b>{o.name}</b>{statusTag(o)}</div>
-                <div className="mcard-meta">
-                  <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>
-                  <span className="sub">{zoneLabel(o.zone)}</span>
-                  {o.facesNote && <span className="sub">{o.facesNote}</span>}
-                </div>
-                {p ? (
-                  <>
-                    <div className="mcard-brand"><b>{p.brand}</b>{subOf(p) && <i className="sub">{subOf(p)}</i>}</div>
-                    <div className="mcard-date mono">{p.start} ~ {p.end || '미정'}</div>
-                  </>
-                ) : <div className="sub">걸려 있는 홍보물 없음</div>}
-                {o.overdue && isEditor && (
-                  <button className="btn ok wide" style={{ marginTop: 8 }} onClick={(e) => { e.stopPropagation(); onRemove(o.overdue.id); }}>홍보물 철거</button>
-                )}
-              </div>
-            );
-          })}
+          {currentRows.map((g) => (
+            <MediaCard key={g.mediaId} g={g} T={T} isEditor={isEditor} onPick={onPick} onRemove={onRemove} zoneLabel={zoneLabel} />
+          ))}
         </div>
       ) : !rangeOn ? (
         <div className="scroll tall">

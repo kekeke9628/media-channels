@@ -594,3 +594,18 @@ td.sub{display:table-cell}
 .refreshing{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:80;
   background:rgba(35,33,30,.9);color:#fff;font-size:11.5px;padding:6px 12px;border-radius:20px;
   pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+
+/* 매체 카드 안의 면 줄 — 면마다 카드를 내지 않고 한 카드에 텍스트로 쌓는다. */
+.facelines{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.faceline{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:8px;
+  background:#FBF9F5;font-size:12.5px;min-width:0}
+.faceline em{font-style:normal;font-weight:700;color:#8E6B2C;font-size:11.5px;flex:none;min-width:2.6em}
+.faceline b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.faceline .sub{flex:none}
+.faceline .mono{margin-left:auto}
+.faceline .tag{flex:none}
+.faceline .mini{flex:none;margin-left:4px}
+.mini.wide{display:block;width:100%;margin-top:7px;text-align:center}
+/* 정렬 줄 — 검색·필터와 구분되게 한 칸 띄우고 글자를 작게. */
+.sortrow{margin-top:-4px}
+.sortrow .sel{padding:6px 9px;font-size:12px}
