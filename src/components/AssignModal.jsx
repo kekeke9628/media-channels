@@ -195,7 +195,7 @@ export default function AssignModal({ posting, T, media, placements, refDate, pr
                 onPick={processInstallPhoto} onClear={() => setInstallPhoto(null)}
               />
               {missingInstall && <p className="warnbox">오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)</p>}
-              {willFillPostingImage && <p className="hint">이 홍보물에는 아직 이미지가 없어, 이 사진을 홍보물 이미지로도 함께 등록합니다.</p>}
+              {willFillPostingImage && <p className="hint">이 홍보물에는 아직 디자인 시안이 없어, 이 사진을 시안 자리에도 함께 넣습니다.</p>}
             </>
           )}
 

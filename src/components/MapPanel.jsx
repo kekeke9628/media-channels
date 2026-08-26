@@ -65,6 +65,17 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   };
   const onGrabUp = (e) => { grabRef.current = null; e.currentTarget.releasePointerCapture?.(e.pointerId); };
 
+  // 지도는 "프레임 폭"에만 맞춰 그린다. 예전에는 이미지를 프레임에 꽉 채웠기(object-fit:cover)
+  // 때문에, 프레임 높이를 키우면 이미지가 같이 확대되며 좌우가 잘렸다 — 높이만 만졌는데
+  // 배율이 바뀌던 이유다. 이제 배율은 폭이 정하고, 높이는 얼마나 보여줄지만 정한다.
+  const [mapAR, setMapAR] = useState(2); // 가로/세로. 배치도를 올리기 전 회색 도면은 2:1.
+  // 핀 좌표(%)와 클릭 지점 환산이 모두 이 상자를 기준으로 한다 — 프레임이 아니라 지도 자신.
+  const stageSize = useCallback(() => {
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (!r) return { w: 0, h: 0 };
+    return { w: r.width, h: r.width / (mapAR || 2) };
+  }, [mapAR]);
+
   const [pinBump, setPinBump] = useState(false);
   const bumpRef = useRef(null);
   const showBump = () => {
@@ -116,22 +127,24 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   }, [items]);
 
   const clampPan = (x, y, z, r) => {
-    const w = r.width * z, h = r.height * z;
-    return { x: clamp(x, r.width - w, 0), y: clamp(y, r.height - h, 0) };
+    const st = stageSize();
+    const w = st.w * z, h = st.h * z;
+    // 지도가 프레임보다 작은 방향(예: 높이를 크게 잡았을 때)은 붙여 두고 움직이지 않는다.
+    return { x: clamp(x, Math.min(0, r.width - w), 0), y: clamp(y, Math.min(0, r.height - h), 0) };
   };
 
   // 각 핀을 현재 pan/zoom 기준 픽셀 좌표로 옮긴다. -50%,-56%는 기존 .pin CSS의 앵커 오프셋과 동일.
   const positionPins = useCallback((px, py, pz) => {
-    const r = wrapRef.current?.getBoundingClientRect();
-    if (!r) return;
+    const { w, h } = stageSize();
+    if (!w) return;
     itemsRef.current.forEach((o) => {
       const el = pinRefs.current[o.id];
       if (!el) return;
-      const x = px + (o.x / 100) * r.width * pz;
-      const y = py + (o.y / 100) * r.height * pz;
+      const x = px + (o.x / 100) * w * pz;
+      const y = py + (o.y / 100) * h * pz;
       el.style.transform = `translate(${x}px,${y}px) translate(-50%,-56%)`;
     });
-  }, []);
+  }, [stageSize]);
 
   // 핀의 히트 영역은 손가락으로 누르기 쉽도록 아이콘보다 14px 넓다(.pin::before). 그런데 핀
   // 두 개가 가까이 붙으면 그 보이지 않는 여백이 이웃 핀의 아이콘을 덮어, 밑에 깔린 핀은
@@ -235,9 +248,10 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
 
   const pointerToPct = (e) => {
     const r = wrapRef.current.getBoundingClientRect();
+    const { w, h } = stageSize();
     const { x, y, zoom: z } = panRef.current;
-    const px = ((e.clientX - r.left - x) / z / r.width) * 100;
-    const py = ((e.clientY - r.top - y) / z / r.height) * 100;
+    const px = ((e.clientX - r.left - x) / z / w) * 100;
+    const py = ((e.clientY - r.top - y) / z / h) * 100;
     return { x: clamp(px, 1, 99), y: clamp(py, 1, 99) };
   };
 
@@ -388,9 +402,13 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
             <button onClick={() => setAddMode(false)}>취소</button>
           </div>
         )}
-        <div className="mapstage" ref={stageRef}>
+        <div className="mapstage" ref={stageRef} style={{ aspectRatio: String(mapAR), height: 'auto' }}>
           {mapImage ? (
-            <img src={mapImage} alt="배치도" className="mapbg-img" />
+            <img src={mapImage} alt="배치도" className="mapbg-img"
+              onLoad={(e) => {
+                const ar = e.currentTarget.naturalWidth / e.currentTarget.naturalHeight;
+                if (ar && Math.abs(ar - mapAR) > 0.001) setMapAR(ar);
+              }} />
           ) : (
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="mapbg">
               <rect x="0" y="0" width="100" height="100" fill="#D6D6D3" />

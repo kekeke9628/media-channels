@@ -38,7 +38,7 @@ export default function AddVariantModal({ posting, T, types, onClose, onSubmit }
         <div className="mhead"><b>규격 추가 · {posting.brand}</b><button onClick={onClose}>✕</button></div>
         <div className="mbody">
           <p className="hint">
-            같은 홍보물이라도 매체 규격마다 인쇄 파일이 따로입니다. 여기서 규격을 더하면
+            같은 홍보물이라도 매체 규격마다 디자인 시안이 따로입니다. 여기서 규격을 더하면
             그 규격의 매체에도 이 홍보물을 걸 수 있습니다.
           </p>
           {(posting.types || []).length > 0 && (
@@ -54,10 +54,10 @@ export default function AddVariantModal({ posting, T, types, onClose, onSubmit }
                   {options.map((x) => <option key={x.code} value={x.code}>{x.label}</option>)}
                 </select>
               </label>
-              {t && <p className="hint">이 규격으로 인쇄 파일을 준비하세요 — <b>{t.spec}</b></p>}
+              {t && <p className="hint">이 규격으로 디자인 시안을 준비하세요 — <b>{t.spec}</b></p>}
 
               <PhotoField
-                label="인쇄 파일 (선택)"
+                label="디자인 시안 (선택)"
                 hint="지금 없으면 비워두고 나중에 올려도 됩니다. 규격만 먼저 등록해 두면 배치는 가능합니다."
                 caption="등록될 이미지" result={result} busy={busy}
                 onPick={process} onClear={() => setResult(null)}

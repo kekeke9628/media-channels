@@ -200,7 +200,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
           {/* 면수는 매체의 속성이지 홍보물의 속성이 아니다 — 인쇄물 한 장에 "2면"은 뜻이 없다
               (postings.faces는 마이그레이션 018에서 이미 제거했는데 문구만 남아 있었다).
               여기서 뜻이 있는 건 규격뿐이다: 어떤 크기로 파일을 준비해야 하는지 알려 준다. */}
-          {t && <p className="hint">이 규격으로 인쇄 파일을 준비하세요 — <b>{t.spec}</b></p>}
+          {t && <p className="hint">이 규격으로 디자인 시안을 준비하세요 — <b>{t.spec}</b></p>}
 
           {initialMedia ? (
             mediaFaces > 1 && (
@@ -234,11 +234,11 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
           <label className="fld"><span>업체명</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: 나이키" /></label>
           <label className="fld"><span>내용 (선택)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="비워두면 업체명이 그대로 들어갑니다" /></label>
-          {/* 인쇄 시안은 있으면 좋지만 매번 있는 게 아니다(현장에서 등록할 때는 대개 없다).
+          {/* 디자인 시안은 있으면 좋지만 매번 있는 게 아니다(현장에서 등록할 때는 대개 없다).
               접어 두고, 설치 확인 사진만 넣어도 그게 홍보물 이미지로 함께 저장된다. */}
           <PhotoField
-            collapsible collapsedLabel="인쇄 시안 첨부 (선택)"
-            label="홍보물 이미지 (선택)" hint="사진은 올릴 때 자동으로 용량을 줄여 저장합니다."
+            collapsible collapsedLabel="디자인 시안 첨부 (선택)"
+            label="디자인 시안 (선택)" hint="사진은 올릴 때 자동으로 용량을 줄여 저장합니다."
             caption="등록될 이미지" result={result} busy={busy}
             onPick={process}
             /* 설치 사진이 홍보물 이미지 자리를 대신 채우고 있었더라도, 여기서 지우는 건
@@ -265,7 +265,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                 onClear={() => { if (syncedFromInstall) setResult(null); setInstallPhoto(null); }}
               />
               {missingInstall && <p className="warnbox">오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)</p>}
-              {syncedFromInstall && <p className="hint">홍보물 이미지가 비어 있어, 이 사진을 홍보물 이미지로도 함께 등록합니다. 인쇄 시안이 따로 있으면 위에서 올려 주세요.</p>}
+              {syncedFromInstall && <p className="hint">디자인 시안이 비어 있어, 이 사진을 시안 자리에도 함께 넣습니다. 실제 시안이 따로 있으면 위에서 올려 주세요.</p>}
 
               <div className="fld2">
                 <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>

@@ -8,6 +8,28 @@ import { convertImage } from '../lib/convertImage.js';
 // 면(face) 하나의 "현재 배치 + 지난 배치" — 단일 면 매체는 이 컴포넌트가 정확히 하나만
 // 그려지고 라벨도 안 붙어서, 지금까지와 완전히 같은 화면으로 보인다. 2면 이상이면 면마다
 // 따로 그려서, 앞/뒤가 서로 다른 업체·기간으로 걸린 것도 각자 정확히 보여줄 수 있다.
+// 디자인 시안 — 평소에는 접어 둔다. 현장 확인이 목적인 화면에서 매번 필요한 건 설치
+// 사진이고, 시안은 "어떤 시안이었지"를 되짚을 때만 본다.
+function DesignShot({ url }) {
+  const [open, setOpen] = useState(false);
+  if (!open) {
+    return (
+      <button type="button" className="facerow" style={{ marginTop: 10 }} onClick={() => setOpen(true)}>
+        <b>+</b> 디자인 시안 보기
+      </button>
+    );
+  }
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div className="facerow" style={{ cursor: 'default' }}>
+        <b>디자인 시안</b>
+        <button type="button" className="mini" style={{ marginLeft: 'auto' }} onClick={() => setOpen(false)}>접기</button>
+      </div>
+      <div className="rprev"><img src={url} alt="" /></div>
+    </div>
+  );
+}
+
 function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd, onAttachPhoto, collapsible }) {
   const cur = slot.overdue || slot.current;
   // 아직 시작하지 않은(게시예정) 배치는 "지난 배치"가 아니다 — 예전에는 cur만 빼고 나머지를
@@ -51,12 +73,23 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
       {slot.open && <p className="okbox"><b>{slot.openDays}일째</b> 게시 중입니다.{slot.openDays >= LONG_OPEN && ' 1년이 넘었으니 한 번 확인해 보세요.'}</p>}
       {cur ? (
         <>
+          {/* 관리 화면에서 확인해야 하는 건 "실제로 걸려 있는 모습"이다 — 설치 확인 사진을
+              크게 두고, 디자인 시안은 접어 둔다. 설치 사진이 아직 없으면 시안이라도 보여야
+              무엇이 걸렸는지 알 수 있으므로 그때만 시안을 큰 자리에 올린다. */}
           {(() => {
-            const url = imgUrls.get(cur.viewPath) || imgUrls.get(cur.thumbPath);
+            const install = imgUrls.get(cur.installPhotoPath);
+            const design = imgUrls.get(cur.viewPath) || imgUrls.get(cur.thumbPath);
+            const big = install || design;
             return (
-              <div className="bigthumb" style={url ? undefined : { background: `linear-gradient(150deg, hsl(${cur.hue} 42% 52%), hsl(${(cur.hue + 40) % 360} 38% 38%))` }}>
-                {url ? <img className="bigthumb-img" src={url} alt="" /> : <span>등록된 이미지 없음</span>}
-              </div>
+              <>
+                <div className="bigthumb" style={big ? undefined : { background: `linear-gradient(150deg, hsl(${cur.hue} 42% 52%), hsl(${(cur.hue + 40) % 360} 38% 38%))` }}>
+                  {big ? <img className="bigthumb-img" src={big} alt="" /> : <span>사진 없음</span>}
+                </div>
+                <p className="sub" style={{ textAlign: 'center', marginTop: 5 }}>
+                  {install ? '설치 확인 사진' : design ? '디자인 시안 · 설치 확인 사진 없음' : '설치 확인 사진 없음'}
+                </p>
+                {install && design && <DesignShot url={design} />}
+              </>
             );
           })()}
           <div className="statgrid">
@@ -65,11 +98,6 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
             <div><em>시작일</em><b className="mono">{cur.start}</b></div>
             <div><em>종료일</em><b className="mono">{cur.end || '미정'}</b></div>
           </div>
-          {/* 설치 확인 사진은 이 배치에 붙어 있는데, 지금까지 홍보물 목록의 작은 아이콘
-              말고는 실제로 볼 방법이 없었다 — 매체 상세에서 바로 확인하게 한다. */}
-          {imgUrls.get(cur.installPhotoPath) && (
-            <div className="rprev"><img src={imgUrls.get(cur.installPhotoPath)} alt="" /><i className="sub">설치 확인 사진</i></div>
-          )}
           {/* 실제 업무는 "사무실에서 배치 등록 → 현장에서 부착 → 그 자리에서 촬영" 순서라,
               사진을 나중에 붙일 수 있어야 한다. 예전에는 배치를 만드는 순간에만 첨부할 수
               있어서, 현장 사진을 넣으려면 배치를 지우고 다시 만들어야 했다. */}

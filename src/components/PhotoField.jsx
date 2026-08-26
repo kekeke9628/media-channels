@@ -19,7 +19,18 @@ export default function PhotoField({ label, hint, caption, result, busy, onPick,
   }
   return (
     <>
-      {label && <label className="fld"><span>{label}</span></label>}
+      {label && (
+        <label className="fld">
+          <span>
+            {label}
+            {/* 펼쳐 놓고 보니 안 쓰겠다 싶을 때 되돌릴 방법이 없었다 — 사진을 아직 안 골랐을
+                때만 접기를 준다(고른 뒤에는 접으면 뭘 붙였는지 안 보인다). */}
+            {collapsible && !result && (
+              <button type="button" className="mini" style={{ marginLeft: 8, fontWeight: 600 }} onClick={() => setOpen(false)}>접기</button>
+            )}
+          </span>
+        </label>
+      )}
       {!result ? (
         <label className="drop">
           <input type="file" accept="image/*" {...(capture ? { capture: 'environment' } : {})}
