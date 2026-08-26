@@ -198,7 +198,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                   </>
                 ) : <div className="sub">걸려 있는 홍보물 없음</div>}
                 {o.overdue && isEditor && (
-                  <button className="btn ok wide" style={{ marginTop: 8 }} onClick={(e) => { e.stopPropagation(); onRemove(o.overdue.id); }}>철거 처리</button>
+                  <button className="btn ok wide" style={{ marginTop: 8 }} onClick={(e) => { e.stopPropagation(); onRemove(o.overdue.id); }}>홍보물 철거</button>
                 )}
               </div>
             );
@@ -242,7 +242,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                     <td className="mono">{p ? (p.end || '미정') : '—'}</td>
                     <td onClick={(e) => o.overdue && e.stopPropagation()}>
                       {statusTag(o)}
-                      {o.overdue && isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>철거 처리</button>}
+                      {o.overdue && isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>홍보물 철거</button>}
                     </td>
                   </tr>
                 );

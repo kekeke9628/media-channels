@@ -88,8 +88,12 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
               <span className="dropbtn">{photoBusy ? '올리는 중…' : (cur.installPhotoPath ? '설치 사진 다시 찍기' : '설치 확인 사진 찍기')}</span>
             </label>
           )}
+          {/* "철거"가 두 군데에 있어 헷갈렸다 — 여기는 걸린 홍보물만 내리는 것이고,
+              매체(틀) 자체를 내리는 건 시트 맨 아래 버튼이다. 무엇을 내리는지 이름에 넣는다. */}
           {isEditor && (
-            <button className={'btn wide' + (slot.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>철거 처리</button>
+            <button className={'btn wide' + (slot.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>
+              홍보물 철거 — {cur.brand}
+            </button>
           )}
         </>
       ) : !upcoming && <p className="empty">비어있습니다 · {slot.emptyDays >= 365 ? '365+' : slot.emptyDays}일째</p>}
@@ -219,8 +223,16 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
           <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} collapsible={o.faces >= 4} />
         ))}
 
+        {/* 위쪽 "홍보물 철거"와 헷갈리지 않게, 여기가 매체(틀) 자체를 다루는 자리임을 밝힌다. */}
         {isEditor && (
-          <button className="btn wide danger" onClick={() => onDelete(o.id)}>{hasHistory ? '이 매체 보관 (지도에서 내리기)' : '이 매체 삭제'}</button>
+          <>
+            <h4 style={{ marginTop: 22 }}>매체 자체를 정리할 때</h4>
+            <p className="hint" style={{ marginTop: 0 }}>
+              위쪽 "홍보물 철거"는 걸린 홍보물만 내립니다. 아래는 <b>{o.name} 틀 자체</b>를
+              {hasHistory ? ' 지도에서 내립니다 — 지난 배치 기록은 남고, 나중에 복구할 수 있습니다.' : ' 완전히 지웁니다 — 배치 기록이 없어 되돌릴 수 없습니다.'}
+            </p>
+            <button className="btn wide danger" onClick={() => onDelete(o.id)}>{hasHistory ? '이 매체 철거 (지도에서 내리기)' : '이 매체 삭제'}</button>
+          </>
         )}
         </div>
       </div>

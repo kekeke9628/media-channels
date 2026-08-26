@@ -208,14 +208,14 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     try {
       await markPlacementRemoved(id, refDate);
       setPlacements((prev) => prev.map((p) => (p.id === id ? { ...p, removedAt: refDate, removalSource: 'manual' } : p)));
-      flash('철거한 것으로 기록했습니다.', () => undoRemoved(id));
+      flash('홍보물을 철거한 것으로 기록했습니다.', () => undoRemoved(id));
     } catch (e) { flash('처리에 실패했습니다: ' + e.message); }
   };
   const undoRemoved = async (id) => {
     try {
       await undoPlacementRemoval(id);
       setPlacements((prev) => prev.map((p) => (p.id === id ? { ...p, removedAt: null, removalSource: null } : p)));
-      flash('철거 기록을 취소했습니다.');
+      flash('홍보물 철거 기록을 취소했습니다.');
     } catch (e) { flash('처리에 실패했습니다: ' + e.message); }
   };
   // silent: 등록+배치를 한 번에 하는 흐름에서 중간 토스트 없이 마지막 결과만 보여줄 때 쓴다.
@@ -417,7 +417,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         await archiveMedia(id);
         setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, active: false } : m)));
         flash(living.length
-          ? `배치 기록이 있어 보관 처리했습니다 — 게시 중이던 ${living.length}건도 함께 철거 처리했습니다.`
+          ? `매체를 철거 처리했습니다(기록은 남습니다) — 걸려 있던 홍보물 ${living.length}건도 함께 내렸습니다.`
           : '배치 기록이 있어 삭제 대신 보관 처리했습니다.');
       } else {
         await deleteMedia(id);

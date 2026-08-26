@@ -121,7 +121,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                           <td><StatusChip status={s} /></td>
                           {isEditor && (
                             <td className="r" onClick={(e) => e.stopPropagation()}>
-                              {s !== 'upcoming' && s !== 'removed' && <button className="mini ok" onClick={() => onRemove(pl.id)}>철거 처리</button>}
+                              {s !== 'upcoming' && s !== 'removed' && <button className="mini ok" onClick={() => onRemove(pl.id)}>홍보물 철거</button>}
                               {/* 아직 시작 안 한 배치는 실제로 걸린 적이 없다 — 철거가 아니라 취소(기록 삭제)가 맞다.
                                   철거로 처리하면 걸린 적도 없는 업체가 그 매체 이력에 남는다. */}
                               {s === 'upcoming' && <button className="mini no" onClick={() => onCancel(pl.id)}>배치 취소</button>}

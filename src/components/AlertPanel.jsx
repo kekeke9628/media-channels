@@ -13,7 +13,7 @@ export default function AlertPanel({ alerts, kpi, isEditor, onRemove, onPick }) 
       <span>
         <button className="linklike" onClick={() => onPick(o.mediaId)}>[{o.name}]</button> {pl.brand} (~{pl.end || '미정'})
       </span>
-      {isEditor && <button className="mini ok alert-act" onClick={() => onRemove(pl.id)}>철거 처리</button>}
+      {isEditor && <button className="mini ok alert-act" onClick={() => onRemove(pl.id)}>홍보물 철거</button>}
     </div>
   );
 

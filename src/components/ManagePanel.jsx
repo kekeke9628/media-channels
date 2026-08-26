@@ -271,7 +271,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                         <div className="conflictbtns" style={{ marginTop: 8 }}>
                           <button className="btn" onClick={() => startEditMedia(m)}>수정</button>
                           {m.active
-                            ? <button className="btn danger" onClick={() => onRemoveMedia(m.id)}>{hist ? '보관' : '삭제'}</button>
+                            ? <button className="btn danger" onClick={() => onRemoveMedia(m.id)}>{hist ? '매체 철거' : '매체 삭제'}</button>
                             : <button className="btn" onClick={() => onRestoreMedia(m.id)}>복구</button>}
                         </div>
                       )
@@ -314,7 +314,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
                         ) : (
                           <>
                             <button className="mini" onClick={() => startEditMedia(m)}>수정</button>
-                            {m.active ? <button className="mini no" onClick={() => onRemoveMedia(m.id)}>{hist ? '보관' : '삭제'}</button> : <button className="mini" onClick={() => onRestoreMedia(m.id)}>복구</button>}
+                            {m.active ? <button className="mini no" onClick={() => onRemoveMedia(m.id)}>{hist ? '매체 철거' : '매체 삭제'}</button> : <button className="mini" onClick={() => onRestoreMedia(m.id)}>복구</button>}
                           </>
                         )}
                       </td>
