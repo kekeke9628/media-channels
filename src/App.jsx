@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { ALERT_DAYS, LONG_OPEN, getToday, nameTaken, zoneOf } from './constants.js';
 import { autoClose, buildState, flattenSlots } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
@@ -92,15 +92,40 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     getCenterMapUrl().then((url) => url && setMapImage(url));
   }, []);
 
-  useEffect(() => {
-    Promise.all([fetchMediaTypes(), fetchMedia(), fetchPostings(), fetchPlacements()]).then(([t, m, p, pl]) => {
-      setTypes(t);
-      setMedia(m);
-      setPostings(p);
-      setPlacements(pl);
-      setDataLoading(false);
-    });
+  const load = useCallback(async () => {
+    const [t, m, p, pl] = await Promise.all([fetchMediaTypes(), fetchMedia(), fetchPostings(), fetchPlacements()]);
+    setTypes(t); setMedia(m); setPostings(p); setPlacements(pl);
   }, []);
+  useEffect(() => { load().finally(() => setDataLoading(false)); }, [load]);
+
+  // 다른 앱을 보고 돌아왔을 때 조용히 다시 불러온다 — 그 사이 다른 사람이 걸거나 철거한
+  // 것이 있으면 옛 화면을 보고 판단하게 되기 때문. 신호가 약한 매장에서 연결이 끊겼다
+  // 돌아오는 경우(online)도 같다.
+  //
+  // 두 가지는 건드리지 않는다.
+  // · 잠깐 앱을 바꿨다 오는 정도(30초 미만)는 새로 부를 이유가 없다 — 매번 부르면 데이터만
+  //   축내고 화면이 미세하게 흔들린다.
+  // · 팝업이 떠 있으면 미룬다. 입력 중인 폼 뒤에서 목록이 바뀌면 방금 고른 값이 사라지거나
+  //   겹침 검사 결과가 발밑에서 바뀐다 — 팝업을 닫은 다음 기회에 부른다.
+  const hiddenAtRef = useRef(0);
+  const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const refresh = async () => {
+      if (document.querySelector('.modal')) return;
+      setRefreshing(true);
+      try { await load(); } catch { /* 조용히 실패 — 다음 기회에 다시 부른다 */ }
+      if (alive) setRefreshing(false);
+    };
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') { hiddenAtRef.current = Date.now(); return; }
+      if (hiddenAtRef.current && Date.now() - hiddenAtRef.current > 30000) refresh();
+      hiddenAtRef.current = 0;
+    };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('online', refresh);
+    return () => { alive = false; document.removeEventListener('visibilitychange', onVis); window.removeEventListener('online', refresh); };
+  }, [load]);
 
   useEffect(() => {
     const on = () => setNarrow(window.innerWidth <= 980);
@@ -535,6 +560,8 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       )}
 
       <main>
+        {/* 조용히 다시 불러오는 중 — 화면을 가리지 않고 진행 중이라는 것만 알린다. */}
+        {refreshing && <div className="refreshing">최신 내용 불러오는 중…</div>}
         <MapPanel
           {...ctx} items={visible} allMedia={media} zoneFilter={zoneFilter} setZoneFilter={setZoneFilter}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}

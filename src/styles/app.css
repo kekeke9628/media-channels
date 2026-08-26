@@ -588,3 +588,9 @@ td.sub{display:table-cell}
 /* 저장 공간 게이지 — 남은 여유를 한눈에 보여주는 용도라 숫자보다 막대가 빠르다. */
 .gauge{height:10px;border-radius:6px;background:var(--brass-soft);overflow:hidden}
 .gauge i{display:block;height:100%;background:var(--brass);border-radius:6px}
+
+/* 백그라운드에서 돌아왔을 때 데이터를 다시 불러오는 동안의 표시. 화면 전체를 덮는 로딩과
+   달리 보던 내용을 그대로 두고 위에 얹기만 한다 — 대개 1초 안에 사라진다. */
+.refreshing{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:80;
+  background:rgba(35,33,30,.9);color:#fff;font-size:11.5px;padding:6px 12px;border-radius:20px;
+  pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.18)}
