@@ -30,6 +30,10 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const [title, setTitle] = useState('');
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
+  // 홍보물 자체의 게시 기간 — 안 넣으면 상시. 매번 쓰는 값이 아니라 접어 둔다.
+  const [pOpen, setPOpen] = useState(false);
+  const [pStart, setPStart] = useState('');
+  const [pEnd, setPEnd] = useState('');
   const [saving, setSaving] = useState(false);
   const [installPhoto, setInstallPhoto] = useState(null);
   const [installBusy, setInstallBusy] = useState(false);
@@ -114,7 +118,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   // 비율 경고는 디자인 시안에 대한 것이라, 현장 사진을 끌어다 채운 경우엔 띄우지 않는다.
   const mismatch = result && specRatio && Math.abs(+result.ratio - specRatio) / specRatio > 0.08;
 
-  const buildPayload = () => ({ type: typeCode, brand, title, singleResult: result });
+  const buildPayload = () => ({ type: typeCode, brand, title, start: pStart || null, end: pEnd || null, singleResult: result });
 
   const submitSingle = async () => {
     const ov = findOverlap(mediaId, face);
@@ -181,7 +185,8 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   // 각 자리에서 따로 찍는 게 맞고, 빠진 건 알람이 쫓아간다.
   const needInstall = !!initialMedia && !bulkOn && installPhotoRequired(start, refDate);
   const missingInstall = needInstall && !installPhoto;
-  const canSubmit = !!brand && (!bulkOn || selected.size > 0) && !missingInstall;
+  const periodBad = !!pStart && !!pEnd && pEnd < pStart;
+  const canSubmit = !!brand && (!bulkOn || selected.size > 0) && !missingInstall && !periodBad;
   // 겹침 확인(conflict/bulkConfirm)이 떠 있을 때는 Enter로 건너뛰지 못하게 막는다.
   useModalKeys({ onClose, onSubmit: submit, canSubmit: canSubmit && !conflict && !bulkConfirm, busy: saving });
 
@@ -223,6 +228,27 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
           <label className="fld"><span>업체명</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: 나이키" /></label>
           <label className="fld"><span>내용 (선택)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="비워두면 업체명이 그대로 들어갑니다" /></label>
+          {/* 홍보물 자체의 게시 기간 — "8월 프로모션"처럼 쓰는 기간이 정해진 것만 넣는다.
+              비워 두면 상시로 보고, 지난 홍보물은 배치 팝업 후보에서 빠진다.
+              매번 쓰는 값이 아니라 접어 둔다(기본값: 닫힘). */}
+          {!pOpen ? (
+            <button type="button" className="facerow" onClick={() => setPOpen(true)}>
+              <b>+</b> 게시 기간 (선택) <em>비워두면 상시</em>
+            </button>
+          ) : (
+            <>
+              <label className="fld"><span>게시 기간 (선택)
+                <button type="button" className="mini" style={{ marginLeft: 8, fontWeight: 600 }}
+                  onClick={() => { setPStart(''); setPEnd(''); setPOpen(false); }}>접기</button>
+              </span></label>
+              <div className="fld2">
+                <label className="fld"><span>시작일</span><input type="date" value={pStart} onChange={(e) => setPStart(e.target.value)} /></label>
+                <label className="fld"><span>종료일</span><input type="date" value={pEnd} onChange={(e) => setPEnd(e.target.value)} /></label>
+              </div>
+              {pStart && pEnd && pEnd < pStart && <p className="warnbox">종료일이 시작일보다 앞섭니다.</p>}
+              <p className="hint">이 홍보물을 쓰는 기간입니다 — 자리에 언제 걸었는지(배치 기간)와는 다릅니다. 비워두면 상시.</p>
+            </>
+          )}
           {/* 디자인 시안은 있으면 좋지만 매번 있는 게 아니다(현장에서 등록할 때는 대개 없다).
               접어 두고, 설치 확인 사진만 넣어도 그게 홍보물 이미지로 함께 저장된다. */}
           <PhotoField

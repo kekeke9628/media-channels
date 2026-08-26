@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { iso, DAY, contentOf, subOf, matches, byName } from '../constants.js';
+import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
 import { installPhotoRequired } from '../constants.js';
@@ -16,7 +16,10 @@ import { useModalKeys } from '../lib/useModalKeys.js';
 export default function PlaceOnMediaModal({ media, T, postings, placements, refDate, initialFace, onClose, onAssign, onAdjustEnd, onDone, onCreateNew }) {
   const t = T[media.type];
   // 어느 홍보물이든 어느 매체에나 걸 수 있다 — 규격을 따지지 않는다(024).
-  const options = useMemo(() => postings, [postings]);
+  // 다만 게시 기간이 끝난 홍보물은 후보에서 뺀다 — 이제 와서 새로 걸 일이 없고, 목록에
+  // 남아 있으면 지난 것을 잘못 고르기 쉽다. 기간을 안 넣은 홍보물(상시)은 계속 나온다.
+  const options = useMemo(() => postings.filter((p) => !postingExpired(p, refDate)), [postings, refDate]);
+  const hiddenExpired = postings.length - options.length;
 
   const placementsOf = useMemo(() => {
     const by = {};
@@ -125,7 +128,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
               {/* 현장에서 새로 걸 때는 대개 아직 등록 안 한 홍보물이다 — 목록을 훑고 맨 아래까지
                   내려가서야 이 버튼을 만나면 늦다. 가장 먼저 보이게 둔다. */}
               <button className="btn primary wide" onClick={onCreateNew}>+ 새 홍보물 등록해서 바로 배치</button>
-              <p className="hint">또는 이미 등록된 홍보물 중에서 고르세요.</p>
+              <p className="hint">또는 이미 등록된 홍보물 중에서 고르세요.{hiddenExpired > 0 && ` 게시 기간이 끝난 ${hiddenExpired}건은 목록에서 뺐습니다.`}</p>
               <label className="fld"><span>홍보물 검색</span><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="업체명 · 내용" /></label>
               {rows.length === 0 ? (
                 <p className="sub" style={{ padding: '8px 0' }}>
@@ -141,7 +144,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
                         <div className="mglyph" style={url ? { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: `linear-gradient(150deg, hsl(${p.hue} 42% 52%), hsl(${(p.hue + 40) % 360} 38% 38%))` }} />
                         <div className="mtxt">
                           <b>{p.brand}</b>
-                          <i>{[subOf(p), placedCount ? `${placedCount}곳에 배치` : '미배치'].filter(Boolean).join(' · ')}</i>
+                          <i>{[subOf(p), periodLabel(p), placedCount ? `${placedCount}곳에 배치` : '미배치'].filter(Boolean).join(' · ')}</i>
                         </div>
                       </div>
                     );

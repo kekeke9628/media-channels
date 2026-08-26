@@ -175,6 +175,9 @@ function mapPosting(p) {
     title: p.title || '',
     thumbPath: p.thumb_path || null,
     viewPath: p.view_path || null,
+    // 홍보물 자체의 게시 기간. 둘 다 비면 상시(기간 제한 없음).
+    start: p.start_date || null,
+    end: p.end_date || null,
     hue: hueOf(p.id),
     bytesOrig: p.bytes_orig || 0,
     bytesLight: p.bytes_light || 0,
@@ -274,11 +277,11 @@ async function uploadPostingImage(path, dataUrl) {
 // 2면 매체용으로 앞/뒤 이미지 한 쌍을 홍보물 하나에 묶어 두었지만, 그러면 앞/뒤가 항상
 // 같은 업체·같은 기간으로만 걸릴 수 있었다 — 실제로는 면마다 다른 광고주가 흔해서,
 // 이제 홍보물은 언제나 단일 이미지고 "어느 면"은 배치(placements.face) 쪽 개념이다.
-export async function createPosting({ brand, title, singleResult }) {
+export async function createPosting({ brand, title, start, end, singleResult }) {
   const { data: userData } = await supabase.auth.getUser();
   const { data: inserted, error: insertError } = await supabase
     .from('postings')
-    .insert({ brand, title: title || null, created_by: userData?.user?.id || null })
+    .insert({ brand, title: title || null, start_date: start || null, end_date: end || null, created_by: userData?.user?.id || null })
     .select()
     .single();
   if (insertError) throw insertError;
@@ -288,10 +291,12 @@ export async function createPosting({ brand, title, singleResult }) {
 
 // 홍보물의 업체명·내용 수정. 홍보물은 여러 자리에 걸릴 수 있으므로 여기서 바꾸면 그
 // 홍보물이 걸린 모든 자리의 표시가 함께 바뀐다 — 호출 쪽에서 그 사실을 알려 준다.
-export async function updatePostingText(id, { brand, title }) {
+export async function updatePostingText(id, { brand, title, start, end }) {
   const row = {};
   if (brand !== undefined) row.brand = brand;
   if (title !== undefined) row.title = title || null;
+  if (start !== undefined) row.start_date = start || null;
+  if (end !== undefined) row.end_date = end || null;
   const { data, error } = await supabase.from('postings').update(row).eq('id', id).select().single();
   if (error) throw error;
   return mapPosting(data);

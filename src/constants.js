@@ -107,3 +107,14 @@ export const nameTaken = (media, name, exceptId) =>
 // 매체명 정렬. 숫자를 숫자로 비교한다(numeric) — 문자열로만 비교하면 WEL10이 WEL2보다
 // 앞에 온다. 지금은 두 자리로 맞춰 쓰고 있어 티가 안 나지만, 10을 넘기는 순간 어긋난다.
 export const byName = (a, b) => (a || '').localeCompare(b || '', 'ko', { numeric: true, sensitivity: 'base' });
+
+// 홍보물 자체의 게시 기간 — 둘 다 비어 있으면 "상시"(기간 제한 없음)다.
+// 배치의 기간과는 다른 것이다: 여기는 "이 홍보물을 언제까지 쓰는가", 배치는 "이 자리에
+// 언제부터 언제까지 걸려 있었나".
+export const periodLabel = (p) => {
+  if (!p?.start && !p?.end) return '상시';
+  return `${p.start || '시작일 미정'} ~ ${p.end || '미정'}`;
+};
+// 종료일이 지난 홍보물 — 새로 걸 후보에서 뺀다. 시작일만 미래인 것은 뺄 이유가 없다
+// (미리 잡아 두는 경우가 있다).
+export const postingExpired = (p, refDate) => !!p?.end && p.end < refDate;

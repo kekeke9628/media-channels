@@ -597,7 +597,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {activeTab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={pickMedia} />}
           {activeTab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
-              onPick={pickMedia} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem}
+              onPick={pickMedia} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem} onEditPeriod={editPostingText}
               onAssign={(id) => { setAssignPreset(null); setAssigningId(id); }}
               onRepeat={(pl) => { setAssignPreset({ mediaId: pl.mediaId, face: pl.face || 1 }); setAssigningId(pl.postingId); }} />
           )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { contentOf, subOf, matches } from '../constants.js';
+import { contentOf, subOf, matches, periodLabel, postingExpired } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
@@ -8,7 +8,54 @@ import StatusChip from './StatusChip.jsx';
 // 매체 배치는 홍보물에 딸린 부가 정보로 아래 미니 표에서 보여주고, "+ 배치 추가"로 몇 곳이든
 // 추가할 수 있다(동시에 여러 매체에 걸거나, 시간차를 두고 다시 거는 것 모두 여기서 시작).
 
-export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRepeat, onRemove, onUndo, onCancel, onDeletePosting }) {
+// 홍보물의 게시 기간 한 줄. 눌러서 그 자리에서 고친다(매체 상세의 칸 편집과 같은 방식).
+// 비어 있으면 "상시" — 기간을 정하지 않고 계속 쓰는 홍보물이 많다.
+function PeriodLine({ p, isEditor, refDate, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [start, setStart] = useState(p.start || '');
+  const [end, setEnd] = useState(p.end || '');
+  const [err, setErr] = useState('');
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setStart(p.start || ''); setEnd(p.end || ''); }, [p.id, p.start, p.end]);
+
+  const expired = postingExpired(p, refDate);
+  if (!editing) {
+    const body = (
+      <>
+        <span className={expired ? 'tag over' : 'sub mono'}>{periodLabel(p)}</span>
+        {expired && <span className="sub">기간 지남</span>}
+      </>
+    );
+    if (!isEditor || !onSave) return <div className="periodline">{body}</div>;
+    return (
+      <button type="button" className="periodline editable" onClick={(e) => { e.stopPropagation(); setErr(''); setEditing(true); }} title="눌러서 기간 수정">
+        {body}<i className="statcell-pen">✎</i>
+      </button>
+    );
+  }
+  const save = async () => {
+    if (start && end && end < start) { setErr('종료일이 시작일보다 앞섭니다.'); return; }
+    setSaving(true);
+    const ok = await onSave(p.id, { start: start || null, end: end || null });
+    setSaving(false);
+    if (ok) { setEditing(false); setErr(''); } else setErr('저장하지 못했습니다.');
+  };
+  return (
+    <div className="periodline editing" onClick={(e) => e.stopPropagation()}>
+      <input className="inp" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+      <span className="sub">~</span>
+      <input className="inp" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+      <div className="statcell-btns">
+        <button className="mini ok" disabled={saving} onClick={save}>{saving ? '저장 중…' : '저장'}</button>
+        <button className="mini" disabled={saving} onClick={() => { setStart(''); setEnd(''); }}>상시</button>
+        <button className="mini" disabled={saving} onClick={() => { setStart(p.start || ''); setEnd(p.end || ''); setEditing(false); }}>취소</button>
+      </div>
+      {err && <span className="statcell-err">{err}</span>}
+    </div>
+  );
+}
+
+export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRepeat, onRemove, onUndo, onCancel, onDeletePosting, onEditPeriod }) {
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
   const [q, setQ] = useState('');
@@ -93,6 +140,8 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
               })()}
               <div className="cbody">
                 <b>{p.brand}</b>{subOf(p) && <i className="sub">{subOf(p)}</i>}
+                {/* 이 홍보물을 쓰는 기간. 여기서 바로 고친다 — 고치러 다른 화면으로 갈 일이 없다. */}
+                <PeriodLine p={p} isEditor={isEditor} refDate={refDate} onSave={onEditPeriod} />
                 <div className="crow">
                   {pls.length === 0 ? <span className="tag vacant">미배치</span> : <span className="sub mono">{pls.length}곳에 배치</span>}
                 </div>
