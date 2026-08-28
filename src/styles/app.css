@@ -116,7 +116,12 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
    다만 지금 보고 있는 핀만은 항상 맨 위로 올려, 목록에서 고른 매체가 다른 핀에 가려
    안 보이는 일은 없게 한다. 데스크톱에서는 마우스를 올린 핀도 앞으로 꺼내 준다. */
 .pin:hover{z-index:7}
-.pin.sel{z-index:8}
+/* 선택된 핀은 다른 핀과 그 라벨보다 항상 위로 온다.
+   핀은 z-index:5로 각자 쌓임 맥락을 만들기 때문에, 그 안의 라벨(.plabel z-25)이 아무리
+   높아도 결국 5층에 그려진다 — 그래서 24면 다른 핀의 라벨에도 안 가린다. 지도 위 안내
+   배너(.addhint z-26)보다는 낮게 둔다: 그건 "새 매체 놓을 자리를 누르세요"를 읽어야 하는
+   순간에만 뜨고, 그때 가려지면 무엇을 하라는 건지 알 수 없다. */
+.pin.sel{z-index:24}
 .pin.editable{cursor:grab}
 .pin-inner{transform-origin:center bottom}
 /* 확대했을 때만 나오는 매체명. 핀 바로 위에 붙이고, 핀끼리 붙어 있어도 이름이 서로
@@ -136,7 +141,27 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 /* 흰 글자(유형 약자)가 2.65:1로 거의 안 보였다 — 무채색이라 게시중 초록·만료 빨강보다
    덜 튀는 성질은 그대로 두고 명도만 낮춰 4.56:1로 올린다. 아래 범례 색도 같이 맞춘다. */
 .pin.vacant .pdot{background:#7D7565}
-.pin.sel .pdot{outline:2.5px solid var(--brass);outline-offset:2px}
+/* 선택 표시 — 목록에서 "지도"로 건너오면 이 핀 하나를 찾으려고 온 것이라, 지도 위에서
+   즉시 눈에 띄어야 한다. 예전의 2.5px 테두리 한 겹은 모바일에서 핀이 19×20px까지
+   작아지면서 회색 배치도에 묻혔다.
+   핀(.pdot)에는 테두리를 그릴 수가 없다. clip-path가 filter·box-shadow보다 나중에
+   적용되기 때문에, 무엇을 그리든 오각형 밖으로 나간 부분이 잘려 나간다 — .pin.stale이
+   갖고 있던 붉은 링도 사실 여태 화면에 한 번도 안 나왔다. outline만 안 잘리는데 그건
+   핀 모양을 무시하고 네모로 그려져 겉돈다.
+   그래서 clip-path가 없는 부모(.pin-inner)에 같은 오각형을 두 겹 깔아 윤곽선을 만든다.
+   흰 겹을 핀 바로 바깥에 둬서 핀 색(초록·빨강·회색)과 놋쇠색이 서로 먹지 않게 한다. */
+.pin.sel .pdot{outline:none}
+/* 크기는 .pin-inner로 키운다 — .pdot을 키우면 핀 끝(지도 위 실제 지점)이 같이 밀린다.
+   transform-origin이 center bottom이라 핀 끝은 제자리에 남는다.
+   그림자도 여기서 준다(자식들이 합쳐진 모양을 따라가고, 여기는 안 잘린다). */
+.pin.sel .pin-inner{position:relative;transform:scale(1.15);
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
+.pin.sel .pin-inner::before,.pin.sel .pin-inner::after{
+  content:'';position:absolute;
+  clip-path:polygon(50% 0%,100% 18%,100% 100%,0% 100%,0% 18%);
+}
+.pin.sel .pin-inner::before{inset:-5px;background:var(--brass);z-index:-2}
+.pin.sel .pin-inner::after{inset:-2.5px;background:#fff;z-index:-1}
 .plabel{position:absolute;left:50%;top:calc(100% + 7px);transform:translateX(-50%);background:#23211E;color:#fff;padding:6px 10px;border-radius:8px;font-size:11.5px;white-space:nowrap;z-index:25;pointer-events:none}
 .plabel i{display:block;font-style:normal;color:#B5AC9E;font-size:10.5px;margin-top:2px}
 /* 핀 아래에 라벨을 다는 게 기본인데, 미리보기가 붙으면 세로로 길어져 지도 아래쪽 핀은
