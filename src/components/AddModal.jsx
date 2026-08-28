@@ -19,7 +19,11 @@ const fileSize = (bytes) => (bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + '
 // (2) 매체 상세의 "+ 새 홍보물 등록해서 바로 배치"(initialMediaId 있음): 그 화면에서
 //     찾는 홍보물이 아직 없을 때 쓰는 경로라, 등록과 동시에 그 매체(그 면)에 바로 건다.
 // 이미지는 브라우저 canvas에서 WebP 2단(view 1600px / thumb 400px)으로 변환한다 (사양서 6장).
-export default function AddModal({ T, types, media, placements, refDate, isEditor, initialMediaId, initialFace, onClose, onAdd, onAssign, onAdjustEnd, onDone }) {
+// (3) 교체 탭의 "새 홍보물 등록해서 바로 교체"(swapPl 있음): (2)와 화면은 같지만 마지막에
+// 배치가 아니라 교체를 한다 — 걸려 있던 것을 내리는 일까지 서버에서 한 덩어리로 처리한다.
+// 자리(매체·면)와 교체일은 앞 화면에서 정해져 왔으므로 여기서는 못 바꾼다.
+export default function AddModal({ T, types, media, placements, refDate, isEditor, initialMediaId, initialFace, swapPl, swapDate, onSwapNew, onClose, onAdd, onAssign, onAdjustEnd, onDone }) {
+  const swapping = !!swapPl;
   const activeTypes = useMemo(() => types.filter((t) => t.active), [types]);
   const initialMedia = initialMediaId ? media.find((x) => x.id === initialMediaId && x.active) : null;
 
@@ -86,6 +90,9 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     setConflict(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pStart, pEnd]);
+  // 교체일은 앞 화면에서 정해져 왔다. start를 직접 세팅하는 effect가 셋이라(위) 상태를
+  // 잠그려 들면 어느 하나를 놓치기 쉬워서, 쓰는 자리에서 파생값으로 덮는다.
+  const startEff = swapping ? swapDate : start;
   const findOverlap = (id, f) => {
     const newEndEff = noEnd ? '9999-12-31' : end;
     return mediaPlacements(id, f).find((pl) => {
@@ -138,19 +145,26 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const buildPayload = () => ({ type: typeCode, brand, title, start: pStart || null, end: pEnd || null, alwaysOn: pAlways, singleResult: result });
 
   const submitSingle = async () => {
-    const ov = findOverlap(mediaId, face);
-    if (ov && !conflict) { setConflict(ov); return; }
-    setSaving(true);
-    if (ov && conflict) {
-      const adjusted = await onAdjustEnd(ov.id, iso(Date.parse(start) - DAY));
-      if (!adjusted) { setSaving(false); return; }
-    }
+    // 교체 모드에서는 겹침을 여기서 조정하지 않는다 — 걸려 있던 배치를 닫는 일까지
+    // 서버가 한 트랜잭션으로 처리한다(replace_placement). 여기서 미리 종료일을 손대면
+    // 교체가 실패했을 때 그 자리가 빈 채로 남는다.
+    if (!swapping) {
+      const ov = findOverlap(mediaId, face);
+      if (ov && !conflict) { setConflict(ov); return; }
+      setSaving(true);
+      if (ov && conflict) {
+        const adjusted = await onAdjustEnd(ov.id, iso(Date.parse(startEff) - DAY));
+        if (!adjusted) { setSaving(false); return; }
+      }
+    } else setSaving(true);
     // 등록·배치 각각의 토스트 대신 결과를 합쳐 호출 쪽(App)에서 한 번만 알린다.
     const created = await onAdd(buildPayload(), { silent: true });
     if (!created) { setSaving(false); return; }
-    const placed = await onAssign(created, { mediaId, start, end: noEnd ? null : end, installPhoto, face, faceLabel: faceLabel || face + '면' }, { silent: true });
+    const placed = swapping
+      ? await onSwapNew(created, { date: swapDate, end: noEnd ? null : end, installPhoto })
+      : await onAssign(created, { mediaId, start: startEff, end: noEnd ? null : end, installPhoto, face, faceLabel: faceLabel || face + '면' }, { silent: true });
     setSaving(false);
-    onDone?.({ placed });
+    onDone?.({ placed, swapped: swapping });
     if (placed) onClose();
   };
 
@@ -200,7 +214,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   // 배치는 사진 없이 등록하지 못하게 한다. 게시예정(미래 시작)은 아직 못 찍으니 예외.
   // 여러 매체에 한 번에 거는 경우도 예외다 — 한 장으로 여러 자리를 증명할 수 없으니
   // 각 자리에서 따로 찍는 게 맞고, 빠진 건 알람이 쫓아간다.
-  const needInstall = !!initialMedia && !bulkOn && installPhotoRequired(start, refDate);
+  const needInstall = !!initialMedia && !bulkOn && installPhotoRequired(startEff, refDate);
   const missingInstall = needInstall && !installPhoto;
   const periodBad = !!pStart && !!pEnd && pEnd < pStart;
   const canSubmit = !!brand && (!bulkOn || selected.size > 0) && !missingInstall && !periodBad;
@@ -210,10 +224,22 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   return (
     <div className="modal" onClick={onClose}>
       <div className="mbox" onClick={(e) => e.stopPropagation()}>
-        <div className="mhead"><b>{initialMedia ? `${initialMedia.name}에 새로 등록` : '홍보물 등록'}</b><button onClick={onClose}>✕</button></div>
+        {/* 면이 여럿인 매체는 어느 면을 교체하는 중인지 제목에 넣는다 — 1면짜리에 "· 1면"은
+            군더더기라 붙이지 않는다. */}
+        <div className="mhead"><b>{swapping
+          ? `${initialMedia?.name}${mediaFaces > 1 ? ` · ${swapPl.faceLabel || swapPl.face + '면'}` : ''} 교체 — 새 홍보물`
+          : initialMedia ? `${initialMedia.name}에 새로 등록` : '홍보물 등록'}</b><button onClick={onClose}>✕</button></div>
         <div className="mbody">
 
-          {initialMedia ? (
+          {swapping ? (
+            /* 무엇을 내리는지 못 박는다 — 교체 탭에서 고른 자리 그대로다. 면과 교체일은
+               여기서 바꾸지 못한다(바꿀 수 있으면 엉뚱한 면에 걸릴 여지만 생긴다). */
+            <div className="swapfrom">
+              <span className="sub">지금 걸려 있는 것 — {swapDate}에 내려갑니다</span>
+              <b>{swapPl.brand}</b>
+              <i className="sub mono">{swapPl.start} ~ {swapPl.end || '미정'}</i>
+            </div>
+          ) : initialMedia ? (
             mediaFaces > 1 && (
               <>
                 <label className="fld"><span>면 선택</span></label>
@@ -308,10 +334,10 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                 onPick={processInstallPhoto}
                 onClear={() => setInstallPhoto(null)}
               />
-              {missingInstall && <p className="warnbox">오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)</p>}
+              {missingInstall && <p className="warnbox">{swapping ? '오늘 교체하는 자리입니다 — 실제로 바꿔 단 모습을 한 장 남겨 주세요.' : '오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)'}</p>}
 
               <div className="fld2">
-                <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
+                <label className="fld"><span>{swapping ? '시작일 (교체일)' : '시작일'}</span><input type="date" value={startEff} disabled={swapping} onChange={(e) => { setStart(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
                 <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
               </div>
               <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setDateTouched(true); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
@@ -375,7 +401,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
           {bulkOn && !initialMedia && <span className="sub" style={{ marginRight: 'auto' }}>{saving && progress ? `배치 중… ${progress.done}/${progress.total}` : ''}</span>}
           <button className="btn" disabled={saving} onClick={onClose}>취소</button>
           <button className="btn primary" onClick={submit} disabled={!canSubmit || saving}>
-            {saving ? '저장 중…' : bulkOn && !initialMedia ? `등록 · ${selected.size}건 배치` : '등록'}
+            {saving ? (swapping ? '교체 중…' : '저장 중…') : swapping ? '등록하고 교체' : bulkOn && !initialMedia ? `등록 · ${selected.size}건 배치` : '등록'}
           </button>
         </div>
       </div>

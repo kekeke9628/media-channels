@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { ALERT_DAYS, LONG_OPEN, getToday, nameTaken, zoneOf } from './constants.js';
+import { ALERT_DAYS, LONG_OPEN, getToday, nameTaken, zoneOf, swapTarget } from './constants.js';
 import { autoClose, buildState, flattenSlots } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
@@ -98,6 +98,9 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   // 교체 중인 자리 — { slot, date }. 어느 자리를 언제 교체할지는 교체 탭에서 이미 골랐고,
   // 팝업은 "무엇으로 바꿀지"만 받는다.
   const [swapping, setSwapping] = useState(null);
+  // 교체 팝업에서 "새 홍보물 등록해서 바로 교체"로 넘어간 경우 — 등록 화면(AddModal)이
+  // 마지막에 배치가 아니라 교체를 하도록 이 값을 들고 간다.
+  const [addSwap, setAddSwap] = useState(null); // { slot, date }
   const [editMode, setEditMode] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const [mapImage, setMapImage] = useState(null);
@@ -697,14 +700,25 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {...ctx} slot={swapping.slot} date={swapping.date}
           postings={postings} placements={placements}
           onClose={() => setSwapping(null)} onSwap={swapPlacement}
+          onCreateNew={() => {
+            // 자리를 고정한 채 등록 화면으로 넘긴다 — 매체·면·교체일은 이미 정해졌으므로
+            // 거기서 다시 고르게 하지 않는다.
+            setAddSwap(swapping);
+            setAddMediaId(swapping.slot.mediaId); setAddFace(swapping.slot.face);
+            setAddOpen(true); setSwapping(null);
+          }}
         />
       )}
       {addOpen && isEditor && (
         <AddModal
           {...ctx} media={media} placements={placements} initialMediaId={addMediaId} initialFace={addFace}
-          onClose={() => { setAddOpen(false); setAddMediaId(null); setAddFace(null); }}
+          swapPl={addSwap ? swapTarget(addSwap.slot) : null} swapDate={addSwap?.date}
+          onSwapNew={(created, opts) => swapPlacement(swapTarget(addSwap.slot), created, opts)}
+          onClose={() => { setAddOpen(false); setAddMediaId(null); setAddFace(null); setAddSwap(null); }}
           onAdd={addPosting} onAssign={addPlacement} onAdjustEnd={adjustEnd}
-          onDone={({ placed, registeredOnly, bulk }) => {
+          onDone={({ placed, registeredOnly, bulk, swapped }) => {
+            if (swapped) return; // 교체 결과는 swapPlacement가 이미 알렸다
+
             // 배치 없이 등록만 하면 방금 만든 홍보물이 어느 화면에도 안 보여서, 다음 할 일이
             // 있는 홍보물 화면으로 옮겨 주고 무엇을 해야 하는지 문구로 알려준다.
             if (registeredOnly) { setTab('promos'); flash('홍보물을 등록했습니다. 이제 "배치 추가"로 매체에 걸어 주세요.'); return; }

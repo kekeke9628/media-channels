@@ -11,7 +11,7 @@ import PhotoField from './PhotoField.jsx';
 // 매체·면·방향·시작일이 전부 정해져 있는 상태로 들어오기 때문이다 — 어느 자리를 언제
 // 교체할지는 앞 화면(교체 탭)에서 이미 골랐고, 여기서 다시 묻는 건 되묻는 것일 뿐
 // 엉뚱한 면에 걸릴 여지만 만든다. 그래서 "무엇으로 바꿀지"와 종료일·설치사진만 받는다.
-export default function SwapModal({ slot, date, postings, placements, refDate, onClose, onSwap, onDone }) {
+export default function SwapModal({ slot, date, postings, placements, refDate, onClose, onSwap, onCreateNew, onDone }) {
   const oldPl = swapTarget(slot);
 
   // 게시 기간이 끝난 홍보물은 후보에서 뺀다 — 교체하면서 이미 끝난 캠페인을 거는 건
@@ -86,7 +86,11 @@ export default function SwapModal({ slot, date, postings, placements, refDate, o
 
           {!posting ? (
             <>
-              <p className="hint">무엇으로 바꿀지 고르세요.{hiddenExpired > 0 && ` 게시 기간이 끝난 ${hiddenExpired}건은 목록에서 뺐습니다.`}</p>
+              {/* 현장에서 교체할 때는 아직 등록 안 한 홍보물인 경우가 대부분이다 — 목록을
+                  훑고 맨 아래까지 내려가서야 이 버튼을 만나면 늦다(PlaceOnMediaModal과 같은
+                  이유로 맨 위에 둔다). */}
+              {onCreateNew && <button className="btn primary wide" onClick={onCreateNew}>+ 새 홍보물 등록해서 바로 교체</button>}
+              <p className="hint">또는 이미 등록된 홍보물 중에서 고르세요.{hiddenExpired > 0 && ` 게시 기간이 끝난 ${hiddenExpired}건은 목록에서 뺐습니다.`}</p>
               <label className="fld"><span>홍보물 검색</span><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="업체명 · 내용" /></label>
               {rows.length === 0 ? (
                 <p className="sub" style={{ padding: '8px 0' }}>
