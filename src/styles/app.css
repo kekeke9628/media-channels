@@ -570,6 +570,9 @@ td.sub{display:table-cell}
 .mcard-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .mcard-top b{font-size:13.5px}
 .mcard-meta{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px}
+/* 지도 버튼은 메타 줄 오른쪽 끝으로 — 유형·구역·면수와 섞이면 읽는 흐름을 끊고,
+   카드 전체가 눌리는 화면이라 누를 곳이 오른쪽에 따로 있는 편이 헷갈리지 않는다. */
+.mcard-meta .pushright{margin-left:auto}
 .mcard-brand{margin-top:7px;font-size:12.5px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
 .mcard-brand i{font-style:normal}
 .mcard-date{margin-top:3px;font-size:11.5px;color:var(--ink2)}

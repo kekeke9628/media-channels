@@ -23,7 +23,12 @@ const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 const CLICK_SLOP = 6; // 이 픽셀 이내 움직임은 팬이 아니라 클릭으로 본다
 
-export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, setSelMedia, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, onRestoreAt, mapImage, onMapImage, isEditor }) {
+// onOpenMedia: 핀을 누르면 선택 + 상세 시트까지 연다. 목록의 "지도보기"는 시트를 열지 않고
+// 선택만 잡으므로(시트가 지도를 덮는다) App이 둘을 다른 함수로 내려 준다.
+// cardRef: 목록에서 "지도보기"를 눌렀을 때 이 카드로 스크롤하기 위해 App이 잡는 손잡이.
+// focusTick: 이미 선택된 매체를 다시 눌렀을 때도 지도를 다시 중앙으로 옮기기 위한 신호 —
+// selMedia만 보면 값이 그대로라 effect가 안 돌고, 사용자는 버튼이 먹통이라고 느낀다.
+export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, onOpenMedia, cardRef, focusTick, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, onRestoreAt, mapImage, onMapImage, isEditor }) {
   const wrapRef = useRef(null);
   const stageRef = useRef(null);
   const pinRefs = useRef({});   // item.id -> 핀 DOM 노드 (지도와 분리된 레이어라 위치를 직접 계산해서 넣어줘야 함)
@@ -283,7 +288,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   useEffect(() => {
     if (selMedia) panToPin(items.find((o) => o.id === selMedia));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selMedia]);
+  }, [selMedia, focusTick]);
 
   // 데스크톱(휠+드래그)과 모바일(핀치+드래그) 모두 지원 — Pointer Events로 손가락 2개를 추적한다.
   const onWrapPointerDown = (e) => {
@@ -364,7 +369,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   const zoneLabel = (z) => ZONES[z]?.label || z;
 
   return (
-    <div className="mapcard">
+    <div className="mapcard" ref={cardRef}>
       <div className="maphead">
         <div className="mtitle"><b>구역 배치도</b></div>
         <div className="mtools">
@@ -449,7 +454,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
                   e.currentTarget.setPointerCapture(e.pointerId);
                   dragPinRef.current = o.id;
                 }}
-                onClick={() => { if (addMode) { showBump(); return; } if (!editMode) setSelMedia(o.id); }} onMouseEnter={() => setHover(o.id)} onMouseLeave={() => setHover(null)}>
+                onClick={() => { if (addMode) { showBump(); return; } if (!editMode) onOpenMedia(o.id); }} onMouseEnter={() => setHover(o.id)} onMouseLeave={() => setHover(null)}>
                 <div className="pin-inner">
                   <span className="pdot">{t.glyph}</span>
                   {/* 확대해서 보고 있으면 매체명을 핀 위에 그대로 띄운다 — 핀에 들어가는 건

@@ -69,10 +69,16 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   // 다른 앱을 보고 돌아오면 브라우저가 탭을 버렸다 다시 여는 일이 잦다(특히 iOS).
   // 로그인은 살아 있으니 보고 있던 자리만 되살리면 "창이 닫힌" 느낌이 없어진다.
   const [tab, setTab] = useSticky('ui.tab', 'posts');
+  // selMedia는 "지도에서 선택된 매체"다 — 핀이 강조되고 지도가 그 자리로 움직인다.
+  // 상세 시트를 여는 것은 별개(sheetOpen)로 둔다: 시트는 화면을 덮는 모달이라, 목록의
+  // "지도보기"가 시트까지 열면 정작 보러 간 지도가 가려진다.
+  // 기본값이 true인 이유 — 이 값이 생기기 전부터 selMedia를 기억하고 있던 사람이 다른 앱에
+  // 갔다 돌아왔을 때, 보던 상세가 안 열리면 그게 더 이상하다(debf1eb에서 맞춰 둔 동작).
   const [selMedia, setSelMedia] = useSticky('ui.selMedia', null);
+  const [sheetOpen, setSheetOpen] = useSticky('ui.sheetOpen', true);
   // 목록에서 "3면"을 눌러 들어온 경우 그 면으로 스크롤하기 위한 값(기억하지 않는다).
   const [focusFace, setFocusFace] = useState(null);
-  const pickMedia = (id, face = null) => { setSelMedia(id); setFocusFace(face); };
+  const pickMedia = (id, face = null) => { setSelMedia(id); setFocusFace(face); setSheetOpen(true); };
   const [zoneFilter, setZoneFilter] = useState('ALL');
   const [toast, setToast] = useState(null); // { msg, undo? }
   const [narrow, setNarrow] = useState(false);
@@ -170,6 +176,26 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
     () => state.filter((o) => typeFilter.has(o.type) && (zoneFilter === 'ALL' || o.zone === zoneFilter)),
     [state, typeFilter, zoneFilter]
   );
+
+  // 목록의 "지도" 버튼 — 그 매체를 지도에서 선택하고 지도까지 화면을 올려 준다.
+  // 상세 시트는 열지 않는다(pickMedia와 다른 점): 시트가 지도를 덮어 버리기 때문이다.
+  const mapCardRef = useRef(null);
+  const [mapFocusTick, setMapFocusTick] = useState(0);
+  const showOnMap = (id) => {
+    const m = byId[id];
+    // 필터에 걸려 지도에 없는 매체를 고르면 스크롤만 되고 핀이 없어 "먹통"으로 보인다.
+    // 필터는 한 번 꺼 두면 껐다는 걸 잊는 종류의 설정이라, 여기서 조용히 풀어 준다.
+    if (m) {
+      if (zoneFilter !== 'ALL' && m.zone !== zoneFilter) setZoneFilter('ALL');
+      if (!typeFilter.has(m.type)) setTypeFilter((prev) => new Set(prev).add(m.type));
+    }
+    setSelMedia(id);
+    setFocusFace(null);
+    setSheetOpen(false);
+    // 같은 매체를 다시 누르는 경우 selMedia가 그대로라 지도 이동 effect가 안 돈다.
+    setMapFocusTick((n) => n + 1);
+    mapCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const kpi = useMemo(() => {
     const live = slots.filter((o) => o.live).length;
@@ -572,7 +598,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         <MapPanel
           {...ctx} items={visible} allMedia={media} zoneFilter={zoneFilter} setZoneFilter={setZoneFilter}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
-          selMedia={selMedia} setSelMedia={setSelMedia}
+          selMedia={selMedia} onOpenMedia={pickMedia} cardRef={mapCardRef} focusTick={mapFocusTick}
           editMode={editMode} setEditMode={setEditMode} addMode={addMode} setAddMode={setAddMode}
           onMoveLocal={moveMediaLocal} onMoveCommit={moveMediaCommit} onCreate={addMediaAt} onRestoreAt={restoreMediaAtLocal}
           mapImage={mapImage} onMapImage={saveMapImage}
@@ -594,10 +620,10 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         </div>
 
         <div className="panel">
-          {activeTab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={pickMedia} />}
+          {activeTab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={pickMedia} onShowOnMap={showOnMap} />}
           {activeTab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
-              onPick={pickMedia} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem} onEditPeriod={editPostingText}
+              onPick={pickMedia} onShowOnMap={showOnMap} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem} onEditPeriod={editPostingText}
               onAssign={(id) => { setAssignPreset(null); setAssigningId(id); }}
               onRepeat={(pl) => { setAssignPreset({ mediaId: pl.mediaId, face: pl.face || 1 }); setAssigningId(pl.postingId); }} />
           )}
@@ -613,9 +639,9 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         </div>
       </main>
 
-      {selMedia && byId[selMedia] && (
+      {selMedia && sheetOpen && byId[selMedia] && (
         <MediaSheet
-          {...ctx} o={byId[selMedia]} onClose={() => { setSelMedia(null); setFocusFace(null); }} onRemove={markRemoved} onDelete={removeMedia}
+          {...ctx} o={byId[selMedia]} onClose={() => { setSelMedia(null); setFocusFace(null); setSheetOpen(false); }} onRemove={markRemoved} onDelete={removeMedia}
           onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType} onAttachPhoto={attachInstallPhoto}
           onEditDates={editPlacementDates} onEditText={editPostingText} focusFace={focusFace}
           onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}

@@ -68,7 +68,7 @@ function PeriodLine({ p, isEditor, refDate, onSave }) {
   );
 }
 
-export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onAssign, onRepeat, onRemove, onUndo, onCancel, onDeletePosting, onEditPeriod }) {
+export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onShowOnMap, onAssign, onRepeat, onRemove, onUndo, onCancel, onDeletePosting, onEditPeriod }) {
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
   const [q, setQ] = useState('');
@@ -167,6 +167,14 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                         <tr key={pl.id} onClick={archived ? undefined : () => onPick(pl.mediaId)} style={archived ? { cursor: 'default' } : undefined}>
                           <td>{pLabel(pl)}{archived && <i className="sub"> · 보관된 매체</i>}{pl.installPhoto && <span title="설치 확인 사진 있음"> 📷</span>}</td>
                           <td><StatusChip status={s} /></td>
+                          {/* 보관된 매체는 지도에 핀이 없다 — 눌러도 아무 일이 없을 버튼은
+                              아예 안 보이는 편이 낫다(줄 전체 클릭을 막아 둔 것과 같은 이유). */}
+                          <td className="r" onClick={(e) => e.stopPropagation()}>
+                            {!archived && onShowOnMap && (
+                              <button className="mini" title="지도에서 이 매체 위치 보기"
+                                onClick={() => onShowOnMap(pl.mediaId)}>지도</button>
+                            )}
+                          </td>
                           {isEditor && (
                             <td className="r" onClick={(e) => e.stopPropagation()}>
                               {s !== 'upcoming' && s !== 'removed' && <button className="mini ok" onClick={() => onRemove(pl.id)}>홍보물 철거</button>}
