@@ -173,7 +173,10 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
   }
 
   return (
-    <div className="facesheet" id={`face-${slot.mediaId}-${slot.face}`}>
+    // 면이 여럿이면 구획마다 옅은 바탕을 깔아 서로 떼어 놓는다 — 실선 한 줄로만 나눠 놨더니
+    // 사진·버튼이 들어간 면들이 죽 이어져 보여서, 스크롤하며 훑을 때 어디서 1면이 끝나고
+    // 2면이 시작하는지 알 수 없었다. 접힌 면은 .facerow가 이미 상자라 그대로 둔다.
+    <div className={'facesheet' + (faceCount > 1 ? ' multi' : '')} id={`face-${slot.mediaId}-${slot.face}`}>
       {faceCount > 1 && (
         <h4 className="facesheet-h">
           {slot.faceLabel}

@@ -495,6 +495,10 @@ td.sub{display:table-cell}
 .bigthumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 /* 매체 상세에서 면(face)마다 한 구획씩 — 2면 이상일 때만 사이에 구분선이 보인다. */
 .facesheet + .facesheet{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
+/* 면이 2개 이상인 매체 — 구획마다 옅은 바탕을 깔아 한 덩어리로 보이게 한다.
+   바탕이 구분선 역할을 하므로 위 실선과 큰 여백은 걷어낸다(선까지 있으면 지저분하다). */
+.facesheet.multi{background:#F7F4EC;border-radius:10px;padding:12px}
+.facesheet + .facesheet.multi{border-top:0;margin-top:10px;padding-top:12px}
 .facesheet-h{font-size:12.5px;font-weight:700;color:#8E6B2C;margin:0 0 8px}
 .thumbrow{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .tsmall{flex:0 0 54px;text-align:center}
