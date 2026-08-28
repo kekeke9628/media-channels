@@ -413,6 +413,25 @@ export async function deletePlacement(id) {
   await removePostingFiles((doomed || []).map((p) => p.install_photo_path));
 }
 
+// 교체 — 걸려 있던 홍보물을 내리고 그 자리에 새것을 건다. 두 가지가 같이 되거나 같이
+// 안 되어야 하므로(중간에 실패하면 그 면이 빈 채로 남는다) DB 함수 한 번으로 처리한다(027).
+// 매체·면·방향은 그 자리의 속성이라 함수가 옛 배치에서 그대로 물려받는다.
+export async function replacePlacement({ oldId, postingId, date, end, installPhoto }) {
+  const { data, error } = await supabase.rpc('replace_placement', {
+    p_old_id: oldId, p_posting_id: postingId, p_date: date, p_end: end || null,
+  });
+  if (error) throw error;
+  // 합성 타입을 돌려주는 함수라 행 하나가 그대로 온다(구현에 따라 배열로 오는 경우도 있다).
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!installPhoto) return mapPlacement(row);
+
+  const install_photo_path = await uploadPostingImage(`placements/${row.id}/install.webp`, installPhoto.view.url);
+  const { data: updated, error: updateError } = await supabase
+    .from('placements').update({ install_photo_path }).eq('id', row.id).select().single();
+  if (updateError) throw updateError;
+  return mapPlacement(updated);
+}
+
 export async function markPlacementRemoved(id, removedAt) {
   const { error } = await supabase.from('placements').update({ removed_at: removedAt, removal_source: 'manual' }).eq('id', id);
   if (error) throw error;

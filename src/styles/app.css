@@ -275,6 +275,37 @@ td.sub{display:table-cell}
    놀라게 하면 안 되지만, 회색(vacant)으로 두면 다들 그냥 지나쳐 영영 안 채운다. */
 .tag.todo{background:#F6EDDC;color:#8A6420}
 .empty{color:var(--ink2);font-size:13px;padding:18px;text-align:center}
+
+/* 교체 탭 — 현장에 나가기 전에 보는 목록이라 한 줄이 곧 "한 자리"다.
+   오늘/내일 버튼은 손가락으로 누르는 첫 조작이라 다른 seg보다 크게 잡는다. */
+.swapseg button{padding:13px 12px;font-size:14px;font-weight:600}
+.swapseg button em{font-style:normal;margin-left:6px;background:#B4534B;color:#fff;
+  border-radius:20px;padding:1px 7px;font-size:11px;font-weight:700}
+.swapseg button.on em{background:#fff;color:#23211E}
+
+.swaplist{display:flex;flex-direction:column;gap:10px}
+/* 사진을 왼쪽에 크게 두는 게 이 화면의 핵심이다 — 담당자가 현장에서 그 자리를 알아보는
+   가장 빠른 단서고, 매체명(WWM03)만으로는 어디인지 떠올리는 데 시간이 걸린다. */
+.swaprow{display:flex;gap:11px;border:1px solid var(--line);border-radius:12px;
+  padding:11px;background:#fff}
+.swapshot{flex:none;width:82px;height:100px;border-radius:9px;overflow:hidden;
+  background:#EFEDE9;display:grid;place-items:center;cursor:pointer;font-size:11px}
+.swapshot img{width:100%;height:100%;object-fit:cover;display:block}
+.swapmain{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+.swaptop{display:flex;align-items:center;gap:6px;min-width:0}
+.swaptop b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.swaptop .tag{flex:none}
+.swapwho{display:flex;align-items:baseline;gap:6px;min-width:0;font-size:13px}
+.swapwho b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.swapmeta{font-size:11.5px}
+.swapacts{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:6px}
+/* 교체가 이 화면에서 유일하게 중요한 동작이라 남는 폭을 다 준다. */
+.swapbtn{flex:1;padding:11px 12px}
+
+/* 지금 내려가는 것 — 팝업 맨 위에서 무엇을 바꾸는 중인지 못 박는다. */
+.swapfrom{display:flex;flex-direction:column;gap:2px;background:#F7F4EC;
+  border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.swapfrom b{font-size:14px}
 .mini{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap}
 .mini.ok{border-color:#4B7B58;color:#4B7B58}
 .mini.no{border-color:#B4534B;color:#B4534B}

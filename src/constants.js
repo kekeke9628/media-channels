@@ -96,6 +96,20 @@ export const SIDE_LABEL = { EAST: 'EAST', WEST: 'WEST', null: '구분 없음' };
 // 배치에서만 필수로 본다. 미래 예약은 그냥 두고, 시작일이 지나면 알람이 대신 쫓아간다.
 export const installPhotoRequired = (start, refDate) => !!start && start <= refDate;
 
+// 교체 화면이 쓰는 판정 — "그날 손대야 하는 자리".
+// 지금 그 면에 걸려 있는 배치(만료됐으면 만료된 것)를 보고 종료일로 가른다.
+//  · 오늘: 종료일이 오늘이거나 이미 지난 것. 지난 것은 늦어도 오늘 처리해야 하니 같이 묶는다
+//    — 목록을 둘로 나눠 놓으면 담당자가 만료된 자리를 놓친다.
+//  · 내일: 내일이 마지막 날인 것만. 오늘 것까지 넣으면 두 버튼이 같은 걸 보여준다.
+// 종료일이 미정인 배치는 언제 내릴지 정해진 게 없으므로 어느 쪽에도 안 나온다.
+export const nextDay = (d) => iso(Date.parse(d) + DAY);
+export const swapTarget = (slot) => slot?.overdue || slot?.live || null;
+export const swapDue = (slot, refDate, day) => {
+  const pl = swapTarget(slot);
+  if (!pl?.end) return false;
+  return day === 'tomorrow' ? pl.end === nextDay(refDate) : pl.end <= refDate;
+};
+
 // 매체명은 현장에서 그 자리를 부르는 이름이라 겹치면 안 된다 — 목록·검색·알람이 전부
 // 이름으로 사람에게 보이는데, 같은 이름이 둘이면 어느 쪽 이야기인지 알 수가 없다.
 // 대소문자와 앞뒤 공백은 같은 이름으로 본다(WEL01과 wel01 을 따로 두면 더 헷갈린다).

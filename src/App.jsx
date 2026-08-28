@@ -6,6 +6,7 @@ import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, updateMediaFaces, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
   createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, updatePlacementDates, updatePostingText, setPostingImage,
+  replacePlacement,
   setPlacementInstallPhoto,
   createMediaType, updateMediaType, setMediaTypeActive, deleteMediaType, countMediaTypeUsage, updateMediaName, setMediaType,
 } from './lib/queries.js';
@@ -29,8 +30,11 @@ import MediaSheet from './components/MediaSheet.jsx';
 import AddModal from './components/AddModal.jsx';
 import AssignModal from './components/AssignModal.jsx';
 import PlaceOnMediaModal from './components/PlaceOnMediaModal.jsx';
+import SwapPanel from './components/SwapPanel.jsx';
+import SwapModal from './components/SwapModal.jsx';
 
-const TABS = { posts: '매체 현황', promos: '홍보물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
+// 교체를 앞쪽에 둔다 — 관리 업체 담당자가 매일 여는 화면이라 탭을 찾아 헤매면 안 된다.
+const TABS = { posts: '매체 현황', swap: '교체', promos: '홍보물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
 const EDITOR_ONLY_TABS = new Set(['alert', 'admins']);
 
 export default function App() {
@@ -91,6 +95,9 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   // "다시 걸기" — 지난 배치와 같은 매체·면을 미리 채운 채로 배치 화면을 연다. 매달 같은
   // 업체를 같은 자리에 다시 거는 일이 잦은데, 지금까지는 매번 목록에서 매체를 다시 찾아야 했다.
   const [assignPreset, setAssignPreset] = useState(null); // { mediaId, face }
+  // 교체 중인 자리 — { slot, date }. 어느 자리를 언제 교체할지는 교체 탭에서 이미 골랐고,
+  // 팝업은 "무엇으로 바꿀지"만 받는다.
+  const [swapping, setSwapping] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const [mapImage, setMapImage] = useState(null);
@@ -273,6 +280,23 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       setPlacements((prev) => prev.map((p) => (p.id === id ? { ...p, removedAt: null, removalSource: null } : p)));
       flash('홍보물 철거 기록을 취소했습니다.');
     } catch (e) { flash('처리에 실패했습니다: ' + e.message); }
+  };
+
+  // 교체 — 걸려 있던 것을 내리고 그 자리에 새것을 건다. 서버에서 한 트랜잭션으로 처리하고
+  // (queries.replacePlacement / 027) 옛 배치의 종료일까지 함께 바뀌므로, 바뀐 결과를 손으로
+  // 맞추기보다 다시 불러온다 — 매일 몇 건 있는 동작이라 한 번 더 부르는 값이 싸고,
+  // 화면과 서버가 어긋난 채로 남는 것보다 낫다.
+  const swapPlacement = async (oldPl, posting, { date, end, installPhoto }) => {
+    try {
+      await replacePlacement({ oldId: oldPl.id, postingId: posting.id, date, end, installPhoto });
+      await load();
+      flash(`${oldPl.brand} → ${posting.brand}로 교체했습니다.`);
+      return true;
+    } catch (e) {
+      const m = e.message || '';
+      flash('교체에 실패했습니다: ' + (/exclusion|overlap|23P01/i.test(m) ? '이 면에 기간이 겹치는 다음 배치가 이미 있습니다.' : m));
+      return false;
+    }
   };
   // silent: 등록+배치를 한 번에 하는 흐름에서 중간 토스트 없이 마지막 결과만 보여줄 때 쓴다.
   const addPosting = async (p, { silent } = {}) => {
@@ -624,6 +648,10 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
 
         <div className="panel">
           {activeTab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={pickMedia} onShowOnMap={showOnMap} />}
+          {activeTab === 'swap' && (
+            <SwapPanel {...ctx} state={slots} onSwap={(slot, date) => setSwapping({ slot, date })}
+              onPick={pickMedia} onShowOnMap={showOnMap} />
+          )}
           {activeTab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
               onPick={pickMedia} onShowOnMap={showOnMap} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem} onEditPeriod={editPostingText}
@@ -662,6 +690,13 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
             setAddMediaId(placingMediaId); setAddFace(placingFace); setAddOpen(true);
             setPlacingMediaId(null); setPlacingFace(null);
           }}
+        />
+      )}
+      {swapping && isEditor && (
+        <SwapModal
+          {...ctx} slot={swapping.slot} date={swapping.date}
+          postings={postings} placements={placements}
+          onClose={() => setSwapping(null)} onSwap={swapPlacement}
         />
       )}
       {addOpen && isEditor && (
