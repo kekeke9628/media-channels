@@ -34,7 +34,17 @@ const statusTag = (o) => (
 // 면이 많은 매체(듀라트란스 10면 등)는 두 줄만 보이고 나머지는 접어 둔다. 다 펼쳐 두면
 // 카드 하나가 화면을 다 먹어서 정작 다른 매체를 훑을 수가 없다.
 const FACES_SHOWN = 2;
-function MediaCard({ g, T, isEditor, onPick, onRemove, zoneLabel }) {
+// 목록의 어느 줄에서든 지도로 건너뛰는 버튼. 카드·표 전체가 눌리면 상세가 열리므로
+// 클릭이 위로 새지 않게 막아야 한다 — 안 막으면 지도로 보내 놓고 그 위에 시트를 덮는다.
+function MapBtn({ mediaId, onShowOnMap, className }) {
+  if (!onShowOnMap) return null;
+  return (
+    <button className={'mini' + (className ? ' ' + className : '')} title="지도에서 이 매체 위치 보기"
+      onClick={(e) => { e.stopPropagation(); onShowOnMap(mediaId); }}>지도</button>
+  );
+}
+
+function MediaCard({ g, T, isEditor, onPick, onShowOnMap, onRemove, zoneLabel }) {
   const [open, setOpen] = useState(false);
   const t = T[g.type];
   const shown = open ? g.slots : g.slots.slice(0, FACES_SHOWN);
@@ -46,6 +56,7 @@ function MediaCard({ g, T, isEditor, onPick, onRemove, zoneLabel }) {
         {t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}
         <span className="sub">{zoneLabel(g.zone)}</span>
         <span className="sub">{g.faces}면</span>
+        <MapBtn mediaId={g.mediaId} onShowOnMap={onShowOnMap} className="pushright" />
       </div>
       <div className="facelines">
         {shown.map(({ o, p }) => (
@@ -76,7 +87,7 @@ function MediaCard({ g, T, isEditor, onPick, onRemove, zoneLabel }) {
   );
 }
 
-export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, narrow, onRemove, onUndo, onPick }) {
+export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, narrow, onRemove, onUndo, onPick, onShowOnMap }) {
   const [statusSel, setStatusSel] = useState(new Set(STATUS_OPTS.map(([k]) => k)));
   // 홍보물 화면과 달리 기본 ON — 이 화면의 핵심 목적이 만료 건을 놓치지 않고 조치하는
   // 것이라(맨 위 정렬 + 철거 완료 버튼), 기본으로 숨기면 화면 목적과 어긋난다.
@@ -198,6 +209,12 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
     });
   }, [groups, typeSel, statusSel, showOverdue, side, q, refDate, T, sortKey, sortDir]);
 
+  // 모바일 카드는 매체 단위 그룹을 그대로 쓰지만, 데스크톱 표는 예전처럼 면 한 줄씩 보여준다.
+  // 48442a5에서 카드를 매체 단위로 묶으며 currentRows를 그룹으로 바꿨는데, 이 표만 예전
+  // 모양({o,p})을 그대로 읽고 있어서 o가 undefined였다 — 980px보다 넓은 화면에서 매체 현황
+  // 탭이 통째로 흰 화면이 됐다(모바일만 쓰다 보니 한동안 아무도 못 봤다).
+  const currentSlotRows = useMemo(() => currentRows.flatMap((g) => g.slots), [currentRows]);
+
   return (
     <div>
       <div className="toolrow">
@@ -271,7 +288,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       ) : !rangeOn && narrow ? (
         <div className="mlist">
           {currentRows.map((g) => (
-            <MediaCard key={g.mediaId} g={g} T={T} isEditor={isEditor} onPick={onPick} onRemove={onRemove} zoneLabel={zoneLabel} />
+            <MediaCard key={g.mediaId} g={g} T={T} isEditor={isEditor} onPick={onPick} onShowOnMap={onShowOnMap} onRemove={onRemove} zoneLabel={zoneLabel} />
           ))}
         </div>
       ) : !rangeOn ? (
@@ -286,9 +303,10 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
               <SortTh label="시작일" sortKey="start" sort={sortCur} setSort={setSortCur} />
               <SortTh label="종료일" sortKey="end" sort={sortCur} setSort={setSortCur} />
               <SortTh label="상태" sortKey="status" sort={sortCur} setSort={setSortCur} />
+              <th className="r" />
             </tr></thead>
             <tbody>
-              {sortRows(currentRows, sortCur, (row, key) => {
+              {sortRows(currentSlotRows, sortCur, (row, key) => {
                 const { o, p } = row;
                 if (key === 'media') return o.name;
                 if (key === 'type') return T[o.type]?.label || o.type;
@@ -314,6 +332,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                       {statusTag(o)}
                       {o.overdue && isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>홍보물 철거</button>}
                     </td>
+                    <td className="r"><MapBtn mediaId={o.mediaId} onShowOnMap={onShowOnMap} /></td>
                   </tr>
                 );
               })}
@@ -332,7 +351,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
               <SortTh label="실제 철거일" sortKey="removed" sort={sortHist} setSort={setSortHist} />
               <SortTh label="기간" sortKey="duration" sort={sortHist} setSort={setSortHist} className="r" />
               <SortTh label="상태" sortKey="status" sort={sortHist} setSort={setSortHist} />
-              {isEditor && <th className="r" />}
+              <th className="r" />
             </tr></thead>
             <tbody>
               {sortRows(historyRows, sortHist, (p, key) => {
@@ -357,11 +376,12 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                     <td className="mono">{p.removedAt || <span className="sub">—</span>}{p.removalSource === 'auto' && <span className="autotag">자동</span>}</td>
                     <td className="r mono">{p.end ? days(p.start, p.end) + '일' : '—'}</td>
                     <td><StatusChip status={s} /></td>
-                    {isEditor && (
-                      <td className="r" onClick={(e) => e.stopPropagation()}>
-                        {p.removedAt && p.removalSource === 'manual' && <button className="mini" onClick={() => onUndo(p.id)}>되돌리기</button>}
-                      </td>
-                    )}
+                    {/* 지도 버튼은 조회자에게도 필요해서, 예전에 편집자에게만 그리던 이 칸을
+                        항상 그린다 — 되돌리기만 편집자 조건을 그대로 유지한다. */}
+                    <td className="r" onClick={(e) => e.stopPropagation()}>
+                      {isEditor && p.removedAt && p.removalSource === 'manual' && <button className="mini" onClick={() => onUndo(p.id)}>되돌리기</button>}
+                      <MapBtn mediaId={p.mediaId} onShowOnMap={onShowOnMap} />
+                    </td>
                   </tr>
                 );
               })}
