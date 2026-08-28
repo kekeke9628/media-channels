@@ -175,9 +175,11 @@ function mapPosting(p) {
     title: p.title || '',
     thumbPath: p.thumb_path || null,
     viewPath: p.view_path || null,
-    // 홍보물 자체의 게시 기간. 둘 다 비면 상시(기간 제한 없음).
+    // 홍보물 자체의 게시 기간. 날짜가 없어도 "상시"와 "아직 안 넣음"은 다른 상태라
+    // alwaysOn을 따로 들고 온다(026) — 판정은 constants.js periodLabel/periodUnset.
     start: p.start_date || null,
     end: p.end_date || null,
+    alwaysOn: !!p.always_on,
     hue: hueOf(p.id),
     bytesOrig: p.bytes_orig || 0,
     bytesLight: p.bytes_light || 0,
@@ -277,11 +279,19 @@ async function uploadPostingImage(path, dataUrl) {
 // 2면 매체용으로 앞/뒤 이미지 한 쌍을 홍보물 하나에 묶어 두었지만, 그러면 앞/뒤가 항상
 // 같은 업체·같은 기간으로만 걸릴 수 있었다 — 실제로는 면마다 다른 광고주가 흔해서,
 // 이제 홍보물은 언제나 단일 이미지고 "어느 면"은 배치(placements.face) 쪽 개념이다.
-export async function createPosting({ brand, title, start, end, singleResult }) {
+// 기간과 "상시"는 서로 배타다 — 상시를 고르면 날짜를 비우고, 날짜를 넣으면 상시를 푼다.
+// 이걸 화면마다 따로 처리하면(등록·배치·매체에서 배치, 세 군데다) 언젠가 한 곳을 빠뜨려
+// "상시인데 종료일이 남아 있는" 행이 생긴다. 데이터 경계인 여기서 한 번만 정리한다.
+function periodRow({ start, end, alwaysOn }) {
+  if (alwaysOn) return { start_date: null, end_date: null, always_on: true };
+  return { start_date: start || null, end_date: end || null, always_on: false };
+}
+
+export async function createPosting({ brand, title, start, end, alwaysOn, singleResult }) {
   const { data: userData } = await supabase.auth.getUser();
   const { data: inserted, error: insertError } = await supabase
     .from('postings')
-    .insert({ brand, title: title || null, start_date: start || null, end_date: end || null, created_by: userData?.user?.id || null })
+    .insert({ brand, title: title || null, ...periodRow({ start, end, alwaysOn }), created_by: userData?.user?.id || null })
     .select()
     .single();
   if (insertError) throw insertError;
@@ -291,12 +301,15 @@ export async function createPosting({ brand, title, start, end, singleResult }) 
 
 // 홍보물의 업체명·내용 수정. 홍보물은 여러 자리에 걸릴 수 있으므로 여기서 바꾸면 그
 // 홍보물이 걸린 모든 자리의 표시가 함께 바뀐다 — 호출 쪽에서 그 사실을 알려 준다.
-export async function updatePostingText(id, { brand, title, start, end }) {
+export async function updatePostingText(id, { brand, title, start, end, alwaysOn }) {
   const row = {};
   if (brand !== undefined) row.brand = brand;
   if (title !== undefined) row.title = title || null;
-  if (start !== undefined) row.start_date = start || null;
-  if (end !== undefined) row.end_date = end || null;
+  // 기간은 세 값이 한 덩어리다 — 업체명만 고치는 호출도 있어서, 셋 중 하나라도 들어왔을
+  // 때만 손댄다. 하나씩 따로 넣으면 상시를 풀지 않은 채 날짜만 들어가 제약에 걸린다.
+  if (start !== undefined || end !== undefined || alwaysOn !== undefined) {
+    Object.assign(row, periodRow({ start, end, alwaysOn }));
+  }
   const { data, error } = await supabase.from('postings').update(row).eq('id', id).select().single();
   if (error) throw error;
   return mapPosting(data);
