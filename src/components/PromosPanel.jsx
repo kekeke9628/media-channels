@@ -39,13 +39,16 @@ function PeriodLine({ p, isEditor, refDate, onSave }) {
       </button>
     );
   }
-  const save = async () => {
-    if (!always && start && end && end < start) { setErr('종료일이 시작일보다 앞섭니다.'); return; }
-    if (!always && !start && !end) { setErr('기간을 넣거나 "상시"를 골라 주세요.'); return; }
+  const commit = async (patch) => {
     setSaving(true);
-    const ok = await onSave(p.id, { start: start || null, end: end || null, alwaysOn: always });
+    const ok = await onSave(p.id, patch);
     setSaving(false);
     if (ok) { setEditing(false); setErr(''); } else setErr('저장하지 못했습니다.');
+  };
+  const save = () => {
+    if (!always && start && end && end < start) { setErr('종료일이 시작일보다 앞섭니다.'); return; }
+    if (!always && !start && !end) { setErr('기간을 넣거나 "상시"를 골라 주세요.'); return; }
+    return commit({ start: start || null, end: end || null, alwaysOn: always });
   };
   // 날짜를 넣으면 상시가 아니다 — 두 값이 같이 남아 있으면 어느 쪽이 진짜인지 알 수 없다.
   const pick = (set) => (e) => { set(e.target.value); if (e.target.value) setAlways(false); };
@@ -56,10 +59,14 @@ function PeriodLine({ p, isEditor, refDate, onSave }) {
       <input className="inp" type="date" value={end} onChange={pick(setEnd)} />
       <div className="statcell-btns">
         <button className="mini ok" disabled={saving} onClick={save}>{saving ? '저장 중…' : '저장'}</button>
-        {/* 누르면 그 자리에서 저장되는 게 아니라 "상시로 하겠다"를 골라 두는 것이다 —
-            고른 상태가 보이지 않으면 저장을 눌러도 되는지 알 수 없어 on 표시를 남긴다. */}
+        {/* 누르면 그 자리에서 저장하고 닫는다. 날짜와 달리 더 채울 것이 없어서 저장을 한 번
+            더 누르게 할 이유가 없다 — 고른 뒤 저장을 안 눌러 그대로 날아가기만 했다.
+            체크 표시는 이미 상시인 홍보물을 열었을 때 현재 값을 알려 주는 용도로 남긴다. */}
         <button className={always ? 'mini ok' : 'mini'} disabled={saving}
-          onClick={() => { setAlways(true); setStart(''); setEnd(''); setErr(''); }}>
+          onClick={() => {
+            setAlways(true); setStart(''); setEnd(''); setErr('');
+            commit({ start: null, end: null, alwaysOn: true });
+          }}>
           {always ? '상시 ✓' : '상시'}
         </button>
         <button className="mini" disabled={saving} onClick={() => { setStart(p.start || ''); setEnd(p.end || ''); setAlways(!!p.alwaysOn); setEditing(false); }}>취소</button>
@@ -186,8 +193,11 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                         <button key="rp" className="mini" onClick={() => onRepeat(pl)}>다시 걸기</button>,
                     ].filter(Boolean) : [];
                     return (
+                      // 어느 면인지까지 넘긴다 — 상세가 그 면 구획으로 스크롤해 준다.
+                      // 듀라트란스는 한 매체에 면이 20개까지 있어서, 맨 위만 열어 주면
+                      // 방금 누른 17면을 찾으러 한참 내려야 했다(매체 현황 면 줄과 같은 동작).
                       <div className={'plrow' + (archived ? ' off' : '')} key={pl.id}
-                        onClick={archived ? undefined : () => onPick(pl.mediaId)}>
+                        onClick={archived ? undefined : () => onPick(pl.mediaId, pl.face)}>
                         <b className="plrow-name">{pLabel(pl)}</b>
                         {archived && <i className="sub">보관된 매체</i>}
                         {/* 설치 확인 사진 표시(📷)는 뺐다. 배치는 사실상 전부 사진이 있어서
