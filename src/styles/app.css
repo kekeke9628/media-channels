@@ -547,7 +547,9 @@ td.sub{display:table-cell}
 .plrow:last-child{border-bottom:0}
 .plrow.off{cursor:default}
 .plrow-name{flex:1 1 auto;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.plrow-cam,.plrow .tag,.plrow .iconbtn{flex:none}
+/* 상태 표시는 .tag가 아니라 StatusChip의 .chip이다 — 처음에 .tag로 적어 두는 바람에
+   칩이 flex:none을 못 받아 좁은 화면에서 찌그러질 수 있었다. */
+.plrow .chip,.plrow .iconbtn{flex:none}
 .plrow-btns{display:flex;flex-wrap:nowrap;gap:4px;flex:none}
 .plrow .pushright{margin-left:auto}
 /* 이 줄의 버튼·칩만 좁게 — 한 줄에 매체명·사진·상태·지도·버튼 두 개까지 들어가야 한다.
@@ -555,7 +557,7 @@ td.sub{display:table-cell}
    기본 패딩(10px 12px)을 그대로 쓰면 그 줄이 넘쳐 매체명이 두 글자만 남았다.
    세로 패딩은 그대로라 손가락으로 누르는 높이는 줄지 않는다. */
 .plrow .mini{padding:10px 6px}
-.plrow .tag{padding:2px 6px}
+.plrow .chip{padding:2px 6px}
 .plrow .iconbtn{width:30px}
 /* 매체명이 줄어드는 유일한 요소이긴 하지만, 여기까지 줄면 어느 매체인지 못 읽는다 —
    그 아래로는 안 줄이고 버튼이 다음 줄로 내려가게 둔다(그 편이 낫다). */

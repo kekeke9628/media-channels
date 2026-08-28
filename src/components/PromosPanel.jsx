@@ -190,7 +190,10 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                         onClick={archived ? undefined : () => onPick(pl.mediaId)}>
                         <b className="plrow-name">{pLabel(pl)}</b>
                         {archived && <i className="sub">보관된 매체</i>}
-                        {pl.installPhoto && <span className="plrow-cam" title="설치 확인 사진 있음">📷</span>}
+                        {/* 설치 확인 사진 표시(📷)는 뺐다. 배치는 사실상 전부 사진이 있어서
+                            모든 줄에 똑같이 붙는 바람에 알려주는 게 없었고, 정작 중요한
+                            "사진이 없다"는 알람 예정 ③이 따로 모아 준다. 줄을 누르면 상세로
+                            넘어가 사진을 바로 볼 수 있다는 점도 같다. */}
                         <StatusChip status={s} />
                         {/* 보관된 매체는 지도에 핀이 없다 — 눌러도 아무 일이 없을 버튼은
                             아예 안 보이는 편이 낫다(줄 전체 클릭을 막아 둔 것과 같은 이유). */}
