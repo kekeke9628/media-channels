@@ -97,8 +97,13 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
     // 디자인 시안이 없는 홍보물도 있다(현장에서 사진만 찍고 등록하는 경우). 그럴 때는
     // 그 홍보물이 실제로 걸린 자리의 설치 확인 사진을 대신 보여준다 — 카드가 빈 칸으로
     // 남으면 목록에서 무엇이 무엇인지 알아볼 수가 없다.
-    getPostingImageUrls([...postings.map((p) => p.thumbPath), ...placements.map((pl) => pl.installPhotoPath)])
-      .then((m) => { if (!cancelled) setThumbUrls(m); });
+    // viewPath(긴 변 1600px)까지 같이 받아 온다 — 카드 이미지가 카드 폭을 꽉 채우는데
+    // thumb는 400px짜리라 요즘 휴대폰(폭 390px × 3배 밀도 = 970px)에서 2배 넘게 늘어나
+    // 뭉개져 보였다. 설치 확인 사진은 원래부터 view 크기 한 장만 저장한다.
+    getPostingImageUrls([
+      ...postings.map((p) => p.viewPath), ...postings.map((p) => p.thumbPath),
+      ...placements.map((pl) => pl.installPhotoPath),
+    ]).then((m) => { if (!cancelled) setThumbUrls(m); });
     return () => { cancelled = true; };
   }, [postings]);
 
@@ -149,12 +154,16 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
           return (
             <div className="ccard" key={p.id}>
               {(() => {
-                const design = thumbUrls.get(p.thumbPath);
+                // 상세와 같은 크기(view)를 먼저 쓰고, 없으면 예전처럼 thumb으로 떨어진다.
+                const design = thumbUrls.get(p.viewPath) || thumbUrls.get(p.thumbPath);
                 // 시안이 없으면 가장 최근에 실제로 걸린 자리의 설치 사진으로 대신한다.
                 const shot = design || thumbUrls.get(pls.find((x) => x.installPhotoPath)?.installPhotoPath);
                 return (
                   <div className="cthumb" style={shot ? undefined : { background: `linear-gradient(150deg, hsl(${p.hue} 42% 52%), hsl(${(p.hue + 40) % 360} 38% 38%))` }}>
-                    {shot && <img className="cthumb-img" src={shot} alt="" />}
+                    {/* 큰 이미지를 쓰게 됐으니 보이는 것만 받는다 — 홍보물 14건의 view를
+                        다 합치면 9MB라, 목록을 열자마자 통째로 내려받으면 현장 LTE에서
+                        한참 멈춘다. 화면에 들어올 때 받으면 한 번에 두세 장이면 된다. */}
+                    {shot && <img className="cthumb-img" src={shot} alt="" loading="lazy" decoding="async" />}
                     {!design && shot && <em className="cthumb-tag">설치 사진</em>}
                   </div>
                 );
