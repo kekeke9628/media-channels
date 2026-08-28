@@ -3,6 +3,7 @@ import { contentOf, subOf, matches, periodLabel, periodUnset, postingExpired } f
 import { statusOf } from '../lib/status.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
+import MapBtn from './MapBtn.jsx';
 
 // 홍보물 — 매체·일정과 무관하게 홍보물(브랜드·내용·이미지) 자체를 관리하는 화면.
 // 매체 배치는 홍보물에 딸린 부가 정보로 아래 미니 표에서 보여주고, "+ 배치 추가"로 몇 곳이든
@@ -159,38 +160,48 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                   {pls.length === 0 ? <span className="tag vacant">미배치</span> : <span className="sub mono">{pls.length}곳에 배치</span>}
                 </div>
                 {pls.length > 0 && (
-                  <table className="mini-t">
-                    <tbody>{pls.map((pl) => {
-                      const s = statusOf(pl, refDate);
-                      const archived = isArchived(pl);
-                      return (
-                        <tr key={pl.id} onClick={archived ? undefined : () => onPick(pl.mediaId)} style={archived ? { cursor: 'default' } : undefined}>
-                          <td>{pLabel(pl)}{archived && <i className="sub"> · 보관된 매체</i>}{pl.installPhoto && <span title="설치 확인 사진 있음"> 📷</span>}</td>
-                          <td><StatusChip status={s} /></td>
-                          {/* 보관된 매체는 지도에 핀이 없다 — 눌러도 아무 일이 없을 버튼은
-                              아예 안 보이는 편이 낫다(줄 전체 클릭을 막아 둔 것과 같은 이유). */}
-                          <td className="r" onClick={(e) => e.stopPropagation()}>
-                            {!archived && onShowOnMap && (
-                              <button className="mini" title="지도에서 이 매체 위치 보기"
-                                onClick={() => onShowOnMap(pl.mediaId)}>지도</button>
+                  <div className="pllist">{pls.map((pl) => {
+                    const s = statusOf(pl, refDate);
+                    const archived = isArchived(pl);
+                    // 조작 버튼을 미리 모은다 — 하나도 없을 때(자동 철거된 보관 매체 등)
+                    // 빈 줄이 생기지 않게 하려면 개수를 먼저 알아야 한다.
+                    const acts = isEditor ? [
+                      s !== 'upcoming' && s !== 'removed' &&
+                        <button key="rm" className="mini ok" onClick={() => onRemove(pl.id)}>홍보물 철거</button>,
+                      // 아직 시작 안 한 배치는 실제로 걸린 적이 없다 — 철거가 아니라 취소(기록 삭제)가 맞다.
+                      // 철거로 처리하면 걸린 적도 없는 업체가 그 매체 이력에 남는다.
+                      s === 'upcoming' &&
+                        <button key="cx" className="mini no" onClick={() => onCancel(pl.id)}>배치 취소</button>,
+                      s === 'removed' && pl.removalSource === 'manual' &&
+                        <button key="un" className="mini" onClick={() => onUndo(pl.id)}>되돌리기</button>,
+                      // 매달 같은 업체를 같은 자리에 다시 거는 일이 잦다 — 끝난 배치는
+                      // 그 매체·면을 미리 채운 채로 배치 화면을 열어 준다.
+                      (s === 'removed' || s === 'overdue') && !archived &&
+                        <button key="rp" className="mini" onClick={() => onRepeat(pl)}>다시 걸기</button>,
+                    ].filter(Boolean) : [];
+                    return (
+                      <div className={'plrow' + (archived ? ' off' : '')} key={pl.id}
+                        onClick={archived ? undefined : () => onPick(pl.mediaId)}>
+                        <div className="plrow-head">
+                          <b className="plrow-name">{pLabel(pl)}</b>
+                          {archived && <i className="sub">보관된 매체</i>}
+                          {pl.installPhoto && <span title="설치 확인 사진 있음">📷</span>}
+                          <StatusChip status={s} />
+                        </div>
+                        {/* 지도도 "이 줄에 대해 할 수 있는 일"이라 조작 줄에 함께 둔다 —
+                            윗줄 오른쪽 끝에 혼자 떼어 놓으니 이름·상태와 시선이 갈라졌다.
+                            보관된 매체는 지도에 핀이 없어 눌러도 아무 일이 없으므로 뺀다. */}
+                        {(!archived || acts.length > 0) && (
+                          <div className="plrow-acts">
+                            {!archived && <MapBtn mediaId={pl.mediaId} onShowOnMap={onShowOnMap} />}
+                            {acts.length > 0 && (
+                              <div className="plrow-btns" onClick={(e) => e.stopPropagation()}>{acts}</div>
                             )}
-                          </td>
-                          {isEditor && (
-                            <td className="r" onClick={(e) => e.stopPropagation()}>
-                              {s !== 'upcoming' && s !== 'removed' && <button className="mini ok" onClick={() => onRemove(pl.id)}>홍보물 철거</button>}
-                              {/* 아직 시작 안 한 배치는 실제로 걸린 적이 없다 — 철거가 아니라 취소(기록 삭제)가 맞다.
-                                  철거로 처리하면 걸린 적도 없는 업체가 그 매체 이력에 남는다. */}
-                              {s === 'upcoming' && <button className="mini no" onClick={() => onCancel(pl.id)}>배치 취소</button>}
-                              {s === 'removed' && pl.removalSource === 'manual' && <button className="mini" onClick={() => onUndo(pl.id)}>되돌리기</button>}
-                              {/* 매달 같은 업체를 같은 자리에 다시 거는 일이 잦다 — 끝난 배치는
-                                  그 매체·면을 미리 채운 채로 배치 화면을 열어 준다. */}
-                              {(s === 'removed' || s === 'overdue') && !archived && <button className="mini" onClick={() => onRepeat(pl)}>다시 걸기</button>}
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}</tbody>
-                  </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}</div>
                 )}
                 {isEditor && <button className="btn primary wide" style={{ marginTop: 6 }} onClick={() => onAssign(p.id)}>+ 배치 추가</button>}
                 {isEditor && pls.length === 0 && (

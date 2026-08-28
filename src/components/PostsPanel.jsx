@@ -6,6 +6,7 @@ import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
 import SortTh, { sortRows } from './SortTh.jsx';
+import MapBtn from './MapBtn.jsx';
 
 const zoneLabel = (z) => ZONES[z]?.label || z;
 const statusRank = (o) => (o.overdue ? 0 : o.open ? 1 : o.live ? 2 : o.next ? 3 : 4);
@@ -34,16 +35,6 @@ const statusTag = (o) => (
 // 면이 많은 매체(듀라트란스 10면 등)는 두 줄만 보이고 나머지는 접어 둔다. 다 펼쳐 두면
 // 카드 하나가 화면을 다 먹어서 정작 다른 매체를 훑을 수가 없다.
 const FACES_SHOWN = 2;
-// 목록의 어느 줄에서든 지도로 건너뛰는 버튼. 카드·표 전체가 눌리면 상세가 열리므로
-// 클릭이 위로 새지 않게 막아야 한다 — 안 막으면 지도로 보내 놓고 그 위에 시트를 덮는다.
-function MapBtn({ mediaId, onShowOnMap, className }) {
-  if (!onShowOnMap) return null;
-  return (
-    <button className={'mini' + (className ? ' ' + className : '')} title="지도에서 이 매체 위치 보기"
-      onClick={(e) => { e.stopPropagation(); onShowOnMap(mediaId); }}>지도</button>
-  );
-}
-
 function MediaCard({ g, T, isEditor, onPick, onShowOnMap, onRemove, zoneLabel }) {
   const [open, setOpen] = useState(false);
   const t = T[g.type];
