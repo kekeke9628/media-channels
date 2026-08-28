@@ -181,6 +181,8 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   // 상세 시트는 열지 않는다(pickMedia와 다른 점): 시트가 지도를 덮어 버리기 때문이다.
   const mapCardRef = useRef(null);
   const [mapFocusTick, setMapFocusTick] = useState(0);
+  // 선택 해제 — 상세를 닫을 때도, 지도 빈 곳을 눌렀을 때도 같은 상태로 돌아가야 한다.
+  const clearSelection = () => { setSelMedia(null); setFocusFace(null); setSheetOpen(false); };
   const showOnMap = (id) => {
     const m = byId[id];
     // 필터에 걸려 지도에 없는 매체를 고르면 스크롤만 되고 핀이 없어 "먹통"으로 보인다.
@@ -598,7 +600,8 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         <MapPanel
           {...ctx} items={visible} allMedia={media} zoneFilter={zoneFilter} setZoneFilter={setZoneFilter}
           typeFilter={typeFilter} setTypeFilter={setTypeFilter}
-          selMedia={selMedia} onOpenMedia={pickMedia} cardRef={mapCardRef} focusTick={mapFocusTick}
+          selMedia={selMedia} onOpenMedia={pickMedia} onClearSelection={clearSelection}
+          cardRef={mapCardRef} focusTick={mapFocusTick}
           editMode={editMode} setEditMode={setEditMode} addMode={addMode} setAddMode={setAddMode}
           onMoveLocal={moveMediaLocal} onMoveCommit={moveMediaCommit} onCreate={addMediaAt} onRestoreAt={restoreMediaAtLocal}
           mapImage={mapImage} onMapImage={saveMapImage}
@@ -641,7 +644,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
 
       {selMedia && sheetOpen && byId[selMedia] && (
         <MediaSheet
-          {...ctx} o={byId[selMedia]} onClose={() => { setSelMedia(null); setFocusFace(null); setSheetOpen(false); }} onRemove={markRemoved} onDelete={removeMedia}
+          {...ctx} o={byId[selMedia]} onClose={clearSelection} onRemove={markRemoved} onDelete={removeMedia}
           onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType} onAttachPhoto={attachInstallPhoto}
           onEditDates={editPlacementDates} onEditText={editPostingText} focusFace={focusFace}
           onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}

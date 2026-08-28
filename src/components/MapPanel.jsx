@@ -28,7 +28,7 @@ const CLICK_SLOP = 6; // 이 픽셀 이내 움직임은 팬이 아니라 클릭�
 // cardRef: 목록에서 "지도보기"를 눌렀을 때 이 카드로 스크롤하기 위해 App이 잡는 손잡이.
 // focusTick: 이미 선택된 매체를 다시 눌렀을 때도 지도를 다시 중앙으로 옮기기 위한 신호 —
 // selMedia만 보면 값이 그대로라 effect가 안 돌고, 사용자는 버튼이 먹통이라고 느낀다.
-export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, onOpenMedia, cardRef, focusTick, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, onRestoreAt, mapImage, onMapImage, isEditor }) {
+export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, onOpenMedia, onClearSelection, cardRef, focusTick, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, onRestoreAt, mapImage, onMapImage, isEditor }) {
   const wrapRef = useRef(null);
   const stageRef = useRef(null);
   const pinRefs = useRef({});   // item.id -> 핀 DOM 노드 (지도와 분리된 레이어라 위치를 직접 계산해서 넣어줘야 함)
@@ -361,6 +361,12 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
         // 떨어져 나갔다. 문서 좌표 + position:absolute면 지도와 같이 움직인다.
         setAddAt({ ...pointerToPct(e), pageX: e.pageX, pageY: e.pageY });
         setAddMode(false);
+      } else if (wasClick && selMedia) {
+        // 빈 지도를 누르면 선택을 푼다 — 강조된 핀을 끄는 방법이 없어서, 목록에서 지도로
+        // 한 번 건너오면 그 표시가 계속 남아 있었다. 핀 위에서 시작한 포인터는 위쪽
+        // onWrapPointerDown에서 걸러지므로(panDrag가 안 잡힌다) 핀을 눌러 선택하는 것과
+        // 부딪히지 않고, 끌어서 지도를 옮긴 경우도 moved 판정으로 빠진다.
+        onClearSelection();
       }
     }
   };
