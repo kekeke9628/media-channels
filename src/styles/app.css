@@ -506,17 +506,31 @@ td.sub{display:table-cell}
    한 줄에 다 넣을 폭이 아니므로 아예 둘로 나눈다 — 윗줄은 "무엇이 어디에", 아랫줄은
    "무엇을 할지". 각 줄이 짧아져서 접힐 일이 없다. */
 .pllist{margin-top:10px;font-size:12px}
-.plrow{padding:8px 0;border-bottom:1px solid #F0ECE4;cursor:pointer}
+/* 배치 한 줄 = 화면에서도 한 줄. 카드 폭이 모바일에서 290px뿐이라 아무렇게나 넣으면
+   매체명이 음절 중간에서 끊기거나("WWH02 · 2 / 면") 버튼이 세로로 쌓여 줄 높이가
+   제각각으로 튄다. 그래서 폭을 셋으로 나눠 못 박는다:
+   · 매체명은 남는 폭만 먹고(1 1 auto) 넘치면 …로 자른다 — 유일하게 줄어드는 요소다.
+   · 사진·상태칩·지도·버튼은 절대 안 줄고 안 접힌다(flex:none) — 이것들이 접히기 시작하면
+     줄 높이가 달라진다.
+   · nowrap이라 어떤 경우에도 두 줄이 되지 않는다. */
+.plrow{display:flex;align-items:center;flex-wrap:wrap;gap:4px;
+  padding:6px 0;border-bottom:1px solid #F0ECE4;cursor:pointer;min-width:0}
 .plrow:last-child{border-bottom:0}
 .plrow.off{cursor:default}
-.plrow-head{display:flex;align-items:center;gap:6px;min-width:0}
-/* 매체명은 절대 접지 않는다 — 접히면 어느 매체인지 읽는 데 시간이 걸린다. 길면 …로 자른다
-   (지금 이름은 "WWM03 · 10면"이 최대라 잘릴 일이 없지만, 면 이름을 직접 붙이면 길어진다). */
-.plrow-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-/* 조작 줄 — 지도는 왼쪽, 나머지 버튼은 오른쪽 끝에 모은다. 눈이 양 끝만 훑으면 되고,
-   버튼이 두 개여도 줄이 안 튄다. */
-.plrow-acts{display:flex;align-items:center;gap:6px;margin-top:6px;min-height:38px}
-.plrow-btns{margin-left:auto;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.plrow-name{flex:1 1 auto;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plrow-cam,.plrow .tag,.plrow .iconbtn{flex:none}
+.plrow-btns{display:flex;flex-wrap:nowrap;gap:4px;flex:none}
+.plrow .pushright{margin-left:auto}
+/* 이 줄의 버튼·칩만 좁게 — 한 줄에 매체명·사진·상태·지도·버튼 두 개까지 들어가야 한다.
+   가장 빡빡한 줄은 철거된 배치다(상태칩 "철거됨" + 되돌리기 + 다시 걸기). 모바일 .mini의
+   기본 패딩(10px 12px)을 그대로 쓰면 그 줄이 넘쳐 매체명이 두 글자만 남았다.
+   세로 패딩은 그대로라 손가락으로 누르는 높이는 줄지 않는다. */
+.plrow .mini{padding:10px 6px}
+.plrow .tag{padding:2px 6px}
+.plrow .iconbtn{width:30px}
+/* 매체명이 줄어드는 유일한 요소이긴 하지만, 여기까지 줄면 어느 매체인지 못 읽는다 —
+   그 아래로는 안 줄이고 버튼이 다음 줄로 내려가게 둔다(그 편이 낫다). */
+.plrow-name{min-width:5.4em}
 
 /* 한글이 음절 중간에서 끊기지 않도록 단어 단위로 줄바꿈한다. */
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#23211E;color:#fff;padding:10px 18px;border-radius:22px;font-size:13px;z-index:80;display:flex;align-items:center;gap:12px;max-width:min(92vw,460px);word-break:keep-all;line-height:1.5}

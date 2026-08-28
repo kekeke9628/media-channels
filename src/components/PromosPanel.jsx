@@ -165,9 +165,15 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                     const archived = isArchived(pl);
                     // 조작 버튼을 미리 모은다 — 하나도 없을 때(자동 철거된 보관 매체 등)
                     // 빈 줄이 생기지 않게 하려면 개수를 먼저 알아야 한다.
+                    // 버튼 글자는 짧게 쓴다. 이 줄에는 매체명·상태·지도까지 함께 들어가는데,
+                    // "홍보물 철거"를 그대로 두면 버튼만 147px을 먹어 매체명이 "WWH0…"로 잘렸다.
+                    // 무엇을 철거하는지 이름에 넣기로 한 건 매체 상세 얘기다(7157de1) — 거기엔
+                    // "매체 철거" 버튼이 나란히 있어 헷갈렸지만, 홍보물 카드에는 매체를 내리는
+                    // 버튼이 없고 카드 제목이 업체명이라 혼동할 대상이 없다. 매체 현황의 면 줄도
+                    // 이미 "철거"를 쓰고 있어 오히려 이쪽이 통일된다.
                     const acts = isEditor ? [
                       s !== 'upcoming' && s !== 'removed' &&
-                        <button key="rm" className="mini ok" onClick={() => onRemove(pl.id)}>홍보물 철거</button>,
+                        <button key="rm" className="mini ok" onClick={() => onRemove(pl.id)}>철거</button>,
                       // 아직 시작 안 한 배치는 실제로 걸린 적이 없다 — 철거가 아니라 취소(기록 삭제)가 맞다.
                       // 철거로 처리하면 걸린 적도 없는 업체가 그 매체 이력에 남는다.
                       s === 'upcoming' &&
@@ -182,22 +188,15 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                     return (
                       <div className={'plrow' + (archived ? ' off' : '')} key={pl.id}
                         onClick={archived ? undefined : () => onPick(pl.mediaId)}>
-                        <div className="plrow-head">
-                          <b className="plrow-name">{pLabel(pl)}</b>
-                          {archived && <i className="sub">보관된 매체</i>}
-                          {pl.installPhoto && <span title="설치 확인 사진 있음">📷</span>}
-                          <StatusChip status={s} />
-                        </div>
-                        {/* 지도도 "이 줄에 대해 할 수 있는 일"이라 조작 줄에 함께 둔다 —
-                            윗줄 오른쪽 끝에 혼자 떼어 놓으니 이름·상태와 시선이 갈라졌다.
-                            보관된 매체는 지도에 핀이 없어 눌러도 아무 일이 없으므로 뺀다. */}
-                        {(!archived || acts.length > 0) && (
-                          <div className="plrow-acts">
-                            {!archived && <MapBtn mediaId={pl.mediaId} onShowOnMap={onShowOnMap} />}
-                            {acts.length > 0 && (
-                              <div className="plrow-btns" onClick={(e) => e.stopPropagation()}>{acts}</div>
-                            )}
-                          </div>
+                        <b className="plrow-name">{pLabel(pl)}</b>
+                        {archived && <i className="sub">보관된 매체</i>}
+                        {pl.installPhoto && <span className="plrow-cam" title="설치 확인 사진 있음">📷</span>}
+                        <StatusChip status={s} />
+                        {/* 보관된 매체는 지도에 핀이 없다 — 눌러도 아무 일이 없을 버튼은
+                            아예 안 보이는 편이 낫다(줄 전체 클릭을 막아 둔 것과 같은 이유). */}
+                        {!archived && <MapBtn mediaId={pl.mediaId} onShowOnMap={onShowOnMap} className="pushright" />}
+                        {acts.length > 0 && (
+                          <span className="plrow-btns" onClick={(e) => e.stopPropagation()}>{acts}</span>
                         )}
                       </div>
                     );
