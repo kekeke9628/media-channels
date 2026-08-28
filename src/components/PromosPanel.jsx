@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { contentOf, subOf, matches, periodLabel, postingExpired } from '../constants.js';
+import { contentOf, subOf, matches, periodLabel, periodUnset, postingExpired } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import StatusChip from './StatusChip.jsx';
@@ -9,20 +9,25 @@ import StatusChip from './StatusChip.jsx';
 // 추가할 수 있다(동시에 여러 매체에 걸거나, 시간차를 두고 다시 거는 것 모두 여기서 시작).
 
 // 홍보물의 게시 기간 한 줄. 눌러서 그 자리에서 고친다(매체 상세의 칸 편집과 같은 방식).
-// 비어 있으면 "상시" — 기간을 정하지 않고 계속 쓰는 홍보물이 많다.
+// 기간을 정하지 않고 계속 쓰는 홍보물도 많은데, 그건 "상시"를 눌러 명시적으로 고른다 —
+// 그냥 비워 두면 "기간 미입력"이라 눈에 띄게 표시된다(왜 나눴는지는 constants.js).
 function PeriodLine({ p, isEditor, refDate, onSave }) {
   const [editing, setEditing] = useState(false);
   const [start, setStart] = useState(p.start || '');
   const [end, setEnd] = useState(p.end || '');
+  const [always, setAlways] = useState(!!p.alwaysOn);
   const [err, setErr] = useState('');
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setStart(p.start || ''); setEnd(p.end || ''); }, [p.id, p.start, p.end]);
+  useEffect(() => {
+    setStart(p.start || ''); setEnd(p.end || ''); setAlways(!!p.alwaysOn);
+  }, [p.id, p.start, p.end, p.alwaysOn]);
 
   const expired = postingExpired(p, refDate);
+  const unset = periodUnset(p);
   if (!editing) {
     const body = (
       <>
-        <span className={expired ? 'tag over' : 'sub mono'}>{periodLabel(p)}</span>
+        <span className={expired ? 'tag over' : unset ? 'tag todo' : 'sub mono'}>{periodLabel(p)}</span>
         {expired && <span className="sub">기간 지남</span>}
       </>
     );
@@ -34,21 +39,29 @@ function PeriodLine({ p, isEditor, refDate, onSave }) {
     );
   }
   const save = async () => {
-    if (start && end && end < start) { setErr('종료일이 시작일보다 앞섭니다.'); return; }
+    if (!always && start && end && end < start) { setErr('종료일이 시작일보다 앞섭니다.'); return; }
+    if (!always && !start && !end) { setErr('기간을 넣거나 "상시"를 골라 주세요.'); return; }
     setSaving(true);
-    const ok = await onSave(p.id, { start: start || null, end: end || null });
+    const ok = await onSave(p.id, { start: start || null, end: end || null, alwaysOn: always });
     setSaving(false);
     if (ok) { setEditing(false); setErr(''); } else setErr('저장하지 못했습니다.');
   };
+  // 날짜를 넣으면 상시가 아니다 — 두 값이 같이 남아 있으면 어느 쪽이 진짜인지 알 수 없다.
+  const pick = (set) => (e) => { set(e.target.value); if (e.target.value) setAlways(false); };
   return (
     <div className="periodline editing" onClick={(e) => e.stopPropagation()}>
-      <input className="inp" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+      <input className="inp" type="date" value={start} onChange={pick(setStart)} />
       <span className="sub">~</span>
-      <input className="inp" type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
+      <input className="inp" type="date" value={end} onChange={pick(setEnd)} />
       <div className="statcell-btns">
         <button className="mini ok" disabled={saving} onClick={save}>{saving ? '저장 중…' : '저장'}</button>
-        <button className="mini" disabled={saving} onClick={() => { setStart(''); setEnd(''); }}>상시</button>
-        <button className="mini" disabled={saving} onClick={() => { setStart(p.start || ''); setEnd(p.end || ''); setEditing(false); }}>취소</button>
+        {/* 누르면 그 자리에서 저장되는 게 아니라 "상시로 하겠다"를 골라 두는 것이다 —
+            고른 상태가 보이지 않으면 저장을 눌러도 되는지 알 수 없어 on 표시를 남긴다. */}
+        <button className={always ? 'mini ok' : 'mini'} disabled={saving}
+          onClick={() => { setAlways(true); setStart(''); setEnd(''); setErr(''); }}>
+          {always ? '상시 ✓' : '상시'}
+        </button>
+        <button className="mini" disabled={saving} onClick={() => { setStart(p.start || ''); setEnd(p.end || ''); setAlways(!!p.alwaysOn); setEditing(false); }}>취소</button>
       </div>
       {err && <span className="statcell-err">{err}</span>}
     </div>

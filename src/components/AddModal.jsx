@@ -30,10 +30,12 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const [title, setTitle] = useState('');
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
-  // 홍보물 자체의 게시 기간 — 안 넣으면 상시. 매번 쓰는 값이 아니라 접어 둔다.
+  // 홍보물 자체의 게시 기간 — 매번 쓰는 값이 아니라 접어 둔다. 안 넣고 등록하면 상시가
+  // 아니라 "기간 미입력"으로 남아 목록에서 채우라고 표시된다(constants.js periodLabel).
   const [pOpen, setPOpen] = useState(false);
   const [pStart, setPStart] = useState('');
   const [pEnd, setPEnd] = useState('');
+  const [pAlways, setPAlways] = useState(false);
   const [saving, setSaving] = useState(false);
   const [installPhoto, setInstallPhoto] = useState(null);
   const [installBusy, setInstallBusy] = useState(false);
@@ -133,7 +135,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   // 비율 경고는 디자인 시안에 대한 것이라, 현장 사진을 끌어다 채운 경우엔 띄우지 않는다.
   const mismatch = result && specRatio && Math.abs(+result.ratio - specRatio) / specRatio > 0.08;
 
-  const buildPayload = () => ({ type: typeCode, brand, title, start: pStart || null, end: pEnd || null, singleResult: result });
+  const buildPayload = () => ({ type: typeCode, brand, title, start: pStart || null, end: pEnd || null, alwaysOn: pAlways, singleResult: result });
 
   const submitSingle = async () => {
     const ov = findOverlap(mediaId, face);
@@ -250,7 +252,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
             // 접는 건 화면을 접는 것뿐이다 — 넣어 둔 기간은 그대로 두고, 접힌 줄에 그 값을
             // 같이 보여준다(안 보이는 값이 저장되는 일이 없게).
             <button type="button" className="facerow" onClick={() => setPOpen(true)}>
-              <b>+</b> 게시 기간 (선택) <em>{pStart || pEnd ? periodLabel({ start: pStart, end: pEnd }) : '비워두면 상시'}</em>
+              <b>+</b> 게시 기간 (선택) <em>{periodLabel({ start: pStart, end: pEnd, alwaysOn: pAlways })}</em>
             </button>
           ) : (
             <>
@@ -259,22 +261,23 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                   전달된 클릭이 옆의 "접기"에 떨어져 같이 접혀 버렸다. */}
               <div className="fld"><span className="fldhead">게시 기간 (선택)
                 <span className="fldhead-btns">
-                  {(pStart || pEnd) && (
-                    <button type="button" className="mini" onClick={() => { setPStart(''); setPEnd(''); }}>상시로</button>
-                  )}
+                  <button type="button" className={pAlways ? 'mini ok' : 'mini'}
+                    onClick={() => { setPAlways(true); setPStart(''); setPEnd(''); }}>
+                    {pAlways ? '상시 ✓' : '상시로'}
+                  </button>
                   <button type="button" className="mini" onClick={() => setPOpen(false)}>접기</button>
                 </span>
               </span></div>
               <div className="fld2">
                 <label className="fld"><span>시작일</span>
-                  <span className="datefld" data-empty={pStart ? '0' : '1'}><input type="date" value={pStart} onChange={(e) => setPStart(e.target.value)} /></span>
+                  <span className="datefld" data-empty={pStart ? '0' : '1'}><input type="date" value={pStart} onChange={(e) => { setPStart(e.target.value); if (e.target.value) setPAlways(false); }} /></span>
                 </label>
                 <label className="fld"><span>종료일</span>
-                  <span className="datefld" data-empty={pEnd ? '0' : '1'}><input type="date" value={pEnd} onChange={(e) => setPEnd(e.target.value)} /></span>
+                  <span className="datefld" data-empty={pEnd ? '0' : '1'}><input type="date" value={pEnd} onChange={(e) => { setPEnd(e.target.value); if (e.target.value) setPAlways(false); }} /></span>
                 </label>
               </div>
               {pStart && pEnd && pEnd < pStart && <p className="warnbox">종료일이 시작일보다 앞섭니다.</p>}
-              <p className="hint">이 홍보물을 쓰는 기간입니다 — 자리에 언제 걸었는지(배치 기간)와는 다릅니다. 비워두면 상시.</p>
+              <p className="hint">이 홍보물을 쓰는 기간입니다 — 자리에 언제 걸었는지(배치 기간)와는 다릅니다. 기간 없이 계속 쓰는 홍보물은 <b>상시</b>를 눌러 주세요 — 그냥 비워 두면 "기간 미입력"으로 남습니다.</p>
             </>
           )}
           {/* 디자인 시안은 있으면 좋지만 매번 있는 게 아니다(현장에서 등록할 때는 대개 없다).

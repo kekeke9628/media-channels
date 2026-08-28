@@ -246,6 +246,9 @@ td.sub{display:table-cell}
 .tag.vacant{background:#EFEDE9;color:#716A5F}
 .tag.over{background:#F4E5E3;color:#A74D46}
 .tag.upcoming{background:#EEE8F4;color:#7A5AA6}
+/* 기간 미입력 — 잘못된 상태가 아니라 "채워 달라"는 표시다. 만료(over)의 붉은색만큼
+   놀라게 하면 안 되지만, 회색(vacant)으로 두면 다들 그냥 지나쳐 영영 안 채운다. */
+.tag.todo{background:#F6EDDC;color:#8A6420}
 .empty{color:var(--ink2);font-size:13px;padding:18px;text-align:center}
 .mini{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap}
 .mini.ok{border-color:#4B7B58;color:#4B7B58}
