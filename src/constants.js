@@ -14,6 +14,9 @@ export const md = (ms) => {
 };
 
 export const ALERT_DAYS = 3;
+// 철거까지 며칠 남았나를 사람 말로. dToRemove는 게시 종료일까지 남은 날이고, 실제로
+// 내리는 건 그 다음 날이라 하루를 더해서 센다 — 종료일이 오늘이면 철거는 내일이다.
+export const removeIn = (dToRemove) => (dToRemove === 0 ? '내일' : dToRemove + 1 + '일 후');
 export const LONG_OPEN = 365;
 
 // 상태는 게시중 / 게시예정 / 만료 / 철거완료 4가지로만 보인다(+ 매체 단위의 비어있음).
@@ -97,10 +100,15 @@ export const SIDE_LABEL = { EAST: 'EAST', WEST: 'WEST', null: '구분 없음' };
 export const installPhotoRequired = (start, refDate) => !!start && start <= refDate;
 
 // 교체 화면이 쓰는 판정 — "그날 손대야 하는 자리".
-// 지금 그 면에 걸려 있는 배치(만료됐으면 만료된 것)를 보고 종료일로 가른다.
-//  · 오늘: 종료일이 오늘이거나 이미 지난 것. 지난 것은 늦어도 오늘 처리해야 하니 같이 묶는다
-//    — 목록을 둘로 나눠 놓으면 담당자가 만료된 자리를 놓친다.
-//  · 내일: 내일이 마지막 날인 것만. 오늘 것까지 넣으면 두 버튼이 같은 걸 보여준다.
+//
+// 철거·교체는 종료일이 아니라 그 **다음 날**에 한다. "8/30까지"면 8/30에도 걸려 있어야
+// 하고, 내리는 건 8/31이다. 종료일을 그대로 철거일로 쓰면 마지막 하루가 통째로 깎인다 —
+// 교체로 저장하면 옛 배치의 종료일이 p_date - 1로 줄어드는데(replace_placement), 8/30에
+// 교체하면 8/29까지 걸린 것으로 기록돼 실제와 하루 어긋났다.
+//
+//  · 오늘: 철거일이 오늘이거나 이미 지난 것(= 종료일이 어제 이하). 지난 것도 같이 묶는다
+//    — 목록을 둘로 나눠 놓으면 담당자가 밀린 자리를 놓친다.
+//  · 내일: 오늘이 마지막 날인 것(= 종료일이 오늘). 철거일이 내일이다.
 // 종료일이 미정인 배치는 언제 내릴지 정해진 게 없으므로 어느 쪽에도 안 나온다.
 export const nextDay = (d) => iso(Date.parse(d) + DAY);
 // 지금 그 자리에서 내려갈 배치. 만료 > 게시중 > 종료일 미정 순으로 본다 — 종료일이
@@ -109,8 +117,20 @@ export const swapTarget = (slot) => slot?.overdue || slot?.live || slot?.open ||
 export const swapDue = (slot, refDate, day) => {
   const pl = swapTarget(slot);
   if (!pl?.end) return false;
-  return day === 'tomorrow' ? pl.end === nextDay(refDate) : pl.end <= refDate;
+  return day === 'tomorrow' ? pl.end === refDate : pl.end < refDate;
 };
+
+// 이 배치를 실제로 내리는 날 — 목록이 아닌 곳(매체 현황·홍보물)에서 교체를 누를 때 쓴다.
+//  · 오늘이 마지막 날이면 → 내일. 위와 같은 이유로, 오늘 내리면 하루를 깎는다.
+//  · 종료일이 이미 지났으면 → 오늘. 늦었으니 오늘 하는 것이 맞고, 원래 철거일로 거슬러
+//    올라가 적으면 그날부터 새것이 걸린 것으로 남는다(실제로는 오늘 걸었다).
+//  · 아직 종료일이 남았는데 바꾸는 것이면 → 오늘. 일찍 내리는 것이고, 그건 사람이 정했다.
+//  · 종료일이 미정이면 → 오늘.
+export const removalDate = (pl, refDate) => (pl?.end === refDate ? nextDay(refDate) : refDate);
+
+// 철거일 기준으로 며칠 밀렸나. 0이면 오늘이 바로 그날이다 — 종료일 기준의 overdueDays를
+// 그대로 쓰면 제때 하는 것도 "만료 +1일"로 보여 담당자를 재촉하게 된다.
+export const swapLateDays = (pl, refDate) => (pl?.end ? Math.max(0, diffDays(nextDay(pl.end), refDate)) : 0);
 
 // 매체명은 현장에서 그 자리를 부르는 이름이라 겹치면 안 된다 — 목록·검색·알람이 전부
 // 이름으로 사람에게 보이는데, 같은 이름이 둘이면 어느 쪽 이야기인지 알 수가 없다.

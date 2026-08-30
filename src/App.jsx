@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { ALERT_DAYS, LONG_OPEN, getToday, nameTaken, zoneOf } from './constants.js';
+import { ALERT_DAYS, LONG_OPEN, getToday, nameTaken, zoneOf, removalDate } from './constants.js';
 import { autoClose, buildState, flattenSlots } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
@@ -650,7 +650,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {activeTab === 'posts' && (
             <PostsPanel {...ctx} state={slots} postings={placements} media={media}
               onRemove={markRemoved} onUndo={undoRemoved}
-              onSwap={(pl, title) => setSwapping({ pl, title, date: refDate })}
+              onSwap={(pl, title) => setSwapping({ pl, title, date: removalDate(pl, refDate) })}
               onPick={pickMedia} onShowOnMap={showOnMap} />
           )}
           {activeTab === 'swap' && (
@@ -661,7 +661,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
               onPick={pickMedia} onShowOnMap={showOnMap} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem} onEditPeriod={editPostingText}
               onAssign={(id) => setAssigningId(id)}
-              onSwap={(pl, title) => setSwapping({ pl, title, date: refDate })} />
+              onSwap={(pl, title) => setSwapping({ pl, title, date: removalDate(pl, refDate) })} />
           )}
           {activeTab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={pickMedia} />}
           {activeTab === 'manage' && (

@@ -79,8 +79,10 @@ export default function SwapModal({ pl: oldPl, title, date, postings, placements
         <div className="mbody">
           {/* 무엇을 내리는지 먼저 못 박는다 — 목록에서 눌러 들어왔더라도, 자리가 여럿이면
               어느 것을 바꾸는 중인지 화면에서 다시 확인할 수 있어야 한다. */}
+          {/* 게시 종료일과 내리는 날이 하루 차이라(종료일 다음 날에 내린다) 둘을 나란히
+              보여 준다 — "8/30까지인데 왜 8/31이지?"를 여기서 끝내야 한다. */}
           <div className="swapfrom">
-            <span className="sub">지금 걸려 있는 것 — {date}에 내려갑니다</span>
+            <span className="sub">지금 걸려 있는 것 — <b>{date}</b>에 내려갑니다{date > refDate && ' (내일)'}</span>
             <b>{oldPl?.brand}</b>
             <i className="sub mono">{oldPl?.start} ~ {oldPl?.end || '미정'}</i>
           </div>
@@ -127,7 +129,8 @@ export default function SwapModal({ pl: oldPl, title, date, postings, placements
 
               <div className="fld2">
                 {/* 시작일은 앞 화면에서 고른 교체일이라 고정이다 — 여기서 바꿀 수 있게 하면
-                    "오늘 교체" 목록에서 들어와 놓고 다른 날짜로 저장되는 일이 생긴다. */}
+                    "오늘 교체" 목록에서 들어와 놓고 다른 날짜로 저장되는 일이 생긴다.
+                    옛 배치의 종료일 다음 날이라, 내리는 날과 새로 거는 날이 같다. */}
                 <label className="fld"><span>시작일 (교체일)</span><input type="date" value={date} disabled /></label>
                 <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => setEnd(e.target.value)} /></label>
               </div>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { swapDue, swapTarget, nextDay, byName, contentOf, subOf } from '../constants.js';
+import { swapDue, swapTarget, swapLateDays, nextDay, byName, contentOf, subOf } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import MapBtn from './MapBtn.jsx';
@@ -37,6 +37,7 @@ export default function SwapPanel({ state, refDate, isEditor, onSwap, onPick, on
     <div>
       <p className="hint" style={{ marginBottom: 10 }}>
         오늘·내일 손봐야 할 자리만 모았습니다. 줄에서 <b>교체</b>를 누르면 내리고 새로 거는 것이 한 번에 끝납니다.
+        <br />게시 종료일 <b>다음 날</b>에 내립니다 — 8/30까지면 8/30에는 그대로 두고 8/31에 바꿉니다.
       </p>
       <div className="seg swapseg">
         <button className={day === 'today' ? 'on' : ''} onClick={() => setDay('today')}>
@@ -46,20 +47,22 @@ export default function SwapPanel({ state, refDate, isEditor, onSwap, onPick, on
           내일 교체{tomorrow.length > 0 && <em>{tomorrow.length}</em>}
         </button>
       </div>
-      <p className="sub mono" style={{ margin: '10px 0 6px' }}>{date} 기준 · {rows.length}곳</p>
+      <p className="sub mono" style={{ margin: '10px 0 6px' }}>{date}에 내리는 자리 · {rows.length}곳</p>
 
       {rows.length === 0 ? (
         <p className="empty">
           {day === 'tomorrow'
-            ? '내일 교체할 자리가 없습니다.'
-            : '오늘 교체할 자리가 없습니다. 종료일이 지난 자리도 없습니다.'}
+            ? '내일 내릴 자리가 없습니다.'
+            : '오늘 내릴 자리가 없습니다. 밀린 자리도 없습니다.'}
         </p>
       ) : (
         <div className="swaplist">
           {rows.map((s) => {
             const pl = swapTarget(s);
             const shot = shots.get(pl?.installPhotoPath);
-            const over = s.overdue ? s.overdueDays : 0;
+            // 밀린 날수는 종료일이 아니라 철거일(종료일 다음 날)부터 센다 — 8/30까지인
+            // 자리를 8/31에 처리하는 건 정시지 하루 늦은 게 아니다.
+            const late = swapLateDays(pl, refDate);
             return (
               <div className="swaprow" key={s.id}>
                 <div className="swapshot" onClick={() => onPick(s.mediaId, s.face)}>
@@ -72,15 +75,17 @@ export default function SwapPanel({ state, refDate, isEditor, onSwap, onPick, on
                     {/* flattenSlots가 name에 면 라벨까지 붙여 준다("WWM03 · 2면").
                         여기서 faceLabel을 또 붙이면 "WWM03 · 2면 · 2면"이 된다. */}
                     <b>{s.name}</b>
-                    {over > 0
-                      ? <span className="tag over">만료 +{over}일</span>
-                      : <span className="tag live">{day === 'tomorrow' ? '내일까지' : '오늘까지'}</span>}
+                    {late > 0
+                      ? <span className="tag over">{late}일 밀림</span>
+                      : <span className="tag live">{day === 'tomorrow' ? '내일 내림' : '오늘 내림'}</span>}
                   </div>
                   <div className="swapwho">
                     <b>{pl?.brand}</b>
                     {subOf(pl) && <i className="sub">{subOf(pl)}</i>}
                   </div>
-                  <div className="sub mono swapmeta">{ZONES[s.zone]?.label || s.zone} · ~ {pl?.end}</div>
+                  {/* 게시 종료일과 내리는 날을 같이 적는다 — 하루 차이라 둘 중 하나만
+                      보이면 담당자가 "오늘까지 아니었나?" 하고 되묻는다. */}
+                  <div className="sub mono swapmeta">{ZONES[s.zone]?.label || s.zone} · 게시 ~ {pl?.end} · {date} 내림</div>
                   <div className="swapacts">
                     <MapBtn mediaId={s.mediaId} onShowOnMap={onShowOnMap} />
                     {isEditor && (

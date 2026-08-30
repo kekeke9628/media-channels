@@ -3,7 +3,7 @@
 // 알람 문구가 화면과 어긋나지 않게 한다. service role key로 RLS를 우회해 전체를 조회한다.
 import { createClient } from '@supabase/supabase-js';
 import { autoClose, buildState } from '../src/lib/status.js';
-import { ALERT_DAYS, LONG_OPEN, getToday } from '../src/constants.js';
+import { ALERT_DAYS, LONG_OPEN, getToday, removeIn } from '../src/constants.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -49,7 +49,8 @@ async function main() {
 
   // ① 철거 예고
   soon.forEach((o) => {
-    messages.push(`⏳ ${o.dToRemove === 0 ? '오늘' : o.dToRemove + '일 후'} 철거: [${o.name}] ${o.live.brand} (~${o.live.end})`);
+    // 철거일은 종료일 다음 날 — 앱의 알람 예정 탭과 같은 문구를 쓴다(removeIn).
+    messages.push(`⏳ ${removeIn(o.dToRemove)} 철거: [${o.name}] ${o.live.brand} (게시 ~${o.live.end})`);
   });
 
   // ② 만료

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ALERT_DAYS } from '../constants.js';
+import { ALERT_DAYS, removeIn } from '../constants.js';
 
 // 알람 예정 — Slack 알람 3종의 문구를 그대로 미리 보여준다 (사양서 7장)
 //
@@ -24,7 +24,10 @@ export default function AlertPanel({ alerts, kpi, isEditor, onRemove, onPick }) 
       <section className="block">
         <h3>① 철거 예고 <span>{alerts.soon.length}건</span></h3>
         {alerts.soon.length === 0 && <p className="empty">해당 없음</p>}
-        {alerts.soon.map((o) => row(o, `⏳ ${o.dToRemove === 0 ? '오늘' : o.dToRemove + '일 후'} 철거`, o.live))}
+        {/* 철거일은 종료일 다음 날이다 — dToRemove는 종료일까지 남은 날이라 하루를 더한다.
+            더하지 않으면 8/30까지인 자리를 8/30에 "오늘 철거"라고 알려, 마지막 하루를
+            깎아 내리게 만든다(교체 탭과도 하루 어긋난다). */}
+        {alerts.soon.map((o) => row(o, `⏳ ${removeIn(o.dToRemove)} 철거`, o.live))}
       </section>
 
       <section className="block">
