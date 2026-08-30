@@ -6,7 +6,7 @@ import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, updateMediaFaces, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
   createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, updatePlacementDates, updatePostingText, setPostingImage,
-  replacePlacement,
+  replacePlacement, relinkPlacement,
   setPlacementInstallPhoto,
   createMediaType, updateMediaType, setMediaTypeActive, deleteMediaType, countMediaTypeUsage, updateMediaName, setMediaType,
 } from './lib/queries.js';
@@ -32,6 +32,7 @@ import AssignModal from './components/AssignModal.jsx';
 import PlaceOnMediaModal from './components/PlaceOnMediaModal.jsx';
 import SwapPanel from './components/SwapPanel.jsx';
 import SwapModal from './components/SwapModal.jsx';
+import RelinkModal from './components/RelinkModal.jsx';
 
 // 교체를 앞쪽에 둔다 — 관리 업체 담당자가 매일 여는 화면이라 탭을 찾아 헤매면 안 된다.
 const TABS = { posts: '매체 현황', swap: '교체', promos: '홍보물', timeline: '타임라인', manage: '매체 관리', alert: '알람 예정', admins: '관리자 관리' };
@@ -98,6 +99,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   // 교체 팝업에서 "새 홍보물 등록해서 바로 교체"로 넘어간 경우 — 등록 화면(AddModal)이
   // 마지막에 배치가 아니라 교체를 하도록 이 값을 들고 간다.
   const [addSwap, setAddSwap] = useState(null); // { pl, title, date }
+  const [relinking, setRelinking] = useState(null); // { pl, title } — 잘못 고른 홍보물 정정
   const [editMode, setEditMode] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const [mapImage, setMapImage] = useState(null);
@@ -297,6 +299,16 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       flash('교체에 실패했습니다: ' + (/exclusion|overlap|23P01/i.test(m) ? '이 면에 기간이 겹치는 다음 배치가 이미 있습니다.' : m));
       return false;
     }
+  };
+  // 배치는 그대로 두고 어느 홍보물인지만 고친다(오기입 정정). 교체와 달리 철거 기록을
+  // 남기지 않으므로, 성공 문구도 "교체"가 아니라 "바꿨습니다"로 갈라 놓는다 — 나중에
+  // 이력을 볼 때 두 가지를 헷갈리면 실제로 무슨 일이 있었는지 알 수 없다.
+  const relinkPosting = async (placementId, postingId) => {
+    try {
+      await relinkPlacement(placementId, postingId);
+      await load();
+      return true;
+    } catch (e) { flash('홍보물을 바꾸지 못했습니다: ' + (e.message || '')); return false; }
   };
   // silent: 등록+배치를 한 번에 하는 흐름에서 중간 토스트 없이 마지막 결과만 보여줄 때 쓴다.
   const addPosting = async (p, { silent } = {}) => {
@@ -680,6 +692,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
           {...ctx} o={byId[selMedia]} onClose={clearSelection} onRemove={markRemoved} onDelete={removeMedia}
           onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType} onAttachPhoto={attachInstallPhoto}
           onEditDates={editPlacementDates} onEditText={editPostingText} focusFace={focusFace}
+          onRelink={(pl) => setRelinking({ pl, title: byId[selMedia].faces > 1 ? `${byId[selMedia].name} · ${pl.faceLabel || (pl.face || 1) + '면'}` : byId[selMedia].name })}
           onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}
         />
       )}
@@ -695,6 +708,13 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
             setAddMediaId(placingMediaId); setAddFace(placingFace); setAddOpen(true);
             setPlacingMediaId(null); setPlacingFace(null);
           }}
+        />
+      )}
+      {relinking && isEditor && (
+        <RelinkModal
+          pl={relinking.pl} title={relinking.title} postings={postings} placements={placements}
+          onClose={() => setRelinking(null)} onRelink={relinkPosting}
+          onDone={(picked) => flash(`${relinking.pl.brand} → ${picked.brand}로 바꿨습니다. 기간과 설치 사진은 그대로입니다.`)}
         />
       )}
       {swapping && isEditor && (

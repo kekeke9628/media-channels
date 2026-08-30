@@ -146,7 +146,7 @@ function DesignShot({ url }) {
   );
 }
 
-function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd, onAttachPhoto, onEditDates, onEditText, collapsible }) {
+function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd, onAttachPhoto, onEditDates, onEditText, onRelink, collapsible }) {
   const cur = slot.overdue || slot.current;
   // 아직 시작하지 않은(게시예정) 배치는 "지난 배치"가 아니다 — 예전에는 cur만 빼고 나머지를
   // 전부 지난 배치로 묶어서, 다음 달에 걸릴 예약이 이력 표에 "지난 배치"로 들어가 있었다.
@@ -214,6 +214,17 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
           {/* 값이 적힌 칸을 그대로 눌러 고친다 — 업체명·내용은 홍보물의 값이라 그 홍보물이
               걸린 모든 자리에 함께 반영되고, 시작일·종료일은 이 면의 값이라 여기만 바뀐다. */}
           <StatsEditor pl={cur} isEditor={isEditor} onEditText={onEditText} onEditDates={onEditDates} />
+          {/* 배치할 때 목록에서 엉뚱한 홍보물을 고르는 일이 잦다 — 이름이 비슷한 홍보물이
+              많다(테이스티 오더 / 테이스티 오더2 / 8월 테이스티 오더). 위 업체명 칸을 고치면
+              그 홍보물 자체의 이름이 바뀌어 그게 걸린 다른 자리까지 함께 바뀌므로, 이 자리가
+              가리키는 홍보물을 통째로 갈아 끼우는 길을 따로 둔다.
+              철거하고 다시 배치하는 방법도 있지만, 걸린 적 없는 업체가 이력에 "철거됨"으로
+              남는다 — 정정은 사건이 아니라 오기입이라 기록을 남기면 안 된다. */}
+          {isEditor && onRelink && (
+            <button className="mini wide" onClick={() => onRelink(cur)}>
+              홍보물을 잘못 골랐나요? — 다시 고르기
+            </button>
+          )}
           {/* 실제 업무는 "사무실에서 배치 등록 → 현장에서 부착 → 그 자리에서 촬영" 순서라,
               사진을 나중에 붙일 수 있어야 한다. 예전에는 배치를 만드는 순간에만 첨부할 수
               있어서, 현장 사진을 넣으려면 배치를 지우고 다시 만들어야 했다. */}
@@ -262,6 +273,11 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
           <b>{upcoming.brand}</b>
           {subOf(upcoming) && <i className="sub">{subOf(upcoming)}</i>}
           <em className="mono">{upcoming.start} ~ {upcoming.end || '미정'}</em>
+          {/* 아직 걸리지도 않은 예약이야말로 잘못 고른 걸 바로잡기 가장 좋은 때다 —
+              여기서 못 고치면 걸린 뒤에야 알게 된다. */}
+          {isEditor && onRelink && (
+            <button className="mini" onClick={() => onRelink(upcoming)}>홍보물 다시 고르기</button>
+          )}
         </div>
       )}
 
@@ -287,7 +303,7 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
   );
 }
 
-export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onChangeMediaType, onAttachPhoto, onEditDates, onEditText, focusFace }) {
+export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onChangeMediaType, onAttachPhoto, onEditDates, onEditText, onRelink, focusFace }) {
   const t = T[o.type];
   const zoneLabel = ZONES[o.zone]?.label || o.zone;
   const hasHistory = o.slots.some((s) => s.history.length > 0);
@@ -386,7 +402,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
         <div className="sbody">
         {/* 면이 4개 이상일 때만 접기를 켠다 — 1~2면(웨더워리어 등)은 지금까지처럼 전부 펼친 채. */}
         {o.slots.map((slot) => (
-          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} collapsible={o.faces >= 4} />
+          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} onRelink={onRelink} collapsible={o.faces >= 4} />
         ))}
 
         {/* 위쪽 "홍보물 철거"와 헷갈리지 않게, 여기가 매체(틀) 자체를 다루는 자리임을 밝힌다. */}

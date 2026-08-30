@@ -432,6 +432,20 @@ export async function replacePlacement({ oldId, postingId, date, end, installPho
   return mapPlacement(updated);
 }
 
+// 배치는 그대로 두고 "어느 홍보물인가"만 고친다 — 배치할 때 엉뚱한 홍보물을 고르는 일이
+// 잦다(테이스티 오더 / 테이스티 오더2 / 8월 테이스티 오더처럼 이름이 비슷한 것이 많다).
+//
+// 교체(replace_placement)와 헷갈리면 안 된다. 교체는 실제로 일어난 사건이라 옛 배치에
+// 종료일·철거일을 찍고 새 배치를 만든다. 이건 사건이 아니라 오기입 정정이라, 매체·면·
+// 기간·설치 사진은 그대로 두고 posting_id만 바꾼다 — 철거한 적 없는 홍보물이 이력에
+// "철거됨"으로 남지 않게.
+export async function relinkPlacement(id, postingId) {
+  const { data, error } = await supabase.from('placements')
+    .update({ posting_id: postingId }).eq('id', id).select('*, postings(*)').single();
+  if (error) throw error;
+  return { ...mapPosting(data.postings), ...mapPlacement(data) };
+}
+
 export async function markPlacementRemoved(id, removedAt) {
   const { error } = await supabase.from('placements').update({ removed_at: removedAt, removal_source: 'manual' }).eq('id', id);
   if (error) throw error;

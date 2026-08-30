@@ -516,6 +516,9 @@ td.sub{display:table-cell}
 .statgrid b{font-size:13.5px}
 .mrow{display:flex;align-items:center;gap:11px;padding:10px 4px;border-bottom:1px solid #F0ECE4;cursor:pointer}
 .mrow:hover{background:#FBF9F5}
+/* 고른 줄 — 홍보물 다시 고르기는 고르자마자 저장하지 않고 아래 버튼으로 확인받는다.
+   그 사이에 무엇을 골랐는지 줄에서 보이지 않으면, 목록이 길 때 스크롤하다 잊는다. */
+.mrow.on{background:var(--brass-soft);box-shadow:inset 3px 0 0 var(--brass)}
 .mglyph{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:15px;flex:0 0 32px}
 .mtxt{flex:1;min-width:0}
 .mtxt b{font-size:12.5px;display:block}
