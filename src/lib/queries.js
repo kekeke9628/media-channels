@@ -163,7 +163,11 @@ export async function deleteMedia(id) {
   if (error) throw error;
 }
 
-// 홍보물 = 브랜드 + 내용 + 디자인 시안 한 장.
+// 홍보물 = 브랜드 + 내용 + 게시 기간. 그림은 들고 있지 않다 — 인쇄 시안은 안 쓰기로 했고
+// (관리 도구의 근거는 "실제로 걸린 모습"이다), 화면에 보이는 그림은 전부 배치의 설치 확인
+// 사진에서 온다(constants.postingShots). thumb_path/view_path 컬럼과 예전에 올라간 파일은
+// 지우지 않고 그대로 둔다 — 되돌릴 일이 생기면 그때 다시 꺼내면 되고, 파일 정리(cleanup·
+// deletePosting)는 여전히 그 컬럼을 보고 지울 것과 남길 것을 가른다.
 //
 // 한때는 매체 유형별로 인쇄 파일을 따로 두었지만(posting_variants), 같은 디자인이 매체마다
 // 크기만 조금 다를 뿐이라 똑같이 생긴 홍보물만 늘어났다 — 이 시스템은 인쇄 발주가 아니라
@@ -173,8 +177,6 @@ function mapPosting(p) {
     id: p.id,
     brand: p.brand,
     title: p.title || '',
-    thumbPath: p.thumb_path || null,
-    viewPath: p.view_path || null,
     // 홍보물 자체의 게시 기간. 날짜가 없어도 "상시"와 "아직 안 넣음"은 다른 상태라
     // alwaysOn을 따로 들고 온다(026) — 판정은 constants.js periodLabel/periodUnset.
     start: p.start_date || null,
@@ -287,7 +289,7 @@ function periodRow({ start, end, alwaysOn }) {
   return { start_date: start || null, end_date: end || null, always_on: false };
 }
 
-export async function createPosting({ brand, title, start, end, alwaysOn, singleResult }) {
+export async function createPosting({ brand, title, start, end, alwaysOn }) {
   const { data: userData } = await supabase.auth.getUser();
   const { data: inserted, error: insertError } = await supabase
     .from('postings')
@@ -295,7 +297,6 @@ export async function createPosting({ brand, title, start, end, alwaysOn, single
     .select()
     .single();
   if (insertError) throw insertError;
-  if (singleResult) await setPostingImage({ id: inserted.id }, singleResult);
   return fetchPosting(inserted.id);
 }
 
@@ -313,20 +314,6 @@ export async function updatePostingText(id, { brand, title, start, end, alwaysOn
   const { data, error } = await supabase.from('postings').update(row).eq('id', id).select().single();
   if (error) throw error;
   return mapPosting(data);
-}
-
-// 홍보물의 디자인 시안을 넣거나 갈아 끼운다. 같은 경로에 덮어쓰므로 옛 파일이 남지 않는다.
-export async function setPostingImage(posting, result) {
-  if (!result) return fetchPosting(posting.id);
-  const row = {
-    view_path: await uploadPostingImage(`${posting.id}/view.webp`, result.view.url),
-    thumb_path: await uploadPostingImage(`${posting.id}/thumb.webp`, result.thumb.url),
-    bytes_orig: result.orig,
-    bytes_light: result.view.bytes,
-  };
-  const { error } = await supabase.from('postings').update(row).eq('id', posting.id);
-  if (error) throw error;
-  return fetchPosting(posting.id);
 }
 
 async function fetchPosting(id) {
@@ -393,13 +380,6 @@ export async function setPlacementInstallPhoto(placementId, result) {
   if (error) throw error;
   return mapPlacement(data);
 }
-
-// 현장 사진을 홍보물 이미지로 채운다 — 인쇄 시안 파일 없이 등록해 둔 홍보물이 흔한데,
-// 그러면 홍보물 목록이 계속 빈 칸이라 무엇이 걸려 있는지 알 수 없었다. 설치 확인 사진과
-// 홍보물 이미지는 같은 변환 결과 모양을 쓰므로 그대로 돌려쓴다. 이미 이미지가 있는
-// 홍보물은 덮지 않는다(호출 쪽에서 판단).
-// 현장 사진을 인쇄 파일 대신 채운다 — 시안 없이 등록된 캠페인이 목록에서 계속 빈 칸이라
-// 무엇이 걸려 있는지 알 수 없던 문제 때문. 어느 규격에 넣을지는 걸린 매체의 유형이 정한다.
 
 
 // 배치를 잘못 만들었을 때(엉뚱한 매체 선택 등) 되돌리는 삭제 — 실제 철거 기록(removed_at)과는

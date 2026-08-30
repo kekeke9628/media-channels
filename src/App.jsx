@@ -5,7 +5,7 @@ import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
   fetchMediaTypes, fetchMedia, fetchPostings, fetchPlacements, updateMediaPosition, updateMediaFaces, createMedia,
   archiveMedia, restoreMedia, restoreMediaAt, deleteMedia, createPosting, deletePosting,
-  createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, updatePlacementDates, updatePostingText, setPostingImage,
+  createPlacement, deletePlacement, markPlacementRemoved, undoPlacementRemoval, adjustPlacementEnd, updatePlacementDates, updatePostingText,
   replacePlacement, relinkPlacement,
   setPlacementInstallPhoto,
   createMediaType, updateMediaType, setMediaTypeActive, deleteMediaType, countMediaTypeUsage, updateMediaName, setMediaType,
@@ -167,7 +167,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   // slots = 면(face) 단위로 펼친 것(매체 현황·타임라인·알람이 씀 — 2면 매체는 항목 2개).
   // 진짜 재고 단위는 매체가 아니라 면이라, 카운트·알람도 면 기준이 맞다 — 웨더워리어처럼
   // 2면인 매체는 앞/뒤가 서로 다른 광고주로 독립적으로 걸릴 수 있기 때문이다.
-  // 배치에 홍보물 정보(업체명·시안 이미지)를 얹어 둔다 — 화면들이 배치 한 줄만 보고
+  // 배치에 홍보물 정보(업체명·내용·게시 기간)를 얹어 둔다 — 화면들이 배치 한 줄만 보고
   // 무엇이 걸렸는지 그릴 수 있어야 한다.
   const placementsView = useMemo(() => {
     const postingById = Object.fromEntries(postings.map((p) => [p.id, p]));
@@ -332,9 +332,6 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const addPlacement = async (posting, { mediaId, start, end, installPhoto, face, faceLabel }, { silent } = {}) => {
     try {
       const created = await createPlacement({ postingId: posting.id, mediaId, start, end, installPhoto, face, faceLabel });
-      // 설치 확인 사진은 이 배치의 증빙일 뿐, 홍보물의 디자인 시안이 아니다 — 예전에는
-      // 시안이 비어 있으면 이 사진으로 채웠는데, 현장에서 사진을 붙일 때마다 시안 칸에
-      // 같은 사진이 들어가 매번 지워야 했다.
       setPlacements((prev) => [...prev, { ...posting, ...created }]);
       // 엉뚱한 매체·기간에 잘못 건 걸 바로 무를 수 있게 한다. "철거 처리"로는 못 무른다 —
       // 그건 실제로 걸렸다가 뗀 기록이라, 걸린 적도 없는 배치가 이력에 영구히 남는다.

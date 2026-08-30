@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel, placementDefaults, endMismatch } from '../constants.js';
+import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel, placementDefaults, endMismatch, postingShots } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
 import { installPhotoRequired } from '../constants.js';
@@ -36,12 +36,16 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
       .sort((a, b) => byName(a.brand, b.brand));
   }, [options, q]);
 
+  // 목록의 작은 그림은 그 홍보물이 실제로 걸린 모습이다(시안은 안 쓴다) — 고를 때
+  // 이름만으로는 비슷한 것끼리 구별이 안 돼서, 사진이 있어야 잘못 고르지 않는다.
+  const shots = useMemo(() => postingShots(placements), [placements]);
   const [thumbUrls, setThumbUrls] = useState(new Map());
   useEffect(() => {
     let cancelled = false;
-    getPostingImageUrls(options.map((p) => p.thumbPath)).then((m) => { if (!cancelled) setThumbUrls(m); });
+    getPostingImageUrls([...shots.values()].map((x) => x.installPhotoPath))
+      .then((m) => { if (!cancelled) setThumbUrls(m); });
     return () => { cancelled = true; };
-  }, [options]);
+  }, [shots]);
 
   const [posting, setPosting] = useState(null);
 
@@ -150,7 +154,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
               ) : (
                 <div className="medialist wide">
                   {rows.map((p) => {
-                    const url = thumbUrls.get(p.thumbPath);
+                    const url = thumbUrls.get(shots.get(p.id)?.installPhotoPath);
                     const placedCount = placementsOf[p.id]?.length || 0;
                     return (
                       <div className="mrow" key={p.id} onClick={() => pick(p)}>

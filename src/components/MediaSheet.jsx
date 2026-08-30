@@ -8,17 +8,16 @@ import { convertImage } from '../lib/convertImage.js';
 // 면(face) 하나의 "현재 배치 + 지난 배치" — 단일 면 매체는 이 컴포넌트가 정확히 하나만
 // 그려지고 라벨도 안 붙어서, 지금까지와 완전히 같은 화면으로 보인다. 2면 이상이면 면마다
 // 따로 그려서, 앞/뒤가 서로 다른 업체·기간으로 걸린 것도 각자 정확히 보여줄 수 있다.
-function StatsEditor({ pl, isEditor, onEditText, onEditDates }) {
-  const [brand, setBrand] = useState(pl.brand);
+function StatsEditor({ pl, isEditor, onEditText, onEditDates, onRelink }) {
   const [title, setTitle] = useState(pl.title || '');
   const [start, setStart] = useState(pl.start);
   const [end, setEnd] = useState(pl.end || '');
   const [noEnd, setNoEnd] = useState(!pl.end);
   // 다른 면으로 옮겨 가거나 값이 서버에서 바뀌면 편집칸도 따라간다.
   useEffect(() => {
-    setBrand(pl.brand); setTitle(pl.title || '');
+    setTitle(pl.title || '');
     setStart(pl.start); setEnd(pl.end || ''); setNoEnd(!pl.end);
-  }, [pl.id, pl.brand, pl.title, pl.start, pl.end]);
+  }, [pl.id, pl.title, pl.start, pl.end]);
 
   const canText = isEditor && !!onEditText;
   const canDate = isEditor && !!onEditDates;
@@ -26,19 +25,18 @@ function StatsEditor({ pl, isEditor, onEditText, onEditDates }) {
 
   return (
     <div className="statgrid">
-      <StatCell label="업체명" value={pl.brand} editable={canText}
-        onSave={() => onEditText(pl.postingId, { brand: brand.trim() })}>
-        {({ close, commit, saving }) => (
-          <>
-            <input className="inp" value={brand} autoFocus onChange={(e) => setBrand(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) commit(brand.trim() ? null : '업체명을 비워 둘 수 없습니다.'); }} />
-            <div className="statcell-btns">
-              <button className="mini ok" disabled={saving} onClick={() => commit(brand.trim() ? null : '업체명을 비워 둘 수 없습니다.')}>저장</button>
-              <button className="mini" disabled={saving} onClick={() => { setBrand(pl.brand); close(); }}>취소</button>
-            </div>
-          </>
-        )}
-      </StatCell>
+      {/* 업체명을 직접 고치면 이 홍보물이 걸린 다른 자리까지 전부 따라 바뀐다 — 배치할 때
+          목록에서 엉뚱한 걸 고른 것뿐인데 이름을 고치면 그 홍보물 자체가 바뀐다. 그래서
+          이 칸은 값을 고치는 자리가 아니라 "다른 홍보물을 고르는" 자리로 삼는다. */}
+      {canText && onRelink ? (
+        <button type="button" className="statcell" onClick={() => onRelink(pl)} title="눌러서 다른 홍보물로 바꾸기">
+          <em>업체명</em>
+          <b>{pl.brand}</b>
+          <i className="statcell-pen">⇄</i>
+        </button>
+      ) : (
+        <div><em>업체명</em><b>{pl.brand}</b></div>
+      )}
 
       <StatCell label="내용" value={subOf(pl) || '—'} editable={canText}
         onSave={() => onEditText(pl.postingId, { title: title.trim() })}>
@@ -124,28 +122,6 @@ function StatCell({ label, value, mono, onSave, children, editable }) {
   );
 }
 
-// 디자인 시안 — 평소에는 접어 둔다. 현장 확인이 목적인 화면에서 매번 필요한 건 설치
-// 사진이고, 시안은 "어떤 시안이었지"를 되짚을 때만 본다.
-function DesignShot({ url }) {
-  const [open, setOpen] = useState(false);
-  if (!open) {
-    return (
-      <button type="button" className="facerow" style={{ marginTop: 10 }} onClick={() => setOpen(true)}>
-        <b>+</b> 디자인 시안 보기
-      </button>
-    );
-  }
-  return (
-    <div style={{ marginTop: 10 }}>
-      <div className="facerow" style={{ cursor: 'default' }}>
-        <b>디자인 시안</b>
-        <button type="button" className="mini" style={{ marginLeft: 'auto' }} onClick={() => setOpen(false)}>접기</button>
-      </div>
-      <div className="rprev"><img src={url} alt="" /></div>
-    </div>
-  );
-}
-
 function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd, onAttachPhoto, onEditDates, onEditText, onRelink, collapsible }) {
   const cur = slot.overdue || slot.current;
   // 아직 시작하지 않은(게시예정) 배치는 "지난 배치"가 아니다 — 예전에는 cur만 빼고 나머지를
@@ -192,39 +168,26 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
       {slot.open && <p className="okbox"><b>{slot.openDays}일째</b> 게시 중입니다.{slot.openDays >= LONG_OPEN && ' 1년이 넘었으니 한 번 확인해 보세요.'}</p>}
       {cur ? (
         <>
-          {/* 관리 화면에서 확인해야 하는 건 "실제로 걸려 있는 모습"이다 — 설치 확인 사진을
-              크게 두고, 디자인 시안은 접어 둔다. 설치 사진이 아직 없으면 시안이라도 보여야
-              무엇이 걸렸는지 알 수 있으므로 그때만 시안을 큰 자리에 올린다. */}
+          {/* 이 화면에서 확인해야 하는 건 "실제로 걸려 있는 모습" 하나다 — 인쇄 시안은
+              걸리기 전의 그림이라, 비율이 안 맞게 걸렸거나 엉뚱한 게 걸린 것을 못 잡는다. */}
           {(() => {
             const install = imgUrls.get(cur.installPhotoPath);
-            const design = imgUrls.get(cur.viewPath) || imgUrls.get(cur.thumbPath);
-            const big = install || design;
             return (
               <>
-                <div className="bigthumb" style={big ? undefined : { background: `linear-gradient(150deg, hsl(${cur.hue} 42% 52%), hsl(${(cur.hue + 40) % 360} 38% 38%))` }}>
-                  {big ? <img className="bigthumb-img" src={big} alt="" /> : <span>사진 없음</span>}
+                <div className="bigthumb" style={install ? undefined : { background: `linear-gradient(150deg, hsl(${cur.hue} 42% 52%), hsl(${(cur.hue + 40) % 360} 38% 38%))` }}>
+                  {install ? <img className="bigthumb-img" src={install} alt="" /> : <span>사진 없음</span>}
                 </div>
                 <p className="sub" style={{ textAlign: 'center', marginTop: 5 }}>
-                  {install ? '설치 확인 사진' : design ? '디자인 시안 · 설치 확인 사진 없음' : '설치 확인 사진 없음'}
+                  {install ? '설치 확인 사진' : '설치 확인 사진 없음 — 아래에서 찍어 주세요'}
                 </p>
-                {install && design && <DesignShot url={design} />}
               </>
             );
           })()}
-          {/* 값이 적힌 칸을 그대로 눌러 고친다 — 업체명·내용은 홍보물의 값이라 그 홍보물이
-              걸린 모든 자리에 함께 반영되고, 시작일·종료일은 이 면의 값이라 여기만 바뀐다. */}
-          <StatsEditor pl={cur} isEditor={isEditor} onEditText={onEditText} onEditDates={onEditDates} />
-          {/* 배치할 때 목록에서 엉뚱한 홍보물을 고르는 일이 잦다 — 이름이 비슷한 홍보물이
-              많다(테이스티 오더 / 테이스티 오더2 / 8월 테이스티 오더). 위 업체명 칸을 고치면
-              그 홍보물 자체의 이름이 바뀌어 그게 걸린 다른 자리까지 함께 바뀌므로, 이 자리가
-              가리키는 홍보물을 통째로 갈아 끼우는 길을 따로 둔다.
-              철거하고 다시 배치하는 방법도 있지만, 걸린 적 없는 업체가 이력에 "철거됨"으로
-              남는다 — 정정은 사건이 아니라 오기입이라 기록을 남기면 안 된다. */}
-          {isEditor && onRelink && (
-            <button className="mini wide" onClick={() => onRelink(cur)}>
-              홍보물을 잘못 골랐나요? — 다시 고르기
-            </button>
-          )}
+          {/* 값이 적힌 칸을 그대로 눌러 고친다 — 업체명은 눌러도 여기서 안 고치고 다른
+              홍보물을 고르는 팝업으로 보낸다(위 StatsEditor 주석). 내용은 홍보물의 값이라
+              그 홍보물이 걸린 모든 자리에 함께 반영되고, 시작일·종료일은 이 면의 값이라
+              여기만 바뀐다. */}
+          <StatsEditor pl={cur} isEditor={isEditor} onEditText={onEditText} onEditDates={onEditDates} onRelink={onRelink} />
           {/* 실제 업무는 "사무실에서 배치 등록 → 현장에서 부착 → 그 자리에서 촬영" 순서라,
               사진을 나중에 붙일 수 있어야 한다. 예전에는 배치를 만드는 순간에만 첨부할 수
               있어서, 현장 사진을 넣으려면 배치를 지우고 다시 만들어야 했다. */}
@@ -286,7 +249,8 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
         <>
           <h4>지난 배치 <span className="sub">{past.length}건</span></h4>
           <div className="thumbrow">{past.map((p) => {
-            const url = imgUrls.get(p.thumbPath);
+            // 그 배치의 설치 확인 사진 — 지난 배치도 "그때 실제로 걸렸던 모습"으로 남는다.
+            const url = imgUrls.get(p.installPhotoPath);
             return (
               <div className="tsmall" key={p.id} title={p.brand + ' ' + p.start + '~' + (p.end || '미정')}>
                 {url ? <img src={url} alt="" /> : <i style={{ background: `linear-gradient(150deg, hsl(${p.hue} 40% 55%), hsl(${(p.hue + 40) % 360} 36% 40%))` }} />}
@@ -340,13 +304,10 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
     setEditingFaces(false);
   };
 
-  // 실제 업로드된 게시물 사진이 있으면 그라데이션 대신 그걸 보여준다 — 큰 카드는 view(1600px),
-  // 이력의 작은 점은 thumb(400px)를 쓴다.
+  // 사진은 전부 설치 확인 사진이다(홍보물 시안은 안 쓴다) — 지금 걸린 것 한 장과
+  // 이력에 남은 것들. 전부 view 크기라 큰 자리에 써도 뭉개지지 않는다.
   const [imgUrls, setImgUrls] = useState(new Map());
-  const paths = o.slots.flatMap((s) => {
-    const cur = s.overdue || s.current;
-    return [cur?.viewPath, cur?.thumbPath, cur?.installPhotoPath, ...s.history.map((p) => p.thumbPath)];
-  });
+  const paths = o.slots.flatMap((s) => s.history.map((p) => p.installPhotoPath));
   // o.id(매체 id)만 의존하면, 시트를 닫지 않은 채로(예: "이 매체에 홍보물 배치") 같은
   // 매체에 새로 배치해도 매체 id는 그대로라 다시 안 불러왔다 — 방금 건 이미지가 안 보이던
   // 원인. 실제로 걸린 경로들이 바뀌었는지로 다시 판단한다.

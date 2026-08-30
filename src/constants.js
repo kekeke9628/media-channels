@@ -132,6 +132,25 @@ export const removalDate = (pl, refDate) => (pl?.end === refDate ? nextDay(refDa
 // 그대로 쓰면 제때 하는 것도 "만료 +1일"로 보여 담당자를 재촉하게 된다.
 export const swapLateDays = (pl, refDate) => (pl?.end ? Math.max(0, diffDays(nextDay(pl.end), refDate)) : 0);
 
+// 홍보물을 대표하는 사진 — 인쇄 시안(디자인 파일)은 안 쓰기로 했다. 이건 관리 도구고,
+// 관리에서 근거가 되는 건 "실제로 그 자리에 걸린 모습"이지 걸리기 전의 시안이 아니다.
+// 시안이 있으면 목록에서 시안을 보게 되는데, 그건 현장에 실제로 무엇이 어떻게 걸렸는지를
+// 가려 버린다(비율이 안 맞게 걸렸거나 엉뚱한 게 걸린 것도 시안으로는 안 보인다).
+//
+// 그래서 홍보물 그림은 전부 설치 확인 사진에서 가져온다. 지금 걸려 있는 자리를 철거된
+// 자리보다 먼저 보고, 같은 조건이면 최근에 시작한 자리를 쓴다 — 지금 벽에 있는 그림이
+// 제일 정확하다. 돌려주는 건 postingId → 배치.
+const shotRank = (pl) => (pl.removedAt ? '0' : '1') + (pl.start || '');
+export function postingShots(placements) {
+  const best = new Map();
+  for (const pl of placements || []) {
+    if (!pl.installPhotoPath) continue;
+    const cur = best.get(pl.postingId);
+    if (!cur || shotRank(pl) > shotRank(cur)) best.set(pl.postingId, pl);
+  }
+  return best;
+}
+
 // 매체명은 현장에서 그 자리를 부르는 이름이라 겹치면 안 된다 — 목록·검색·알람이 전부
 // 이름으로 사람에게 보이는데, 같은 이름이 둘이면 어느 쪽 이야기인지 알 수가 없다.
 // 대소문자와 앞뒤 공백은 같은 이름으로 본다(WEL01과 wel01 을 따로 두면 더 헷갈린다).

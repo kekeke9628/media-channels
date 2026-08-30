@@ -7,9 +7,6 @@ import { installPhotoRequired } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
 
-// 4.2MB처럼 큰 사진이 보통이지만 작은 파일은 "0.0MB"로 표시돼 어색했다.
-const fileSize = (bytes) => (bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(bytes / 1024)) + 'KB');
-
 // 홍보물 등록 — 두 가지 진입 경로가 있다.
 // (1) 사이드바 "+홍보물 등록"(initialMediaId 없음): 매체·일정과 무관하게 브랜드·내용·
 //     이미지 한 장만 등록한다. 특정 한 곳에 거는 건 이제 매체 상세의 "이 매체에 홍보물
@@ -32,8 +29,6 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
   const [brand, setBrand] = useState('');
   const [title, setTitle] = useState('');
-  const [result, setResult] = useState(null);
-  const [busy, setBusy] = useState(false);
   // 홍보물 자체의 게시 기간 — 매번 쓰는 값이 아니라 접어 둔다. 안 넣고 등록하면 상시가
   // 아니라 "기간 미입력"으로 남아 목록에서 채우라고 표시된다(constants.js periodLabel).
   const [pOpen, setPOpen] = useState(false);
@@ -124,17 +119,6 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typeCode]);
 
-  const process = async (f) => {
-    setBusy(true);
-    const r = await convertImage(f);
-    setResult(r);
-    setBusy(false);
-  };
-
-  // 설치 확인 사진은 설치 확인 사진일 뿐이다 — 한때 디자인 시안 칸이 비어 있으면 이 사진을
-  // 그 자리에도 넣어 줬는데, 현장에서 사진을 붙일 때마다 시안 칸에 같은 사진이 튀어나와
-  // 지우는 일이 반복됐다. 목록이 빈 칸으로 남는 문제는 홍보물 목록이 배치의 설치 사진을
-  // 대신 보여주는 쪽으로 푼다(PromosPanel).
   const processInstallPhoto = async (f) => {
     setInstallBusy(true);
     const r = await convertImage(f);
@@ -142,11 +126,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     setInstallBusy(false);
   };
 
-  const specRatio = useMemo(() => { const spec = t?.spec || ''; const n = spec.match(/(\d+)\D+(\d+)/); return n ? +n[1] / +n[2] : null; }, [t]);
-  // 비율 경고는 디자인 시안에 대한 것이라, 현장 사진을 끌어다 채운 경우엔 띄우지 않는다.
-  const mismatch = result && specRatio && Math.abs(+result.ratio - specRatio) / specRatio > 0.08;
-
-  const buildPayload = () => ({ type: typeCode, brand, title, start: pStart || null, end: pEnd || null, alwaysOn: pAlways, singleResult: result });
+  const buildPayload = () => ({ type: typeCode, brand, title, start: pStart || null, end: pEnd || null, alwaysOn: pAlways });
 
   const submitSingle = async () => {
     // 교체 모드에서는 겹침을 여기서 조정하지 않는다 — 걸려 있던 배치를 닫는 일까지
@@ -310,24 +290,6 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               <p className="hint">이 홍보물을 쓰는 기간입니다 — 자리에 언제 걸었는지(배치 기간)와는 다릅니다. 기간 없이 계속 쓰는 홍보물은 <b>상시</b>를 눌러 주세요 — 그냥 비워 두면 "기간 미입력"으로 남습니다.</p>
             </>
           )}
-          {/* 디자인 시안은 있으면 좋지만 매번 있는 게 아니다(현장에서 등록할 때는 대개 없다).
-              접어 두고, 설치 확인 사진만 넣어도 그게 홍보물 이미지로 함께 저장된다. */}
-          <PhotoField
-            collapsible collapsedLabel="디자인 시안 첨부 (선택)"
-            label="디자인 시안 (선택)" hint="사진은 올릴 때 자동으로 용량을 줄여 저장합니다."
-            caption="등록될 이미지" result={result} busy={busy}
-            onPick={process}
-            onClear={() => setResult(null)}
-          >
-            {/* JSX children은 PhotoField가 그리든 말든 여기서 먼저 평가된다 — result가 없을 때
-                result.orig을 읽어 팝업이 통째로 죽었다. 값을 읽기 전에 여기서 막는다. */}
-            {result && (
-              <div className="rbox">
-                <div className="rline total"><span>용량</span><b className="mono">{fileSize(result.orig)} → {fileSize(result.view.bytes)}</b></div>
-                {mismatch && <p className="warnbox">⚠ 사진 가로세로 비율이 이 매체 규격({t.spec})과 많이 다릅니다 — 실제로 걸린 모습과 달라 보일 수 있습니다.</p>}
-              </div>
-            )}
-          </PhotoField>
 
           {initialMedia && (
             <>

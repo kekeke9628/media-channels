@@ -106,7 +106,8 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
   // 여러 면이 모인 유형은 "개수"와 "면수"가 크게 달라서 개수만으로는 물량이 안 잡힌다.
   // 지도에 지금 보이는 것(유형·구역 필터가 이미 걸린 items) 기준으로 센다.
   // 핀에 마우스를 올리면 지금 걸려 있는 홍보물을 바로 보여준다 — 이름과 D-day만으로는
-  // "어느 시안이 걸렸더라"가 안 잡혀서, 확인하려면 핀을 하나하나 눌러 봐야 했다.
+  // "저기 뭐가 걸렸더라"가 안 잡혀서, 확인하려면 핀을 하나하나 눌러 봐야 했다.
+  // 보여주는 건 그 자리의 설치 확인 사진이다(시안이 아니라 실제로 걸린 모습).
   //
   // 서명 URL은 한 번에 묶어 받는다(비공개 버킷). 올릴 때마다 요청하면 첫 hover가 매번
   // 굼뜨고, 같은 핀을 오갈 때마다 새로 부른다 — 지금 지도에 보이는 것만이라 양도 적다.
@@ -114,7 +115,7 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
     const out = [];
     for (const o of items) for (const s of o.slots) {
       const p = s.overdue || s.current;
-      if (p?.thumbPath) out.push(p.thumbPath);
+      if (p?.installPhotoPath) out.push(p.installPhotoPath);
     }
     return [...new Set(out)];
   }, [items]);
@@ -471,10 +472,10 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
                   )}
                   {(hover === o.id || selMedia === o.id) && (
                     <span className={'plabel' + (o.y > 55 ? ' up' : '')}>
-                      {/* 지금 걸려 있는 시안. 여러 면이면 면마다 한 장씩(너무 길어지지 않게 6장까지). */}
+                      {/* 지금 걸려 있는 모습. 여러 면이면 면마다 한 장씩(너무 길어지지 않게 6장까지). */}
                       {(() => {
                         const shots = o.slots
-                          .map((s) => ({ s, url: thumbs.get((s.overdue || s.current)?.thumbPath) }))
+                          .map((s) => ({ s, url: thumbs.get((s.overdue || s.current)?.installPhotoPath) }))
                           .filter((x) => x.url);
                         if (!shots.length) return null;
                         return (

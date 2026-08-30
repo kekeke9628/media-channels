@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 // 한눈에 안 들어오고(둘 다 화면에 있으니) 팝업만 한 화면 더 길어졌다. 무엇보다 한 번
 // 고르고 나면 무르거나 바꿀 방법이 아예 없었다 — 팝업을 닫고 처음부터 다시 해야 했다.
 export default function PhotoField({ label, hint, caption, result, busy, onPick, onClear, capture, collapsible, collapsedLabel, children }) {
-  // 부차적인 칸(인쇄 시안 등)은 접어 둔다 — 매번 쓰는 칸이 아닌데 큰 점선 영역이 자리를
+  // 부차적인 칸은 접어 둔다 — 매번 쓰는 칸이 아닌데 큰 점선 영역이 자리를
   // 차지하면, 정작 매번 채워야 하는 칸이 한 화면 아래로 밀린다.
   const [open, setOpen] = useState(false);
   if (collapsible && !result && !open) {
