@@ -57,9 +57,13 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const [faceLabel, setFaceLabel] = useState('');
   const [labelTouched, setLabelTouched] = useState(false);
   const mediaPlacements = (id, f) => placements.filter((pl) => pl.mediaId === id && (pl.face || 1) === f).sort((a, b) => b.start.localeCompare(a.start));
-  // 그 면이 비는 날 — 마지막 배치의 다음 날, 없으면 오늘.
+  // 철거한 배치는 그 면을 더 이상 잡고 있지 않다 — DB 배제 제약도 같은 규칙이다(028).
+  // 이걸 안 빼면, 종료일 미정으로 걸었다 철거한 자리에 새로 걸 때마다 "겹치는 배치가
+  // 있습니다"가 떴다 — 이미 뗀 것을 두고 겹친다고 하니 무엇이 잘못인지 알 수 없다.
+  const standing = (id, f) => mediaPlacements(id, f).filter((pl) => !pl.removedAt);
+  // 그 면이 비는 날 — 아직 걸려 있는 마지막 배치의 다음 날, 없으면 오늘.
   const vacantStart = (f) => {
-    const last = initialMedia ? mediaPlacements(initialMedia.id, f)[0] : null;
+    const last = initialMedia ? standing(initialMedia.id, f)[0] : null;
     return last ? (last.end ? iso(Date.parse(last.end) + DAY) : refDate) : refDate;
   };
   // 배치 기간을 손으로 고쳤으면 그 뒤로는 게시 기간을 따라가지 않는다.
@@ -95,7 +99,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const startEff = swapping ? swapDate : start;
   const findOverlap = (id, f) => {
     const newEndEff = noEnd ? '9999-12-31' : end;
-    return mediaPlacements(id, f).find((pl) => {
+    return standing(id, f).find((pl) => {
       const plEndEff = pl.end || '9999-12-31';
       return start <= plEndEff && pl.start <= newEndEff;
     });
