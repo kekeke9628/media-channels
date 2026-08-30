@@ -385,7 +385,14 @@ td.sub{display:table-cell}
    종류와 무관하게 iOS 자체를 가려낸다) 표준적인 방법이라, 이걸로 감싸 데스크톱은 브라우저
    기본 렌더링을 그대로 쓰게 한다. */
 @supports (-webkit-touch-callout: none) {
-  .fld input[type=date]{-webkit-appearance:none;appearance:none}
+  /* 높이도 같이 못 박는다 — appearance:none을 줘도 iOS는 값이 있는 날짜와 빈 날짜의
+     내부 렌더링 높이가 서로 달라서(빈 값은 사실상 아무것도 안 그려 padding만큼만 차지,
+     값이 있으면 iOS 자체 날짜 표시 컨트롤이 자기 높이를 따로 잡는다), 날짜를 고르는
+     순간 옆 칸보다 칸이 커 보였다("날짜 선택하면 커지잖아"). 일반 텍스트 칸과 같은
+     높이로 고정해 값이 있든 없든 항상 같게 만든다.
+     .fld input{padding:8px 11px;font-size:13px}로 실측한 일반 칸 높이(데스크톱 33px)를
+     그대로 쓴다 — 모바일 값(11px 12px/14px → 40px)은 아래 @media 안에서 다시 못 박는다. */
+  .fld input[type=date]{-webkit-appearance:none;appearance:none;height:33px;line-height:1}
 }
 .fld input:disabled{background:#F4F2EE;color:#A79E8D}
 /* 칸 제목 줄에 조작 버튼(접기 등)이 같이 오는 경우 — 버튼이 제목 바로 옆에 붙어 큰 상자
@@ -712,6 +719,11 @@ td.sub{display:table-cell}
      10px 12px로 키움)보다 작아서, 특히 게시 기간처럼 버튼과 나란히 있는 칸이 유독 작아
      보였다. 44px 목표에 맞춰 같이 키운다. */
   .fld input,.fld select{padding:11px 12px;font-size:14px}
+  /* 날짜칸 높이 고정도 커진 패딩에 맞춰 다시 잡는다(위 @supports 블록과 같은 값을
+     모바일 패딩·글자 크기로 다시 계산한 것 — 일반 텍스트 칸의 모바일 높이 40px). */
+  @supports (-webkit-touch-callout: none) {
+    .fld input[type=date]{height:40px}
+  }
   /* 아이콘 버튼도 같은 이유로 키운다 — 30px는 손가락으로 옆을 누르게 된다. */
   .iconbtn{width:38px;height:38px}
   .sel{padding:11px 9px}
