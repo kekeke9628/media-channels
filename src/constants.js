@@ -103,7 +103,9 @@ export const installPhotoRequired = (start, refDate) => !!start && start <= refD
 //  · 내일: 내일이 마지막 날인 것만. 오늘 것까지 넣으면 두 버튼이 같은 걸 보여준다.
 // 종료일이 미정인 배치는 언제 내릴지 정해진 게 없으므로 어느 쪽에도 안 나온다.
 export const nextDay = (d) => iso(Date.parse(d) + DAY);
-export const swapTarget = (slot) => slot?.overdue || slot?.live || null;
+// 지금 그 자리에서 내려갈 배치. 만료 > 게시중 > 종료일 미정 순으로 본다 — 종료일이
+// 미정인 것도 교체 대상이다(교체 탭에는 안 뜨지만, 매체 현황·홍보물에서 손으로 바꾼다).
+export const swapTarget = (slot) => slot?.overdue || slot?.live || slot?.open || null;
 export const swapDue = (slot, refDate, day) => {
   const pl = swapTarget(slot);
   if (!pl?.end) return false;

@@ -726,18 +726,24 @@ td.sub{display:table-cell}
 
 /* 매체 카드 안의 면 줄 — 면마다 카드를 내지 않고 한 카드에 텍스트로 쌓는다. */
 .facelines{display:flex;flex-direction:column;gap:2px;margin-top:8px}
-.faceline{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:8px;
+/* 조치 버튼이 둘인 줄(만료 = 철거 + 교체)이 이 줄의 폭을 정한다. 모바일 .mini의 기본
+   패딩(10px 12px)에 gap 7px, 버튼마다 margin-left 4px까지 얹혀 있어서, 교체 버튼을
+   더하자 360px 화면에서 업체명 자리가 25px밖에 안 남았다("스타"도 안 보인다).
+   버튼 가로 패딩과 줄 간격만 줄이고 중복이던 margin-left를 걷어내 업체명을 67px까지
+   되돌렸다(375px에서 82px) — 세로 패딩은 그대로라 손가락으로 누르는 높이는 안 줄었다.
+   접지 않는다(nowrap): 줄마다 높이가 달라지느니 업체명이 …로 잘리는 편이 낫다. */
+.faceline{display:flex;align-items:center;flex-wrap:nowrap;gap:5px;padding:6px 8px;border-radius:8px;
   background:#FBF9F5;font-size:12.5px;min-width:0;cursor:pointer}
 .faceline:hover{background:#F4F1EA}
 /* 면 구획으로 옮겨 올 때 헤더에 가리지 않게 여유를 둔다. */
 .facesheet{scroll-margin-top:12px}
 .dateedit{margin-top:9px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#FCFBF8}
 .faceline em{font-style:normal;font-weight:700;color:#8E6B2C;font-size:11.5px;flex:none;min-width:2.6em}
-.faceline b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.faceline b{flex:1 1 auto;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .faceline .sub{flex:none}
 .faceline .mono{margin-left:auto}
 .faceline .tag{flex:none}
-.faceline .mini{flex:none;margin-left:4px}
+.faceline .mini{flex:none;padding:10px 6px}
 .mini.wide{display:block;width:100%;margin-top:7px;text-align:center}
 /* 정렬 줄 — 검색·필터와 구분되게 한 칸 띄우고 글자를 작게. */
 .sortrow{margin-top:-4px}

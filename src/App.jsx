@@ -647,7 +647,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         </div>
 
         <div className="panel">
-          {activeTab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={pickMedia} onShowOnMap={showOnMap} />}
+          {activeTab === 'posts' && (
+            <PostsPanel {...ctx} state={slots} postings={placements} media={media}
+              onRemove={markRemoved} onUndo={undoRemoved}
+              onSwap={(pl, title) => setSwapping({ pl, title, date: refDate })}
+              onPick={pickMedia} onShowOnMap={showOnMap} />
+          )}
           {activeTab === 'swap' && (
             <SwapPanel {...ctx} state={slots} onSwap={(pl, title, date) => setSwapping({ pl, title, date })}
               onPick={pickMedia} onShowOnMap={showOnMap} />

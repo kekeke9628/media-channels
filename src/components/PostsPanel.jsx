@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { contentOf, subOf, days, ST, typeChipStyle, matches, byName } from '../constants.js';
+import { contentOf, subOf, days, ST, typeChipStyle, matches, byName, swapTarget } from '../constants.js';
 import { useCodeFilter } from '../lib/useCodeFilter.js';
 import { sideOf } from '../constants.js';
 import { statusOf } from '../lib/status.js';
@@ -35,7 +35,7 @@ const statusTag = (o) => (
 // 면이 많은 매체(듀라트란스 10면 등)는 두 줄만 보이고 나머지는 접어 둔다. 다 펼쳐 두면
 // 카드 하나가 화면을 다 먹어서 정작 다른 매체를 훑을 수가 없다.
 const FACES_SHOWN = 2;
-function MediaCard({ g, T, isEditor, onPick, onShowOnMap, onRemove, zoneLabel }) {
+function MediaCard({ g, T, isEditor, onPick, onShowOnMap, onRemove, onSwap, zoneLabel }) {
   const [open, setOpen] = useState(false);
   const t = T[g.type];
   const shown = open ? g.slots : g.slots.slice(0, FACES_SHOWN);
@@ -63,6 +63,12 @@ function MediaCard({ g, T, isEditor, onPick, onShowOnMap, onRemove, zoneLabel })
                 {o.overdue && isEditor && (
                   <button className="mini ok" onClick={(e) => { e.stopPropagation(); onRemove(o.overdue.id); }}>철거</button>
                 )}
+                {/* 철거는 "내리고 끝", 교체는 "내리고 새로 건다" — 현장에서 훨씬 잦은 건
+                    교체 쪽인데 여기엔 철거만 있어서 한 번 나갔다 와서 다시 배치해야 했다.
+                    걸려 있는 자리면(만료·게시중·종료일 미정) 다 걸 수 있게 둔다. */}
+                {swapTarget(o) && isEditor && (
+                  <button className="mini" onClick={(e) => { e.stopPropagation(); onSwap(swapTarget(o), o.name); }}>교체</button>
+                )}
               </>
             ) : <span className="sub">비어있음</span>}
           </div>
@@ -78,7 +84,7 @@ function MediaCard({ g, T, isEditor, onPick, onShowOnMap, onRemove, zoneLabel })
   );
 }
 
-export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, narrow, onRemove, onUndo, onPick, onShowOnMap }) {
+export default function PostsPanel({ T, types, state, postings, media, refDate, isEditor, narrow, onRemove, onSwap, onUndo, onPick, onShowOnMap }) {
   const [statusSel, setStatusSel] = useState(new Set(STATUS_OPTS.map(([k]) => k)));
   // 홍보물 화면과 달리 기본 ON — 이 화면의 핵심 목적이 만료 건을 놓치지 않고 조치하는
   // 것이라(맨 위 정렬 + 철거 완료 버튼), 기본으로 숨기면 화면 목적과 어긋난다.
@@ -124,7 +130,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
 
   // 면(face)은 진짜 재고 단위지만, 목록에서 면마다 카드를 하나씩 내면 같은 매체가 여러 번
   // 나오고 어느 걸 눌러도 결국 같은 매체 상세로 간다 — 매체 하나에 카드 하나로 묶고,
-  // 면은 그 안에 한 줄씩 적는다. 조치(철거)는 여전히 면 단위라 줄마다 따로 둔다.
+  // 면은 그 안에 한 줄씩 적는다. 조치(철거·교체)는 여전히 면 단위라 줄마다 따로 둔다.
   const groups = useMemo(() => {
     const by = new Map();
     for (const o of state) {
@@ -279,7 +285,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       ) : !rangeOn && narrow ? (
         <div className="mlist">
           {currentRows.map((g) => (
-            <MediaCard key={g.mediaId} g={g} T={T} isEditor={isEditor} onPick={onPick} onShowOnMap={onShowOnMap} onRemove={onRemove} zoneLabel={zoneLabel} />
+            <MediaCard key={g.mediaId} g={g} T={T} isEditor={isEditor} onPick={onPick} onShowOnMap={onShowOnMap} onRemove={onRemove} onSwap={onSwap} zoneLabel={zoneLabel} />
           ))}
         </div>
       ) : !rangeOn ? (
@@ -319,9 +325,10 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                     <td className="sub">{(p && subOf(p)) || '—'}</td>
                     <td className="mono">{p ? p.start : '—'}</td>
                     <td className="mono">{p ? (p.end || '미정') : '—'}</td>
-                    <td onClick={(e) => o.overdue && e.stopPropagation()}>
+                    <td onClick={(e) => swapTarget(o) && e.stopPropagation()}>
                       {statusTag(o)}
                       {o.overdue && isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>홍보물 철거</button>}
+                      {swapTarget(o) && isEditor && <button className="mini" onClick={() => onSwap(swapTarget(o), o.name)}>교체</button>}
                     </td>
                     <td className="r"><MapBtn mediaId={o.mediaId} onShowOnMap={onShowOnMap} /></td>
                   </tr>
