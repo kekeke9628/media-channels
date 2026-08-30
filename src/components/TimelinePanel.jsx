@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { iso, DAY, diffDays, md, clamp, contentOf, subOf, days, matches } from '../constants.js';
+import { useCodeFilter } from '../lib/useCodeFilter.js';
 import { statusOf } from '../lib/status.js';
 import { ZONES } from '../data/seed.js';
 import StatusChip from './StatusChip.jsx';
@@ -8,7 +9,7 @@ import SortTh, { sortRows } from './SortTh.jsx';
 const zoneLabel = (z) => ZONES[z]?.label || z;
 
 // 타임라인 — 과거의 '이력 조회'를 흡수. 검색·표/그래프 전환·업체명 클릭 상세이동을 한 화면에서 처리
-export default function TimelinePanel({ state, refDate, onPick }) {
+export default function TimelinePanel({ state, types, refDate, onPick }) {
   const [span, setSpan] = useState(120);
   // 그래프 시작점을 "오늘 기준 며칠 전"으로 잡는다. 예전에는 -30일 고정이라 기간 버튼을
   // 아무리 키워도 왼쪽 끝(과거)은 그대로고 미래만 늘어나서, 지난 이력을 그래프로 볼 수가
@@ -21,12 +22,18 @@ export default function TimelinePanel({ state, refDate, onPick }) {
   const [from, setFrom] = useState(iso(Date.parse(refDate) - 90 * DAY));
   const [to, setTo] = useState(refDate);
   const [sort, setSort] = useState({ key: null, dir: null });
+  const [openDD, setOpenDD] = useState(false);
+  // PostsPanel의 매체 유형 필터와 같은 방식 — 94건씩 늘어선 행 중에서 특정 유형(듀라
+  // 트란스만, 웨더워리어만 등)만 훑고 싶을 때 쓴다.
+  const [typeSel, setTypeSel] = useCodeFilter(types.map((t) => t.code));
+  const toggleType = (c) => setTypeSel((prev) => { const n = new Set(prev); n.has(c) ? n.delete(c) : n.add(c); return n; });
   const T0 = Date.parse(refDate);
   const start = rangeOn ? Date.parse(from) : T0 - 30 * DAY + offset * DAY;
   const effSpan = rangeOn ? Math.max(1, diffDays(from, to)) : span;
   const ticks = []; for (let d = 0; d <= effSpan; d += Math.max(15, Math.round(effSpan / 8))) ticks.push(d);
 
   const matched = state
+    .filter((o) => typeSel.has(o.type))
     .filter((o) => !q || matches(o.name + o.history.map((p) => p.brand + contentOf(p)).join(' '), q))
     .filter((o) => !rangeOn || o.history.some((p) => (p.end || '9999-12-31') >= from && p.start <= to));
   const rows = matched.slice(0, limit);
@@ -38,6 +45,17 @@ export default function TimelinePanel({ state, refDate, onPick }) {
     <div>
       <div className="toolrow">
         <input className="inp" placeholder="업체명 · 내용 · 매체명 검색" value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="dd">
+          <button className="btn" onClick={() => setOpenDD((v) => !v)}>매체 유형 {typeSel.size === types.length ? '전체' : typeSel.size} ▾</button>
+          {openDD && (
+            <div className="ddmenu" onMouseLeave={() => setOpenDD(false)}>
+              <div className="ddtop"><button onClick={() => setTypeSel(new Set(types.map((t) => t.code)))}>전체</button><button onClick={() => setTypeSel(new Set())}>해제</button></div>
+              {types.map((t) => (
+                <label key={t.code}><input type="checkbox" checked={typeSel.has(t.code)} onChange={() => toggleType(t.code)} /><i style={{ background: t.color }} />{t.label}</label>
+              ))}
+            </div>
+          )}
+        </div>
         <label className="chk"><input type="checkbox" checked={rangeOn} onChange={(e) => setRangeOn(e.target.checked)} />기간으로 조회</label>
         {rangeOn ? (
           <div className="daterange"><input className="inp date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /><span className="sub">~</span><input className="inp date" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
