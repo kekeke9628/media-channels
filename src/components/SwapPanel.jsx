@@ -84,7 +84,7 @@ export default function SwapPanel({ state, refDate, isEditor, onSwap, onPick, on
                   <div className="swapacts">
                     <MapBtn mediaId={s.mediaId} onShowOnMap={onShowOnMap} />
                     {isEditor && (
-                      <button className="btn primary swapbtn" onClick={() => onSwap(s, date)}>교체</button>
+                      <button className="btn primary swapbtn" onClick={() => onSwap(swapTarget(s), s.name, date)}>교체</button>
                     )}
                   </div>
                 </div>

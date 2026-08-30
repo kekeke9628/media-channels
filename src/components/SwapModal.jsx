@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel, placementDefaults, endMismatch, installPhotoRequired, swapTarget } from '../constants.js';
+import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel, placementDefaults, endMismatch, installPhotoRequired } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
@@ -11,8 +11,10 @@ import PhotoField from './PhotoField.jsx';
 // 매체·면·방향·시작일이 전부 정해져 있는 상태로 들어오기 때문이다 — 어느 자리를 언제
 // 교체할지는 앞 화면(교체 탭)에서 이미 골랐고, 여기서 다시 묻는 건 되묻는 것일 뿐
 // 엉뚱한 면에 걸릴 여지만 만든다. 그래서 "무엇으로 바꿀지"와 종료일·설치사진만 받는다.
-export default function SwapModal({ slot, date, postings, placements, refDate, onClose, onSwap, onCreateNew, onDone }) {
-  const oldPl = swapTarget(slot);
+// pl은 지금 그 자리에 걸려 있는 배치, title은 화면에 보일 자리 이름("WWH02 · 2면").
+// 슬롯이 아니라 배치를 직접 받는다 — 교체 탭(슬롯 목록)과 홍보물 카드(배치 목록) 양쪽에서
+// 같은 팝업을 쓰기 위해서다.
+export default function SwapModal({ pl: oldPl, title, date, postings, placements, refDate, onClose, onSwap, onCreateNew, onDone }) {
 
   // 게시 기간이 끝난 홍보물은 후보에서 뺀다 — 교체하면서 이미 끝난 캠페인을 거는 건
   // 실수뿐이다. 상시와 아직 시작 안 한 것은 그대로 둔다.
@@ -73,8 +75,7 @@ export default function SwapModal({ slot, date, postings, placements, refDate, o
   return (
     <div className="modal" onClick={onClose}>
       <div className="mbox" onClick={(e) => e.stopPropagation()}>
-        {/* slot.name에 면 라벨이 이미 들어 있다(flattenSlots) — 또 붙이면 "1면 · 1면"이 된다. */}
-        <div className="mhead"><b>{slot.name} 교체</b><button onClick={onClose}>✕</button></div>
+        <div className="mhead"><b>{title} 교체</b><button onClick={onClose}>✕</button></div>
         <div className="mbody">
           {/* 무엇을 내리는지 먼저 못 박는다 — 목록에서 눌러 들어왔더라도, 자리가 여럿이면
               어느 것을 바꾸는 중인지 화면에서 다시 확인할 수 있어야 한다. */}

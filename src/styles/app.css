@@ -584,7 +584,7 @@ td.sub{display:table-cell}
 .plrow-btns{display:flex;flex-wrap:nowrap;gap:4px;flex:none}
 .plrow .pushright{margin-left:auto}
 /* 이 줄의 버튼·칩만 좁게 — 한 줄에 매체명·사진·상태·지도·버튼 두 개까지 들어가야 한다.
-   가장 빡빡한 줄은 철거된 배치다(상태칩 "철거됨" + 되돌리기 + 다시 걸기). 모바일 .mini의
+   가장 빡빡한 줄은 게시중 배치다(상태칩 + 지도 + 철거 + 교체). 모바일 .mini의
    기본 패딩(10px 12px)을 그대로 쓰면 그 줄이 넘쳐 매체명이 두 글자만 남았다.
    세로 패딩은 그대로라 손가락으로 누르는 높이는 줄지 않는다. */
 .plrow .mini{padding:10px 6px}

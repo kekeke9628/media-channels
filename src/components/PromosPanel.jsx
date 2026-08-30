@@ -76,7 +76,7 @@ function PeriodLine({ p, isEditor, refDate, onSave }) {
   );
 }
 
-export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onShowOnMap, onAssign, onRepeat, onRemove, onUndo, onCancel, onDeletePosting, onEditPeriod }) {
+export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onShowOnMap, onAssign, onSwap, onRemove, onUndo, onCancel, onDeletePosting, onEditPeriod }) {
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
   const [q, setQ] = useState('');
@@ -196,10 +196,13 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                         <button key="cx" className="mini no" onClick={() => onCancel(pl.id)}>배치 취소</button>,
                       s === 'removed' && pl.removalSource === 'manual' &&
                         <button key="un" className="mini" onClick={() => onUndo(pl.id)}>되돌리기</button>,
-                      // 매달 같은 업체를 같은 자리에 다시 거는 일이 잦다 — 끝난 배치는
-                      // 그 매체·면을 미리 채운 채로 배치 화면을 열어 준다.
-                      (s === 'removed' || s === 'overdue') && !archived &&
-                        <button key="rp" className="mini" onClick={() => onRepeat(pl)}>다시 걸기</button>,
+                      // 걸려 있는(또는 만료된) 자리는 "교체" 하나로 처리한다. 예전에는
+                      // "다시 걸기"가 따로 있었는데, 그건 같은 홍보물을 그 자리에 또 거는
+                      // 것이라 교체와 헷갈렸다 — 게다가 옛 배치를 손대지 않고 새것만 만들어
+                      // 정리는 autoClose에 맡기는, 교체와 다른 기록을 남겼다.
+                      // 같은 홍보물로 다시 거는 것도 교체 팝업에서 그 홍보물을 고르면 된다.
+                      s !== 'upcoming' && s !== 'removed' && !archived &&
+                        <button key="sw" className="mini" onClick={() => onSwap(pl, pLabel(pl))}>교체</button>,
                     ].filter(Boolean) : [];
                     return (
                       // 어느 면인지까지 넘긴다 — 상세가 그 면 구획으로 스크롤해 준다.

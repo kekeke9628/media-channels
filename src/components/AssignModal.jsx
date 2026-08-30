@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY, placementDefaults, endMismatch } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
@@ -12,14 +12,13 @@ import { useModalKeys } from '../lib/useModalKeys.js';
 // 유형의 매체로만 한정한다. 매체가 여러 면을 가지면(웨더워리어 등) 단일 배치에서는 어느
 // 면에 걸지 고르고, 여러 매체를 한 번에 배치할 때는 각 매체의 1면에 건다(매체마다 다른
 // 면을 따로 고르는 건 복잡도만 커지고 실제로도 드문 경우라, 필요하면 단일 배치를 쓴다).
-export default function AssignModal({ posting, T, media, placements, refDate, preset, onClose, onAssign, onAdjustEnd, onDone }) {
+export default function AssignModal({ posting, T, media, placements, refDate, onClose, onAssign, onAdjustEnd, onDone }) {
   const t = null;
   const [mode, setMode] = useState('single'); // 'single' | 'bulk'
   // 어느 홍보물이든 어느 매체에나 걸 수 있다 — 규격을 따지지 않는다(024).
   const targets = useMemo(() => media.filter((m) => m.active), [media]);
 
-  // preset이 있으면("다시 걸기") 그 매체를 미리 골라 둔다.
-  const [mediaId, setMediaId] = useState(preset?.mediaId || targets[0]?.id || '');
+  const [mediaId, setMediaId] = useState(targets[0]?.id || '');
   // 배치 기간의 기본값은 이 홍보물의 게시 기간에서 가져온다(상시면 오늘 ~ 오늘+30일).
   const dflt = placementDefaults(posting, refDate, iso(Date.parse(refDate) + 30 * DAY));
   const [start, setStart] = useState(dflt.start);
@@ -65,15 +64,11 @@ export default function AssignModal({ posting, T, media, placements, refDate, pr
 
   // 매체를 바꾸면(단일 모드) 비어 있는 면을 자동으로 고른다 — 이미 걸려 있는 면을 실수로
   // 또 고르는 일을 줄인다.
-  const presetFaceRef = useRef(preset?.face || null);
   useEffect(() => {
     if (mode !== 'single' || !mediaId) return;
     const faces = Array.from({ length: mediaFaces }, (_, i) => i + 1);
     const vacant = faces.find((f) => !mediaPlacements(mediaId, f).some((pl) => statusOf(pl, refDate) === 'live' || statusOf(pl, refDate) === 'open'));
-    // "다시 걸기"로 열렸으면 첫 진입에 한해 예전에 걸었던 그 면을 그대로 고른다.
-    const pf = presetFaceRef.current;
-    presetFaceRef.current = null;
-    setFace(pf && faces.includes(pf) ? pf : (vacant || 1));
+    setFace(vacant || 1);
     setLabelTouched(false);
     setConflict(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps

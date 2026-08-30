@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { ALERT_DAYS, LONG_OPEN, getToday, nameTaken, zoneOf, swapTarget } from './constants.js';
+import { ALERT_DAYS, LONG_OPEN, getToday, nameTaken, zoneOf } from './constants.js';
 import { autoClose, buildState, flattenSlots } from './lib/status.js';
 import { uploadCenterMap, getCenterMapUrl } from './lib/centerMap.js';
 import {
@@ -92,15 +92,12 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   const [placingMediaId, setPlacingMediaId] = useState(null);
   const [placingFace, setPlacingFace] = useState(null);
   const [assigningId, setAssigningId] = useState(null);
-  // "다시 걸기" — 지난 배치와 같은 매체·면을 미리 채운 채로 배치 화면을 연다. 매달 같은
-  // 업체를 같은 자리에 다시 거는 일이 잦은데, 지금까지는 매번 목록에서 매체를 다시 찾아야 했다.
-  const [assignPreset, setAssignPreset] = useState(null); // { mediaId, face }
-  // 교체 중인 자리 — { slot, date }. 어느 자리를 언제 교체할지는 교체 탭에서 이미 골랐고,
-  // 팝업은 "무엇으로 바꿀지"만 받는다.
+  // 교체 중인 자리 — { pl, title, date }. 어느 자리를 언제 교체할지는 앞 화면(교체 탭 또는
+  // 홍보물 카드)에서 이미 골랐고, 팝업은 "무엇으로 바꿀지"만 받는다.
   const [swapping, setSwapping] = useState(null);
   // 교체 팝업에서 "새 홍보물 등록해서 바로 교체"로 넘어간 경우 — 등록 화면(AddModal)이
   // 마지막에 배치가 아니라 교체를 하도록 이 값을 들고 간다.
-  const [addSwap, setAddSwap] = useState(null); // { slot, date }
+  const [addSwap, setAddSwap] = useState(null); // { pl, title, date }
   const [editMode, setEditMode] = useState(false);
   const [addMode, setAddMode] = useState(false);
   const [mapImage, setMapImage] = useState(null);
@@ -652,14 +649,14 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         <div className="panel">
           {activeTab === 'posts' && <PostsPanel {...ctx} state={slots} postings={placements} media={media} onRemove={markRemoved} onUndo={undoRemoved} onPick={pickMedia} onShowOnMap={showOnMap} />}
           {activeTab === 'swap' && (
-            <SwapPanel {...ctx} state={slots} onSwap={(slot, date) => setSwapping({ slot, date })}
+            <SwapPanel {...ctx} state={slots} onSwap={(pl, title, date) => setSwapping({ pl, title, date })}
               onPick={pickMedia} onShowOnMap={showOnMap} />
           )}
           {activeTab === 'promos' && (
             <PromosPanel {...ctx} postings={postings} placements={placements} media={media}
               onPick={pickMedia} onShowOnMap={showOnMap} onRemove={markRemoved} onUndo={undoRemoved} onCancel={cancelPlacement} onDeletePosting={deletePostingItem} onEditPeriod={editPostingText}
-              onAssign={(id) => { setAssignPreset(null); setAssigningId(id); }}
-              onRepeat={(pl) => { setAssignPreset({ mediaId: pl.mediaId, face: pl.face || 1 }); setAssigningId(pl.postingId); }} />
+              onAssign={(id) => setAssigningId(id)}
+              onSwap={(pl, title) => setSwapping({ pl, title, date: refDate })} />
           )}
           {activeTab === 'timeline' && <TimelinePanel {...ctx} state={slots} onPick={pickMedia} />}
           {activeTab === 'manage' && (
@@ -697,14 +694,14 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       )}
       {swapping && isEditor && (
         <SwapModal
-          {...ctx} slot={swapping.slot} date={swapping.date}
+          {...ctx} pl={swapping.pl} title={swapping.title} date={swapping.date}
           postings={postings} placements={placements}
           onClose={() => setSwapping(null)} onSwap={swapPlacement}
           onCreateNew={() => {
             // 자리를 고정한 채 등록 화면으로 넘긴다 — 매체·면·교체일은 이미 정해졌으므로
             // 거기서 다시 고르게 하지 않는다.
             setAddSwap(swapping);
-            setAddMediaId(swapping.slot.mediaId); setAddFace(swapping.slot.face);
+            setAddMediaId(swapping.pl.mediaId); setAddFace(swapping.pl.face || 1);
             setAddOpen(true); setSwapping(null);
           }}
         />
@@ -712,8 +709,8 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       {addOpen && isEditor && (
         <AddModal
           {...ctx} media={media} placements={placements} initialMediaId={addMediaId} initialFace={addFace}
-          swapPl={addSwap ? swapTarget(addSwap.slot) : null} swapDate={addSwap?.date}
-          onSwapNew={(created, opts) => swapPlacement(swapTarget(addSwap.slot), created, opts)}
+          swapPl={addSwap?.pl || null} swapDate={addSwap?.date}
+          onSwapNew={(created, opts) => swapPlacement(addSwap.pl, created, opts)}
           onClose={() => { setAddOpen(false); setAddMediaId(null); setAddFace(null); setAddSwap(null); }}
           onAdd={addPosting} onAssign={addPlacement} onAdjustEnd={adjustEnd}
           onDone={({ placed, registeredOnly, bulk, swapped }) => {
@@ -730,8 +727,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       {assigningId && isEditor && (
         <AssignModal
           {...ctx} posting={postings.find((p) => p.id === assigningId)} media={media} placements={placements}
-          preset={assignPreset}
-          onClose={() => { setAssigningId(null); setAssignPreset(null); }} onAssign={addPlacement} onAdjustEnd={adjustEnd}
+          onClose={() => setAssigningId(null)} onAssign={addPlacement} onAdjustEnd={adjustEnd}
           onDone={(ok, failed) => flash(`${ok}건 배치 완료${failed ? ` · ${failed}건 실패` : ''}`)}
         />
       )}
