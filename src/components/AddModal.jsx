@@ -3,6 +3,7 @@ import { iso, DAY, periodLabel, endMismatch } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
+import EndDateField from './EndDateField.jsx';
 import { installPhotoRequired } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
@@ -44,7 +45,9 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   // ── (2) 특정 매체에 바로 배치 — initialMediaId로 열렸을 때만 씀 ─────────────
   const [mediaId] = useState(initialMedia?.id || '');
   const [start, setStart] = useState(refDate);
-  const [noEnd, setNoEnd] = useState(!!t?.openEnded);
+  // 종료일 미정이 예외가 아니라 기본이다(EndDateField 주석) — 매체 유형별 openEnded
+  // 힌트보다 이쪽이 실제 사용 패턴에 더 맞는다.
+  const [noEnd, setNoEnd] = useState(true);
   const [end, setEnd] = useState(iso(Date.parse(refDate) + 30 * DAY));
   const [conflict, setConflict] = useState(null);
   const mediaFaces = initialMedia?.faces || 1;
@@ -113,7 +116,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
   // 유형이 바뀌면 배치 대상 매체 목록도 바뀌므로 초기화한다.
   useEffect(() => {
-    setNoEnd(!!t?.openEnded);
+    setNoEnd(true);
     setSelected(new Set());
     setConflict(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -304,9 +307,10 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
               <div className="fld2">
                 <label className="fld"><span>{swapping ? '시작일 (교체일)' : '시작일'}</span><input type="date" value={startEff} disabled={swapping} onChange={(e) => { setStart(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
-                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
+                <EndDateField end={end} noEnd={noEnd}
+                  onChangeEnd={(v) => { setEnd(v); setDateTouched(true); setConflict(null); }}
+                  onToggleNoEnd={(v) => { setNoEnd(v); setDateTouched(true); setConflict(null); }} />
               </div>
-              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setDateTouched(true); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
               {endMismatch(pEnd, noEnd ? null : end) && (
                 <p className="warnbox">홍보물 게시 기간과 매체 배치 기간이 상이합니다 — 홍보물 종료일 <b>{pEnd}</b>, 배치 종료일 <b>{noEnd ? '미정' : end}</b>.</p>
               )}
@@ -325,9 +329,10 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
             <>
               <div className="fld2">
                 <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
-                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
+                <EndDateField end={end} noEnd={noEnd}
+                  onChangeEnd={(v) => { setEnd(v); setDateTouched(true); setConflict(null); }}
+                  onToggleNoEnd={(v) => { setNoEnd(v); setDateTouched(true); }} />
               </div>
-              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setDateTouched(true); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
 
               {bulkConflictCount > 0 && !bulkConfirm && (
                 <p className="warnbox">⚠ 선택된 매체 중 {bulkConflictCount}곳은 이미 걸린 홍보물이 있습니다 — 그대로 진행하면 그 홍보물의 종료일이 앞당겨집니다.</p>

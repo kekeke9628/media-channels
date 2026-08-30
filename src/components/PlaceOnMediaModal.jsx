@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel, placementDefaults, endMismatch, postingShots } from '../constants.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
+import EndDateField from './EndDateField.jsx';
 import { installPhotoRequired } from '../constants.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { statusOf } from '../lib/status.js';
@@ -101,7 +102,9 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
     const d = placementDefaults(p, vacantStart(nextFace), iso(Date.parse(refDate) + 30 * DAY));
     setStart(d.start);
     setEnd(d.end);
-    setNoEnd(d.forceEnd ? false : !!t?.openEnded);
+    // 종료일 미정이 예외가 아니라 기본이다(EndDateField 주석) — 홍보물 자체에 이미
+    // 종료일이 정해져 있을 때만 그 값을 기본으로 채워 준다.
+    setNoEnd(!d.forceEnd);
     setConflict(null);
   };
   useEffect(() => {
@@ -194,9 +197,10 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
 
               <div className="fld2">
                 <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
-                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
+                <EndDateField end={end} noEnd={noEnd}
+                  onChangeEnd={(v) => { setEnd(v); setConflict(null); }}
+                  onToggleNoEnd={(v) => { setNoEnd(v); setConflict(null); }} />
               </div>
-              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
               {endMismatch(posting.end, noEnd ? null : end) && (
                 <p className="warnbox">홍보물 게시 기간과 매체 배치 기간이 상이합니다 — 홍보물 종료일 <b>{posting.end}</b>, 배치 종료일 <b>{noEnd ? '미정' : end}</b>.</p>
               )}

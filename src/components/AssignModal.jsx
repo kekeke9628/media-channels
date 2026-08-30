@@ -3,6 +3,7 @@ import { iso, DAY, placementDefaults, endMismatch } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
+import EndDateField from './EndDateField.jsx';
 import { installPhotoRequired } from '../constants.js';
 import { statusOf } from '../lib/status.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
@@ -13,7 +14,6 @@ import { useModalKeys } from '../lib/useModalKeys.js';
 // 면에 걸지 고르고, 여러 매체를 한 번에 배치할 때는 각 매체의 1면에 건다(매체마다 다른
 // 면을 따로 고르는 건 복잡도만 커지고 실제로도 드문 경우라, 필요하면 단일 배치를 쓴다).
 export default function AssignModal({ posting, T, media, placements, refDate, onClose, onAssign, onAdjustEnd, onDone }) {
-  const t = null;
   const [mode, setMode] = useState('single'); // 'single' | 'bulk'
   // 어느 홍보물이든 어느 매체에나 걸 수 있다 — 규격을 따지지 않는다(024).
   const targets = useMemo(() => media.filter((m) => m.active), [media]);
@@ -22,7 +22,9 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
   // 배치 기간의 기본값은 이 홍보물의 게시 기간에서 가져온다(상시면 오늘 ~ 오늘+30일).
   const dflt = placementDefaults(posting, refDate, iso(Date.parse(refDate) + 30 * DAY));
   const [start, setStart] = useState(dflt.start);
-  const [noEnd, setNoEnd] = useState(dflt.forceEnd ? false : !!t?.openEnded);
+  // 종료일 미정이 예외가 아니라 기본이다(EndDateField 주석) — 홍보물 자체에 이미
+  // 종료일이 정해져 있을 때만 그 값을 기본으로 채워 준다.
+  const [noEnd, setNoEnd] = useState(!dflt.forceEnd);
   const [end, setEnd] = useState(dflt.end);
   const [conflict, setConflict] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -176,9 +178,10 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
 
           <div className="fld2">
             <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
-            <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => { setEnd(e.target.value); setConflict(null); }} /></label>
+            <EndDateField end={end} noEnd={noEnd}
+              onChangeEnd={(v) => { setEnd(v); setConflict(null); }}
+              onToggleNoEnd={(v) => { setNoEnd(v); setConflict(null); }} />
           </div>
-          <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => { setNoEnd(e.target.checked); setConflict(null); }} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
           {endMismatch(posting.end, noEnd ? null : end) && (
             <p className="warnbox">홍보물 게시 기간과 매체 배치 기간이 상이합니다 — 홍보물 종료일 <b>{posting.end}</b>, 배치 종료일 <b>{noEnd ? '미정' : end}</b>.</p>
           )}

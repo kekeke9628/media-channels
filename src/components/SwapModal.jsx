@@ -4,6 +4,7 @@ import { convertImage } from '../lib/convertImage.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
 import PhotoField from './PhotoField.jsx';
+import EndDateField from './EndDateField.jsx';
 
 // 교체 — 걸려 있던 홍보물을 내리고 그 자리에 새것을 건다.
 //
@@ -56,7 +57,11 @@ export default function SwapModal({ pl: oldPl, title, date, postings, placements
     // 고정이므로 종료일만 쓴다(상시면 예전대로 교체일 + 30일).
     const d = placementDefaults(p, date, iso(Date.parse(date) + 30 * DAY));
     setEnd(d.end);
-    setNoEnd(!d.forceEnd && !d.end);
+    // 종료일 미정이 예외가 아니라 기본이다(EndDateField 주석) — 홍보물 자체에 이미
+    // 종료일이 정해져 있을 때만 그 값을 기본으로 채워 준다.
+    // (예전엔 여기서 "&& !d.end"까지 봤는데, d.end는 fallback이 항상 채워 넣어 늘 참이라
+    // 이 조건은 사실상 죽어 있었다 — noEnd가 한 번도 true로 시작한 적이 없었다.)
+    setNoEnd(!d.forceEnd);
   };
 
   const submit = async () => {
@@ -136,9 +141,8 @@ export default function SwapModal({ pl: oldPl, title, date, postings, placements
                     "오늘 교체" 목록에서 들어와 놓고 다른 날짜로 저장되는 일이 생긴다.
                     옛 배치의 종료일 다음 날이라, 내리는 날과 새로 거는 날이 같다. */}
                 <label className="fld"><span>시작일 (교체일)</span><input type="date" value={date} disabled /></label>
-                <label className="fld"><span>종료일</span><input type="date" value={end} disabled={noEnd} onChange={(e) => setEnd(e.target.value)} /></label>
+                <EndDateField end={end} noEnd={noEnd} onChangeEnd={setEnd} onToggleNoEnd={setNoEnd} />
               </div>
-              <label className="chk"><input type="checkbox" checked={noEnd} onChange={(e) => setNoEnd(e.target.checked)} />종료일을 아직 정하지 않음 — 철거 알람을 보내지 않습니다</label>
               {badEnd && <p className="warnbox">종료일이 교체일보다 앞섭니다.</p>}
               {endMismatch(posting.end, noEnd ? null : end) && (
                 <p className="warnbox">홍보물 게시 기간과 배치 기간이 상이합니다 — 홍보물 종료일 <b>{posting.end}</b>, 배치 종료일 <b>{noEnd ? '미정' : end}</b>.</p>

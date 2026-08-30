@@ -368,7 +368,11 @@ td.sub{display:table-cell}
 .fld{display:flex;flex-direction:column;gap:5px;font-size:12.5px;min-width:0}
 /* grid/flex 자식의 기본 min-width:auto 때문에 숫자 입력칸이 내용 크기 밑으로 줄지 않아,
    좁은 화면에서 2열 묶음이 화면 밖으로 밀려나갔다(매체 유형 추가 폼에서 53px 넘침). */
-.fld2{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
+/* align-items:start — 기본값(stretch)이면 짝을 이룬 두 칸의 높이가 서로 같아진다.
+   종료일 칸이 "미정" 안내 문구 때문에 시작일 칸보다 세 줄 더 길어지면서, 시작일 칸
+   아래에 내용 없는 빈 공간만 늘어났다(EndDateField). 다른 fld2 쌍은 원래도 높이가
+   같아서 이 값을 바꿔도 그대로다. */
+.fld2{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0;align-items:start}
 .fld2>.fld{min-width:0}
 .fld span{color:var(--ink2);font-weight:600}
 .fld input,.fld select{border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px;font-family:inherit;min-width:0;width:100%;box-sizing:border-box}
