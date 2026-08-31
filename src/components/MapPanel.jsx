@@ -40,6 +40,7 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
   const wrapRef = useRef(null);
   const stageRef = useRef(null);
   const pinRefs = useRef({});   // item.id -> 핀 DOM 노드 (지도와 분리된 레이어라 위치를 직접 계산해서 넣어줘야 함)
+  const nameRefs = useRef({});  // item.id -> 매체명 이름표 노드 — 핀보다 뒤에 그리려고 레이어를 따로 뒀다
   const itemsRef = useRef(items);
   itemsRef.current = items;
   const panRef = useRef({ x: 0, y: 0, zoom: 1 });
@@ -166,6 +167,10 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
       const x = px + (o.x / 100) * w * pz;
       const y = py + (o.y / 100) * h * pz;
       el.style.transform = `translate(${x}px,${y}px) translate(-50%,-56%)`;
+      // 이름표는 크기가 없는 앵커 점만 핀과 같은 자리로 옮기고, 아이콘 위로 띄우는 건
+      // CSS(--pname-up)가 한다 — 여기서 offsetHeight를 읽으면 pan 프레임마다 레이아웃이 돈다.
+      const nm = nameRefs.current[o.id];
+      if (nm) nm.style.transform = `translate(${x}px,${y}px)`;
     });
   }, [stageSize]);
 
@@ -453,6 +458,19 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
             <span key={k} className="zonelbl" style={{ left: z.box[0] + z.box[2] / 2 + '%', top: z.box[1] + 1.4 + '%', opacity: zoneFilter === 'ALL' || zoneFilter === k ? 1 : 0.3 }}>{z.label}</span>
           ))}
         </div>
+        {/* 매체명 이름표 — 핀과 같은 좌표를 쓰지만 레이어를 따로 둔다.
+            핀은 JS가 넣는 inline transform 때문에 저마다 쌓임 맥락을 만든다. 이름표를 핀
+            안에 두면 z-index를 아무리 낮춰도 그 핀 레이어 안에서만 내려갈 뿐이라, 옆 핀의
+            아이콘은 계속 덮는다("매체를 가리지 않게"). 레이어를 핀 레이어보다 먼저 그려
+            모든 이름표가 모든 핀 아래로 가게 한다. */}
+        <div className="pname-layer">
+          {items.map((o) => (zoom >= 1.5 && hover !== o.id && selMedia !== o.id ? (
+            <div key={o.id} className="pname-anchor"
+              ref={(el) => { if (el) nameRefs.current[o.id] = el; else delete nameRefs.current[o.id]; }}>
+              <span className="pname">{o.name}</span>
+            </div>
+          ) : null))}
+        </div>
         <div className="pin-layer">
           {items.map((o) => {
             const t = T[o.type]; if (!t) return null;
@@ -472,12 +490,6 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
                 onClick={() => { if (addMode) { showBump(); return; } if (!editMode) onOpenMedia(o.id); }} onMouseEnter={() => setHover(o.id)} onMouseLeave={() => setHover(null)}>
                 <div className="pin-inner">
                   <span className="pdot">{t.glyph}</span>
-                  {/* 확대해서 보고 있으면 매체명을 핀 위에 그대로 띄운다 — 핀에 들어가는 건
-                      유형 약자(D·FW) 한두 글자뿐이라, 어느 자리인지는 하나씩 올려 봐야 알았다.
-                      호버·선택 중에는 아래 라벨이 이미 이름을 보여주므로 겹쳐 띄우지 않는다. */}
-                  {zoom >= 1.5 && hover !== o.id && selMedia !== o.id && (
-                    <span className="pname">{o.name}</span>
-                  )}
                   {(hover === o.id || selMedia === o.id) && (
                     <span className={'plabel' + (o.y > 55 ? ' up' : '')}>
                       {/* 지금 걸려 있는 모습. 여러 면이면 면마다 한 장씩(너무 길어지지 않게 6장까지). */}

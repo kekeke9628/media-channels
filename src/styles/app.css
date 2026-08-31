@@ -120,12 +120,19 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .pin.sel{z-index:24}
 .pin.editable{cursor:grab}
 .pin-inner{transform-origin:center bottom}
-/* 확대했을 때만 나오는 매체명. 핀 바로 위에 붙이고, 핀끼리 붙어 있어도 이름이 서로
-   가리지 않게 반투명 배경 위에 얹는다. 클릭은 핀이 받아야 하므로 통과시킨다. */
-.pname{position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%);
-  background:rgba(255,255,255,.92);color:#23211E;border:1px solid rgba(35,33,30,.12);
-  padding:2px 6px;border-radius:6px;font-size:10.5px;font-weight:700;line-height:1.25;
-  white-space:nowrap;pointer-events:none;z-index:6;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+/* 확대했을 때만 나오는 매체명 — 핀 레이어보다 먼저 그리는 별도 레이어(MapPanel 주석).
+   핀 아이콘을 가리면 안 되므로 그림자도 빼고 배경도 더 옅게 깐다. */
+.pname-layer{position:absolute;inset:0;pointer-events:none}
+/* 크기가 없는 앵커 점 — JS가 핀과 똑같은 좌표로 옮겨 준다. */
+.pname-anchor{position:absolute;left:0;top:0;width:0;height:0}
+/* 앵커에서 아이콘 높이의 56%(=.pin의 앵커 오프셋)만큼 위로, 거기서 3px 더 띄운다.
+   핀 높이를 JS로 읽으면 pan 프레임마다 레이아웃이 도므로 값으로 박아 둔다(28×34 / 19×20). */
+.pname{--pname-up:22px;
+  position:absolute;left:0;bottom:var(--pname-up);transform:translateX(-50%);
+  background:rgba(255,255,255,.82);color:#3F3A32;border:1px solid rgba(35,33,30,.10);
+  padding:1px 4px;border-radius:5px;font-size:9px;font-weight:700;line-height:1.3;
+  white-space:nowrap;pointer-events:none}
+.app.narrow .pname{--pname-up:14px;font-size:8px;padding:1px 3px}
 .pdot{position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;width:28px;height:34px;font-size:12px;font-weight:700;letter-spacing:-.4px;color:#fff;
   clip-path:polygon(50% 0%,100% 18%,100% 100%,0% 100%,0% 18%);
   box-shadow:0 2px 6px rgba(0,0,0,.25)}
