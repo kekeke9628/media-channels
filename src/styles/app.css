@@ -243,7 +243,13 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 
 .scroll{overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:11px}
 .scroll.tall{max-height:540px}
-table{width:100%;min-width:640px;border-collapse:collapse;font-size:13px}
+/* border-collapse는 separate로 둔다(간격은 0이라 보기에는 collapse와 같다).
+   collapse + 고정 헤더(thead th position:sticky)는 iOS 사파리에서 오래된 버그가 있다 —
+   헤더가 제자리를 못 찾아 표 위에 빈 공간이 생기고 헤더가 그만큼 내려앉는다(현장 아이폰에서
+   표 위로 약 190px이 비었다). 크로미움에서는 멀쩡해서 데스크톱으로는 재현되지 않는다.
+   테두리는 셀마다 border-bottom으로 직접 그리고 있어서 병합에 기대는 곳이 없다 —
+   separate로 바꿔도 보이는 모양은 그대로다. */
+table{width:100%;min-width:640px;border-collapse:separate;border-spacing:0;font-size:13px}
 thead th{position:sticky;top:0;background:#F7F5F1;text-align:left;padding:9px 12px;font-size:11.5px;color:var(--ink2);font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap;z-index:2}
 thead th.sortable{cursor:pointer;user-select:none}
 thead th.sortable:hover{color:var(--brass)}
@@ -702,6 +708,17 @@ td.sub{display:table-cell}
      움직이고 팝업은 그대로라 "아래로 안 내려간다"고 느낀다 — 모바일에서는 목록의
      자체 스크롤을 없애고 팝업 본문 하나만 스크롤되게 한다. */
   .medialist,.medialist.wide{max-height:none;overflow:visible}
+  /* 좁은 화면에서는 헤더 세로 고정을 끈다.
+     iOS 사파리에서 sticky th가 제자리를 못 잡아 표 위에 빈 공간이 생기고 헤더가 그만큼
+     밀려 내려왔다(현장 아이폰에서 약 190px). 크로미움에서는 재현되지 않아 원인을 코드로
+     못 좁혔는데, 헤더를 흐름에 되돌리면 그 자리 자체가 없어진다.
+     좁은 화면에서는 표가 어차피 가로로도 스크롤돼(640px 표에 302px 칸) 헤더 고정의
+     값어치도 크지 않다. 데스크톱은 그대로 고정해 둔다.
+     조치 열의 가로 고정(.pinlast)은 세로 고정과 별개라 살려 두되, 기본 규칙에서 물려받은
+     top:0을 지워 헤더 한 줄이 세로로 갈라지지 않게 한다. */
+  thead th{position:static}
+  .scroll.pinlast thead th:last-child{position:sticky;top:auto}
+
   /* 필터 드롭다운은 좁은 화면에서 버튼이 아니라 툴바 폭에 맞춘다.
      버튼에 붙여 펼치면 버튼이 툴바 어디에 걸리느냐에 따라 메뉴가 화면 밖으로 나간다 —
      타임라인의 "매체 유형"은 검색창 뒤라 오른쪽으로 39px 넘쳤고, .ddmenu가 absolute라
