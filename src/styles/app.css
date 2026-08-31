@@ -243,6 +243,9 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 
 .scroll{overflow:auto;max-height:420px;border:1px solid var(--line);border-radius:11px}
 .scroll.tall{max-height:540px}
+/* 낮은 표(매체 유형·관리자)는 인라인 style로 높이를 주고 있었는데, 인라인은 모바일
+   미디어쿼리로 못 덮는다 — 아래 모바일 규칙이 표마다 갈리지 않도록 클래스로 뺐다. */
+.scroll.short{max-height:340px;margin-bottom:16px}
 /* border-collapse는 separate로 둔다(간격은 0이라 보기에는 collapse와 같다).
    collapse + 고정 헤더는 사파리에서 스크롤 중 헤더 아랫줄이 사라지는 알려진 조합이라
    separate 쪽이 안전하다. 테두리는 셀마다 border-bottom으로 직접 그리고 있어 병합에
@@ -708,6 +711,15 @@ td.sub{display:table-cell}
      움직이고 팝업은 그대로라 "아래로 안 내려간다"고 느낀다 — 모바일에서는 목록의
      자체 스크롤을 없애고 팝업 본문 하나만 스크롤되게 한다. */
   .medialist,.medialist.wide{max-height:none;overflow:visible}
+  /* 표·타임라인도 같은 문제다. 세로로 스크롤되는 칸 안에서 손가락으로 밀면 iOS는 끝에서
+     내용을 잡아당겼다 놓는 반동(러버밴드)을 주는데, 누른 채로 있으면 당겨진 상태가 그대로
+     유지돼 표 위에 빈 공간이 생긴 것처럼 보인다 — 사용자가 "그 부분을 누른 상태에서
+     이동하면 발생한다"고 짚어 준 증상이 이것이다. 손을 떼면 돌아오니 화면 캡처로는 안
+     잡히고, 크롬에는 이 반동이 아예 없어서 재현도 안 됐다.
+     세로 스크롤을 페이지 하나로 몰면 당겨질 칸 자체가 없어진다. 가로 스크롤은 표가 640px라
+     모바일에서 반드시 필요하므로 남긴다(overflow-y를 visible로 두면 x가 auto일 때 자동으로
+     auto가 돼 버리므로 hidden — max-height를 없앴으니 잘리는 내용은 없다). */
+  .scroll,.scroll.tall,.scroll.short{max-height:none;overflow-x:auto;overflow-y:hidden}
   /* 필터 드롭다운은 좁은 화면에서 버튼이 아니라 툴바 폭에 맞춘다.
      버튼에 붙여 펼치면 버튼이 툴바 어디에 걸리느냐에 따라 메뉴가 화면 밖으로 나간다 —
      타임라인의 "매체 유형"은 검색창 뒤라 오른쪽으로 39px 넘쳤고, .ddmenu가 absolute라

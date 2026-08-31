@@ -153,7 +153,7 @@ export default function ManagePanel({ T, types, media, postings, isEditor, narro
               })}
             </div>
           ) : (
-          <div className="scroll pinlast" style={{ maxHeight: 340, marginBottom: 16 }}>
+          <div className="scroll pinlast short">
             <table>
               <thead><tr><th>아이콘</th><th>유형</th><th>기본 규격</th><th className="r">면수</th><th className="r">등록 매체</th><th className="r">관리</th></tr></thead>
               <tbody>
