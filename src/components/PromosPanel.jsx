@@ -79,6 +79,8 @@ function PeriodLine({ p, isEditor, refDate, onSave }) {
 export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onShowOnMap, onAssign, onSwap, onRemove, onUndo, onCancel, onDeletePosting, onEditPeriod }) {
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
+  // 지난 캠페인이 목록에 계속 쌓여서 기본으로 숨긴다(매체 현황의 "만료 포함"과 같은 표현).
+  const [showExpired, setShowExpired] = useState(false);
   const [q, setQ] = useState('');
   const [thumbUrls, setThumbUrls] = useState(new Map());
   // 카드는 이미지가 붙어 무거워서 한 번에 다 그리지 않는다. 다만 예전에는 그냥 60개에서
@@ -105,7 +107,7 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
     // 설치 사진을 새로 붙여도 목록 카드가 그대로였다.
   }, [placements]);
 
-  useEffect(() => { setLimit(60); }, [q, draftOnly]); // 조건이 바뀌면 처음부터 다시
+  useEffect(() => { setLimit(60); }, [q, draftOnly, showExpired]); // 조건이 바뀌면 처음부터 다시
 
   const placementsOf = useMemo(() => {
     const by = {};
@@ -114,7 +116,14 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
     return by;
   }, [placements]);
 
+  // 게시 기간이 끝났어도 아직 어딘가에 걸려 있으면 숨기지 않는다 — 그건 내려야 할 일이
+  // 남은 것이라, 목록에서 사라지면 잊힌다. 실제로 만료 2건 중 1건이 아직 걸려 있었다.
+  const stillUp = (id) => (placementsOf[id] || []).some((pl) => !pl.removedAt);
+  const isHidden = (p) => !showExpired && postingExpired(p, refDate) && !stillUp(p.id);
+  const hiddenCount = postings.filter(isHidden).length;
+
   const rows = postings
+    .filter((p) => !isHidden(p))
     .filter((p) => !draftOnly || !(placementsOf[p.id]?.length))
     .filter((p) => {
       if (!q) return true;
@@ -136,6 +145,9 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
       <div className="toolrow">
         <input className="inp" placeholder="업체명 · 내용 · 매체명 검색" value={q} onChange={(e) => setQ(e.target.value)} />
         <label className="chk"><input type="checkbox" checked={draftOnly} onChange={(e) => setDraftOnly(e.target.checked)} />미배치만 보기</label>
+        {/* 몇 건이 빠졌는지 같이 보여준다 — 조용히 걸러 내면 "등록했는데 목록에 없다"가 된다. */}
+        <label className="chk"><input type="checkbox" checked={showExpired} onChange={(e) => setShowExpired(e.target.checked)} />
+          만료 포함{hiddenCount > 0 && !showExpired ? ` (${hiddenCount})` : ''}</label>
         <span className="count mono">{rows.length}건</span>
       </div>
       {rows.length === 0 && (
