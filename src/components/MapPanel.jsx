@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { clamp, nameTaken } from '../constants.js';
+import { clamp, nameTaken, swapLateDays } from '../constants.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { ZONES } from '../data/seed.js';
 import MapCropModal from './MapCropModal.jsx';
@@ -28,7 +28,15 @@ const CLICK_SLOP = 6; // 이 픽셀 이내 움직임은 팬이 아니라 클릭�
 // cardRef: 목록에서 "지도보기"를 눌렀을 때 이 카드로 스크롤하기 위해 App이 잡는 손잡이.
 // focusTick: 이미 선택된 매체를 다시 눌렀을 때도 지도를 다시 중앙으로 옮기기 위한 신호 —
 // selMedia만 보면 값이 그대로라 effect가 안 돌고, 사용자는 버튼이 먹통이라고 느낀다.
-export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, onOpenMedia, onClearSelection, cardRef, focusTick, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, onRestoreAt, mapImage, onMapImage, isEditor }) {
+// 핀 말풍선의 만료 표시 — "만료"는 게시 기간이 끝났다는 뜻이라 종료일 기준이 맞지만,
+// 뒤에 붙는 +N일은 늦었다는 말이라 철거일(종료일 다음 날)부터 센다. 어제 끝난 자리는
+// 오늘이 바로 철거일이라 숫자를 안 붙인다(알람·교체 탭과 같은 셈).
+const lateTag = (pl, refDate) => {
+  const n = swapLateDays(pl, refDate);
+  return n > 0 ? `만료 +${n}일` : '만료';
+};
+
+export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilter, setZoneFilter, typeFilter, setTypeFilter, selMedia, onOpenMedia, onClearSelection, cardRef, focusTick, editMode, setEditMode, addMode, setAddMode, onMoveLocal, onMoveCommit, onCreate, onRestoreAt, mapImage, onMapImage, isEditor }) {
   const wrapRef = useRef(null);
   const stageRef = useRef(null);
   const pinRefs = useRef({});   // item.id -> 핀 DOM 노드 (지도와 분리된 레이어라 위치를 직접 계산해서 넣어줘야 함)
@@ -493,10 +501,10 @@ export default function MapPanel({ T, types, items, allMedia, zoneFilter, setZon
                           면별로 한 줄씩 정확히 보여준다. 단일 면은 지금까지와 동일하다. */}
                       {o.faces > 1 ? (
                         o.slots.map((s) => (
-                          <i key={s.face}>{s.faceLabel} {s.overdue ? '만료 +' + s.overdueDays + '일' : s.open ? '게시중' : s.live ? 'D-' + s.dToRemove : '비어있음'}</i>
+                          <i key={s.face}>{s.faceLabel} {s.overdue ? lateTag(s.overdue, refDate) : s.open ? '게시중' : s.live ? 'D-' + s.dToRemove : '비어있음'}</i>
                         ))
                       ) : (
-                        <i>{o.overdue ? '만료 +' + o.overdueDays + '일' : o.open ? '게시중' : o.live ? 'D-' + o.dToRemove : '비어있음'}</i>
+                        <i>{o.overdue ? lateTag(o.overdue, refDate) : o.open ? '게시중' : o.live ? 'D-' + o.dToRemove : '비어있음'}</i>
                       )}
                     </span>
                   )}

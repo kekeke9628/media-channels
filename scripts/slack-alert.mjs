@@ -3,7 +3,7 @@
 // 알람 문구가 화면과 어긋나지 않게 한다. service role key로 RLS를 우회해 전체를 조회한다.
 import { createClient } from '@supabase/supabase-js';
 import { autoClose, buildState } from '../src/lib/status.js';
-import { ALERT_DAYS, LONG_OPEN, getToday, removeIn } from '../src/constants.js';
+import { ALERT_DAYS, LONG_OPEN, getToday, removeIn, lateLabel } from '../src/constants.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -55,7 +55,8 @@ async function main() {
 
   // ② 만료
   if (stale.length) {
-    const detail = stale.slice(0, 4).map((o) => `[${o.name}] ${o.overdue.brand} +${o.overdueDays}일`).join(' / ');
+    // 앱의 알람 예정 탭과 같은 문구(lateLabel) — 어제 끝난 자리는 "오늘 철거"지 "+1일"이 아니다.
+    const detail = stale.slice(0, 4).map((o) => `[${o.name}] ${o.overdue.brand} ${lateLabel(o.overdue, ref)}`).join(' / ');
     const rest = stale.length > 4 ? ` 외 ${stale.length - 4}건` : '';
     messages.push(`🚨 만료된 게시물 ${stale.length}건\n${detail}${rest}`);
   }

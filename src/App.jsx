@@ -679,7 +679,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
               onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType}
               onRemoveMedia={removeMedia} onRestoreMedia={restoreMediaItem} />
           )}
-          {activeTab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} isEditor={isEditor} onRemove={markRemoved} onPick={pickMedia} />}
+          {activeTab === 'alert' && isEditor && <AlertPanel alerts={alerts} kpi={kpi} isEditor={isEditor} refDate={refDate} onRemove={markRemoved} onPick={pickMedia} />}
           {activeTab === 'admins' && isEditor && <AdminsPanel meId={meId} narrow={narrow} />}
         </div>
       </main>

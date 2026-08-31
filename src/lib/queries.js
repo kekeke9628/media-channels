@@ -189,8 +189,9 @@ function mapPosting(p) {
   };
 }
 
-// 어느 홍보물이든 어느 매체에나 걸 수 있다 — 규격을 따지지 않는다. 호출하는 쪽이 여러
-// 군데라 이름은 남겨 두고 항상 통과시킨다.
+// 어느 홍보물이든 어느 매체에나 걸 수 있다 — 규격을 따지지 않는다(024에서 되돌린 결정).
+// 지금은 부르는 곳이 없다. 규격 제한을 다시 넣고 싶어질 때 여기부터 보라고 남겨 둔 표지다
+// — 왜 없앴는지는 CLAUDE.md의 posting_variants 대목에 있다.
 export const canPlaceOn = () => true;
 
 function mapPlacement(pl) {

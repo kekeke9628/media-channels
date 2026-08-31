@@ -92,7 +92,6 @@ export function sideOf(m) {
   }
   return null;
 }
-export const SIDE_LABEL = { EAST: 'EAST', WEST: 'WEST', null: '구분 없음' };
 
 // 설치 확인 사진은 "실제로 이 자리에 걸렸다"는 증빙이라, 관리 목적에서는 이게 본체다.
 // 다만 게시예정(시작일이 미래) 배치는 아직 안 걸렸으니 찍을 수가 없다 — 오늘부터 걸리는
@@ -131,6 +130,14 @@ export const removalDate = (pl, refDate) => (pl?.end === refDate ? nextDay(refDa
 // 철거일 기준으로 며칠 밀렸나. 0이면 오늘이 바로 그날이다 — 종료일 기준의 overdueDays를
 // 그대로 쓰면 제때 하는 것도 "만료 +1일"로 보여 담당자를 재촉하게 된다.
 export const swapLateDays = (pl, refDate) => (pl?.end ? Math.max(0, diffDays(nextDay(pl.end), refDate)) : 0);
+
+// 아직 안 내려간 배치를 사람 말로. 0이면 오늘이 바로 철거일이라 "밀린" 게 아니다 —
+// 종료일 기준 overdueDays를 그대로 쓰면 어제 끝난 자리를 오늘 "+1일 지남"이라 부르며
+// 재촉하게 되고, 같은 배치를 "오늘 내림"이라 부르는 교체 탭·매체 상세와 어긋난다.
+export const lateLabel = (pl, refDate) => {
+  const n = swapLateDays(pl, refDate);
+  return n > 0 ? `+${n}일 밀림` : '오늘 철거';
+};
 
 // 홍보물을 대표하는 사진 — 인쇄 시안(디자인 파일)은 안 쓰기로 했다. 이건 관리 도구고,
 // 관리에서 근거가 되는 건 "실제로 그 자리에 걸린 모습"이지 걸리기 전의 시안이 아니다.

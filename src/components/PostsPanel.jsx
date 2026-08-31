@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { contentOf, subOf, days, ST, typeChipStyle, matches, byName, swapTarget } from '../constants.js';
+import { contentOf, subOf, days, ST, typeChipStyle, matches, byName, swapTarget, swapLateDays } from '../constants.js';
 import { useCodeFilter } from '../lib/useCodeFilter.js';
 import { sideOf } from '../constants.js';
 import { statusOf } from '../lib/status.js';
@@ -17,8 +17,13 @@ const STATUS_OPTS = [['live', '게시중', ST.live.color], ['upcoming', ST.upcom
 const STATUS_LABEL = { ...Object.fromEntries(STATUS_OPTS.map(([k, v]) => [k, v])), overdue: '만료' };
 
 // 상태 배지 — 표와 모바일 카드가 같은 것을 쓰도록 한 곳에서 만든다.
-const statusTag = (o) => (
-  o.overdue ? <span className="tag over">만료 +{o.overdueDays}일</span>
+//
+// "만료"(게시 기간이 끝남)는 종료일 기준이 맞지만, 뒤에 붙는 +N일은 "늦었다"는 말이라
+// 철거일(종료일 다음 날) 기준이어야 한다 — 어제 끝난 자리는 오늘이 바로 철거일이라
+// 늦은 게 아니다. 종료일 기준으로 세면 그 자리를 여기서만 "만료 +1일"이라 부르고
+// 알람·교체 탭·매체 상세는 "오늘 철거"라고 해서 화면끼리 어긋난다.
+const statusTag = (o, refDate) => (
+  o.overdue ? <span className="tag over">만료{swapLateDays(o.overdue, refDate) > 0 ? ` +${swapLateDays(o.overdue, refDate)}일` : ''}</span>
     : (o.live || o.open) ? <span className="tag live">게시중</span>
     : o.next ? <span className="tag upcoming">게시예정</span>
     : <span className="tag vacant">비어있음</span>
@@ -35,14 +40,14 @@ const statusTag = (o) => (
 // 면이 많은 매체(듀라트란스 10면 등)는 두 줄만 보이고 나머지는 접어 둔다. 다 펼쳐 두면
 // 카드 하나가 화면을 다 먹어서 정작 다른 매체를 훑을 수가 없다.
 const FACES_SHOWN = 2;
-function MediaCard({ g, T, isEditor, onPick, onShowOnMap, onRemove, onSwap, zoneLabel }) {
+function MediaCard({ g, T, isEditor, refDate, onPick, onShowOnMap, onRemove, onSwap, zoneLabel }) {
   const [open, setOpen] = useState(false);
   const t = T[g.type];
   const shown = open ? g.slots : g.slots.slice(0, FACES_SHOWN);
   const hidden = g.slots.length - shown.length;
   return (
     <div className="mcard" onClick={() => onPick(g.mediaId)}>
-      <div className="mcard-top"><b>{g.name}</b>{statusTag(g.lead)}</div>
+      <div className="mcard-top"><b>{g.name}</b>{statusTag(g.lead, refDate)}</div>
       <div className="mcard-meta">
         {t && <span className="chip" style={typeChipStyle(t.color)}>{t.label}</span>}
         <span className="sub">{zoneLabel(g.zone)}</span>
@@ -58,7 +63,7 @@ function MediaCard({ g, T, isEditor, onPick, onShowOnMap, onRemove, onSwap, zone
               <>
                 <b>{p.brand}</b>
                 <span className="sub mono">{p.end ? '~ ' + p.end.slice(2) : '~ 미정'}</span>
-                {o.overdue && <span className="tag over">+{o.overdueDays}일</span>}
+                {o.overdue && swapLateDays(o.overdue, refDate) > 0 && <span className="tag over">+{swapLateDays(o.overdue, refDate)}일</span>}
                 {o.next && !o.current && <span className="tag upcoming">예정</span>}
                 {o.overdue && isEditor && (
                   <button className="mini ok" onClick={(e) => { e.stopPropagation(); onRemove(o.overdue.id); }}>철거</button>
@@ -285,7 +290,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
       ) : !rangeOn && narrow ? (
         <div className="mlist">
           {currentRows.map((g) => (
-            <MediaCard key={g.mediaId} g={g} T={T} isEditor={isEditor} onPick={onPick} onShowOnMap={onShowOnMap} onRemove={onRemove} onSwap={onSwap} zoneLabel={zoneLabel} />
+            <MediaCard key={g.mediaId} g={g} T={T} isEditor={isEditor} refDate={refDate} onPick={onPick} onShowOnMap={onShowOnMap} onRemove={onRemove} onSwap={onSwap} zoneLabel={zoneLabel} />
           ))}
         </div>
       ) : !rangeOn ? (
@@ -326,7 +331,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
                     <td className="mono">{p ? p.start : '—'}</td>
                     <td className="mono">{p ? (p.end || '미정') : '—'}</td>
                     <td onClick={(e) => swapTarget(o) && e.stopPropagation()}>
-                      {statusTag(o)}
+                      {statusTag(o, refDate)}
                       {o.overdue && isEditor && <button className="mini ok" onClick={() => onRemove(o.overdue.id)}>홍보물 철거</button>}
                       {swapTarget(o) && isEditor && <button className="mini" onClick={() => onSwap(swapTarget(o), o.name)}>교체</button>}
                     </td>
