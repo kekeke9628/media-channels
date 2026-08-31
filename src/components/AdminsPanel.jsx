@@ -140,7 +140,7 @@ export default function AdminsPanel({ meId, narrow }) {
           })}
         </div>
       ) : (
-        <div className="scroll" style={{ maxHeight: 340, marginBottom: 16 }}>
+        <div className="scroll pinlast" style={{ maxHeight: 340, marginBottom: 16 }}>
           <table>
             <thead><tr><th>이메일</th><th>이름</th><th>권한</th><th className="r">관리</th></tr></thead>
             <tbody>

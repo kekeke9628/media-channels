@@ -252,13 +252,16 @@ thead th.sortable:hover{color:var(--brass)}
 tbody td{padding:9px 12px;border-bottom:1px solid #F0ECE4;vertical-align:middle;white-space:nowrap}
 tbody tr:hover{background:#FBF9F5}
 tbody tr.archived{opacity:.45}
-/* 마지막 열(상태·관리)은 표가 가로로 넘쳐도 항상 보이도록 오른쪽에 고정한다.
-   1280~1440px 노트북에서는 표가 컨테이너보다 넓어져서, 정작 가장 급한 조치인 만료 건의
-   "철거 처리" 버튼이 오른쪽으로 65~225px 잘려 나갔다 — 가로 스크롤을 해야만 누를 수
-   있었다. 헤더는 이미 top으로 고정돼 있으니(thead th) 같은 방식으로 오른쪽을 고정한다. */
-.scroll tbody td:last-child{position:sticky;right:0;background:#fff;box-shadow:-6px 0 6px -6px rgba(0,0,0,.12)}
-.scroll tbody tr:hover td:last-child{background:#FBF9F5}
-.scroll thead th:last-child{position:sticky;right:0;z-index:3;box-shadow:-6px 0 6px -6px rgba(0,0,0,.12)}
+/* 조치 열(관리·되돌리기·지도)을 오른쪽에 고정한다 — 표가 가로로 넘쳐도 버튼은 늘 보이게.
+   1280~1440px 노트북에서 만료 건의 "철거 처리" 버튼이 오른쪽으로 65~225px 잘려, 가로
+   스크롤을 해야만 누를 수 있었다. 헤더는 이미 top으로 고정돼 있으니 같은 방식으로.
+
+   .pinlast를 붙인 표에만 건다. 예전에는 .scroll 안의 모든 표에 걸었는데, 마지막 열이
+   조치가 아닌 표(타임라인 — 마지막이 "상태" 칩)까지 고정돼 바로 왼쪽의 "실제철거" 열을
+   덮어 버렸다. 고정할 값어치가 있는 건 누를 것이 있는 열뿐이라, 표마다 명시한다. */
+.scroll.pinlast tbody td:last-child{position:sticky;right:0;background:#fff;box-shadow:-6px 0 6px -6px rgba(0,0,0,.12)}
+.scroll.pinlast tbody tr:hover td:last-child{background:#FBF9F5}
+.scroll.pinlast thead th:last-child{position:sticky;right:0;z-index:3;box-shadow:-6px 0 6px -6px rgba(0,0,0,.12)}
 .r{text-align:right}
 .sub{color:var(--ink2);font-style:normal;font-size:11.5px;display:block}
 /* .sub의 display:block이 <td className="sub">에 그대로 적용되면 그 셀만

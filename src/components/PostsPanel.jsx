@@ -294,7 +294,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
           ))}
         </div>
       ) : !rangeOn ? (
-        <div className="scroll tall">
+        <div className="scroll pinlast tall">
           <table>
             <thead><tr>
               <SortTh label="매체명" sortKey="media" sort={sortCur} setSort={setSortCur} />
@@ -343,7 +343,7 @@ export default function PostsPanel({ T, types, state, postings, media, refDate, 
           </table>
         </div>
       ) : (
-        <div className="scroll tall">
+        <div className="scroll pinlast tall">
           <table>
             <thead><tr>
               <SortTh label="매체명" sortKey="media" sort={sortHist} setSort={setSortHist} />
