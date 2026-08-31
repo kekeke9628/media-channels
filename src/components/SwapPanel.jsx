@@ -35,9 +35,10 @@ export default function SwapPanel({ state, refDate, isEditor, onSwap, onPick, on
 
   return (
     <div>
-      {/* "무엇을 모았나"는 탭 이름과 버튼이 이미 말한다. 종료일 다음 날에 내린다는 규칙만
-          남긴다 — 직관과 어긋나는 규칙이라 지우면 매번 되묻게 된다. */}
-      <p className="hint" style={{ marginBottom: 10 }}>게시 종료일 <b>다음 날</b>에 내립니다 — 8/30까지면 8/31에 바꿉니다.</p>
+      {/* "종료일 다음 날에 내린다"는 안내를 여기 배너로 뒀었는데, 화면이 이미 같은 말을
+          줄마다 하고 있었다 — 목록 머리("8/31에 내리는 자리"), 줄 태그("내일 내림"),
+          줄 메타("게시 ~8/30 · 8/31 내림"), 교체 팝업("8/31에 내려갑니다 (내일)").
+          규칙을 설명하는 문장보다 규칙이 적용된 두 날짜를 나란히 보여주는 쪽이 강하다. */}
       <div className="seg swapseg">
         <button className={day === 'today' ? 'on' : ''} onClick={() => setDay('today')}>
           오늘 교체{today.length > 0 && <em>{today.length}</em>}

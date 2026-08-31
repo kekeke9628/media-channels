@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useModalKeys } from '../lib/useModalKeys.js';
-import { LONG_OPEN, subOf } from '../constants.js';
+import { LONG_OPEN, subOf, swapLateDays } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { convertImage } from '../lib/convertImage.js';
@@ -122,7 +122,7 @@ function StatCell({ label, value, mono, onSave, children, editable }) {
   );
 }
 
-function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd, onAttachPhoto, onEditDates, onEditText, onRelink, collapsible }) {
+function FaceSection({ slot, faceCount, imgUrls, isEditor, refDate, onRemove, onSwap, onQuickAdd, onAttachPhoto, onEditDates, onEditText, onRelink, collapsible }) {
   const cur = slot.overdue || slot.current;
   // 아직 시작하지 않은(게시예정) 배치는 "지난 배치"가 아니다 — 예전에는 cur만 빼고 나머지를
   // 전부 지난 배치로 묶어서, 다음 달에 걸릴 예약이 이력 표에 "지난 배치"로 들어가 있었다.
@@ -164,7 +164,13 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
           {faceCount > 1 ? `${slot.faceLabel}에 홍보물 배치` : '이 매체에 홍보물 배치'}
         </button>
       )}
-      {slot.overdue && <p className="warnbox">종료일보다 <b>+{slot.overdueDays}일</b> 지났습니다.</p>}
+      {/* 밀린 날수는 종료일이 아니라 철거일(종료일 다음 날)부터 센다 — 교체 탭이 같은
+          배치를 "오늘 내림"이라 부르는데 여기서 "+1일 지났습니다"라고 하면 두 화면이
+          서로 반대로 말한다(constants.swapLateDays, 같은 셈). */}
+      {slot.overdue && (() => {
+        const late = swapLateDays(slot.overdue, refDate);
+        return <p className="warnbox">{late > 0 ? <>철거가 <b>{late}일</b> 밀렸습니다.</> : '오늘 내리는 자리입니다.'}</p>;
+      })()}
       {slot.open && <p className="okbox"><b>{slot.openDays}일째</b> 게시 중입니다.{slot.openDays >= LONG_OPEN && ' 1년이 넘었으니 한 번 확인해 보세요.'}</p>}
       {cur ? (
         <>
@@ -219,11 +225,18 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
             );
           })()}
           {/* "철거"가 두 군데에 있어 헷갈렸다 — 여기는 걸린 홍보물만 내리는 것이고,
-              매체(틀) 자체를 내리는 건 시트 맨 아래 버튼이다. 무엇을 내리는지 이름에 넣는다. */}
+              매체(틀) 자체를 내리는 건 시트 맨 아래 버튼이다. 무엇을 내리는지 이름에 넣는다.
+              교체를 나란히 둔다 — 이 화면에만 교체가 없어서, 업체명을 눌러 연 "홍보물 변경"
+              팝업이 "실제로 바꿔 단 것이면 교체를 쓰세요"라고 안내하면서 정작 그 문으로 갈
+              길이 없었다. 두 선택지를 형제로 놓으면 깊이 들어가기 전에 고르게 된다
+              (매체 현황·홍보물 탭이 이미 [철거][교체]를 나란히 둔다). */}
           {isEditor && (
-            <button className={'btn wide' + (slot.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>
-              홍보물 철거
-            </button>
+            <div className="btn2">
+              <button className={'btn' + (slot.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>
+                홍보물 철거
+              </button>
+              {onSwap && <button className="btn" onClick={() => onSwap(cur)}>교체</button>}
+            </div>
           )}
         </>
       ) : !upcoming && <p className="empty">비어있습니다 · {slot.emptyDays >= 365 ? '365+' : slot.emptyDays}일째</p>}
@@ -267,7 +280,7 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
   );
 }
 
-export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onChangeMediaType, onAttachPhoto, onEditDates, onEditText, onRelink, focusFace }) {
+export default function MediaSheet({ T, o, isEditor, refDate, onClose, onRemove, onSwap, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onChangeMediaType, onAttachPhoto, onEditDates, onEditText, onRelink, focusFace }) {
   const t = T[o.type];
   const zoneLabel = ZONES[o.zone]?.label || o.zone;
   const hasHistory = o.slots.some((s) => s.history.length > 0);
@@ -363,7 +376,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
         <div className="sbody">
         {/* 면이 4개 이상일 때만 접기를 켠다 — 1~2면(웨더워리어 등)은 지금까지처럼 전부 펼친 채. */}
         {o.slots.map((slot) => (
-          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} onRemove={onRemove} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} onRelink={onRelink} collapsible={o.faces >= 4} />
+          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} refDate={refDate} onRemove={onRemove} onSwap={onSwap} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} onRelink={onRelink} collapsible={o.faces >= 4} />
         ))}
 
         {/* 위쪽 "홍보물 철거"와 헷갈리지 않게, 여기가 매체(틀) 자체를 다루는 자리임을 밝힌다. */}

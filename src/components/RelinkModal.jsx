@@ -69,9 +69,10 @@ export default function RelinkModal({ pl, title, postings, placements, onClose, 
             <i className="sub mono">{pl?.start} ~ {pl?.end || '미정'}</i>
           </div>
 
-          {/* 교체와의 차이는 지울 수 없다 — 잘못 쓰면 없던 철거 기록이 생기거나 반대로
-              있었던 게 사라진다. 한 줄로 줄이되 남긴다. */}
-          <p className="hint">기간·사진은 그대로 둡니다. 실제로 내리고 새로 건 것이면 <b>교체</b>를 쓰세요.</p>
+          {/* "교체를 쓰세요"는 뺐다 — 이 팝업을 여는 매체 상세에 이제 교체 버튼이 나란히
+              있어서, 글로 다른 문을 가리키는 대신 그 문 앞에서 고르게 된다.
+              기간·사진이 그대로라는 건 화면에 안 드러나는 유일한 정보라 남긴다. */}
+          <p className="hint">기간·사진은 그대로 둡니다.</p>
 
           <label className="fld"><span>홍보물 검색</span>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="업체명 · 내용" />

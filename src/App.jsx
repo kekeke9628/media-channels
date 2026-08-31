@@ -684,15 +684,22 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
         </div>
       </main>
 
-      {selMedia && sheetOpen && byId[selMedia] && (
-        <MediaSheet
-          {...ctx} o={byId[selMedia]} onClose={clearSelection} onRemove={markRemoved} onDelete={removeMedia}
-          onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType} onAttachPhoto={attachInstallPhoto}
-          onEditDates={editPlacementDates} onEditText={editPostingText} focusFace={focusFace}
-          onRelink={(pl) => setRelinking({ pl, title: byId[selMedia].faces > 1 ? `${byId[selMedia].name} · ${pl.faceLabel || (pl.face || 1) + '면'}` : byId[selMedia].name })}
-          onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}
-        />
-      )}
+      {selMedia && sheetOpen && byId[selMedia] && (() => {
+        // 자리 이름("WWM05 · 2면")은 상세에서 여는 두 팝업(홍보물 변경·교체)이 똑같이
+        // 쓴다 — 한 곳에서 만든다.
+        const m = byId[selMedia];
+        const seat = (pl) => (m.faces > 1 ? `${m.name} · ${pl.faceLabel || (pl.face || 1) + '면'}` : m.name);
+        return (
+          <MediaSheet
+            {...ctx} o={m} onClose={clearSelection} onRemove={markRemoved} onDelete={removeMedia}
+            onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType} onAttachPhoto={attachInstallPhoto}
+            onEditDates={editPlacementDates} onEditText={editPostingText} focusFace={focusFace}
+            onRelink={(pl) => setRelinking({ pl, title: seat(pl) })}
+            onSwap={(pl) => setSwapping({ pl, title: seat(pl), date: removalDate(pl, refDate) })}
+            onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}
+          />
+        );
+      })()}
       {placingMediaId && isEditor && media.find((m) => m.id === placingMediaId) && (
         <PlaceOnMediaModal
           {...ctx} media={media.find((m) => m.id === placingMediaId)} postings={postings} placements={placements}

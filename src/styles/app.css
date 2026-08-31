@@ -52,6 +52,10 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .btn.ok{background:#4B7B58;border-color:#4B7B58;color:#fff}
 .btn.ok:hover{background:#3E6549;border-color:#3E6549}
 .btn.wide{width:100%;margin-top:10px}
+/* 조치 버튼 두 개를 나란히 — 하나씩 전폭으로 쌓으면 면마다 두 줄을 먹고, 서로 반대되는
+   조치(철거/교체)가 위아래로 놓여 하나가 다음 단계처럼 보인다. */
+.btn2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.btn2 > .btn{width:100%;margin-top:0}
 .btn.upload{position:relative;overflow:hidden}
 .btn:disabled{opacity:.4;cursor:default}
 .quickbtns{display:flex;gap:6px}
