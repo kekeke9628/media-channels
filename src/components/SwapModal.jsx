@@ -102,7 +102,7 @@ export default function SwapModal({ pl: oldPl, title, date, postings, placements
                   훑고 맨 아래까지 내려가서야 이 버튼을 만나면 늦다(PlaceOnMediaModal과 같은
                   이유로 맨 위에 둔다). */}
               {onCreateNew && <button className="btn primary wide" onClick={onCreateNew}>+ 새 홍보물 등록해서 바로 교체</button>}
-              <p className="hint">또는 이미 등록된 홍보물 중에서 고르세요.{hiddenExpired > 0 && ` 게시 기간이 끝난 ${hiddenExpired}건은 목록에서 뺐습니다.`}</p>
+              {hiddenExpired > 0 && <p className="hint">기간이 끝난 {hiddenExpired}건은 뺐습니다.</p>}
               <label className="fld"><span>홍보물 검색</span><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="업체명 · 내용" /></label>
               {rows.length === 0 ? (
                 <p className="sub" style={{ padding: '8px 0' }}>
@@ -150,12 +150,11 @@ export default function SwapModal({ pl: oldPl, title, date, postings, placements
 
               <PhotoField
                 label={needInstall ? '설치 확인 사진 (필수)' : '설치 확인 사진 (선택)'} capture
-                hint="새로 건 모습을 한 장 남겨 주세요."
                 caption="설치 확인 사진" result={installPhoto} busy={installBusy}
                 onPick={async (f) => { setInstallBusy(true); setInstallPhoto(await convertImage(f)); setInstallBusy(false); }}
                 onClear={() => setInstallPhoto(null)}
               />
-              {missingInstall && <p className="warnbox">오늘 교체하는 자리입니다 — 실제로 바꿔 단 모습을 한 장 남겨 주세요.</p>}
+              {missingInstall && <p className="warnbox">오늘 바꿔 다는 자리라 사진이 필요합니다.</p>}
             </>
           )}
         </div>

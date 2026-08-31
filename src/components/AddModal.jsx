@@ -242,7 +242,6 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
           ) : (
             <>
               <label className="chk"><input type="checkbox" checked={bulkOn} onChange={(e) => { setBulkOn(e.target.checked); setConflict(null); }} />여러 매체에 한 번에 배치하기</label>
-              <p className="hint">한 곳에만 걸려면 그냥 등록만 하세요. 등록 후 매체 상세에서 "이 매체에 홍보물 배치"로 걸 수 있습니다.</p>
               {bulkOn && (
                 targets.length === 0 ? (
                   <p className="sub" style={{ padding: '8px 0' }}>이 유형의 매체가 없습니다. 등록만 먼저 하세요.</p>
@@ -290,7 +289,6 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                 </label>
               </div>
               {pStart && pEnd && pEnd < pStart && <p className="warnbox">종료일이 시작일보다 앞섭니다.</p>}
-              <p className="hint">이 홍보물을 쓰는 기간입니다 — 자리에 언제 걸었는지(배치 기간)와는 다릅니다. 기간 없이 계속 쓰는 홍보물은 <b>상시</b>를 눌러 주세요 — 그냥 비워 두면 "기간 미입력"으로 남습니다.</p>
             </>
           )}
 
@@ -298,12 +296,11 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
             <>
               <PhotoField
                 label={needInstall ? '설치 확인 사진 (필수)' : '설치 확인 사진 (선택)'} capture
-                hint={'현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.'}
                 caption="설치 확인 사진" result={installPhoto} busy={installBusy}
                 onPick={processInstallPhoto}
                 onClear={() => setInstallPhoto(null)}
               />
-              {missingInstall && <p className="warnbox">{swapping ? '오늘 교체하는 자리입니다 — 실제로 바꿔 단 모습을 한 장 남겨 주세요.' : '오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)'}</p>}
+              {missingInstall && <p className="warnbox">{swapping ? '오늘 바꿔 다는 자리라 사진이 필요합니다.' : '오늘부터 걸리는 배치라 사진이 필요합니다.'}</p>}
 
               <div className="fld2">
                 <label className="fld"><span>{swapping ? '시작일 (교체일)' : '시작일'}</span><input type="date" value={startEff} disabled={swapping} onChange={(e) => { setStart(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
@@ -312,7 +309,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                   onToggleNoEnd={(v) => { setNoEnd(v); setDateTouched(true); setConflict(null); }} />
               </div>
               {endMismatch(pEnd, noEnd ? null : end) && (
-                <p className="warnbox">홍보물 게시 기간과 매체 배치 기간이 상이합니다 — 홍보물 종료일 <b>{pEnd}</b>, 배치 종료일 <b>{noEnd ? '미정' : end}</b>.</p>
+                <p className="warnbox">홍보물 종료일 <b>{pEnd}</b>, 배치 종료일 <b>{noEnd ? '미정' : end}</b> — 서로 다릅니다.</p>
               )}
 
               {conflict && (
@@ -335,7 +332,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               </div>
 
               {bulkConflictCount > 0 && !bulkConfirm && (
-                <p className="warnbox">⚠ 선택된 매체 중 {bulkConflictCount}곳은 이미 걸린 홍보물이 있습니다 — 그대로 진행하면 그 홍보물의 종료일이 앞당겨집니다.</p>
+                <p className="warnbox">{bulkConflictCount}곳은 이미 걸린 홍보물이 있습니다 — 진행하면 그 종료일이 앞당겨집니다.</p>
               )}
               {bulkConfirm && (
                 <div className="conflictbox">

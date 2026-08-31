@@ -59,21 +59,19 @@ export default function RelinkModal({ pl, title, postings, placements, onClose, 
   return (
     <div className="modal" onClick={onClose}>
       <div className="mbox" onClick={(e) => e.stopPropagation()}>
-        <div className="mhead"><b>{title} — 홍보물 다시 고르기</b><button onClick={onClose}>✕</button></div>
+        <div className="mhead"><b>{title} 홍보물 변경</b><button onClick={onClose}>✕</button></div>
         <div className="mbody">
           {/* 무엇을 고치는 중인지 못 박는다 — 이 화면에 들어온 이유가 "잘못 골랐다"이므로,
               지금 뭐라고 적혀 있는지를 먼저 보여 줘야 맞게 고를 수 있다. */}
           <div className="swapfrom">
-            <span className="sub">지금 이 자리에 적혀 있는 홍보물</span>
+            <span className="sub">지금 이 자리</span>
             <b>{pl?.brand}</b>
             <i className="sub mono">{pl?.start} ~ {pl?.end || '미정'}</i>
           </div>
 
-          <p className="hint">
-            배치할 때 홍보물을 잘못 고른 경우에 씁니다. <b>기간·설치 확인 사진은 그대로</b> 두고
-            어느 홍보물인지만 바꿉니다 — 철거 기록은 남지 않습니다.
-            <br />실제로 내리고 새것을 건 것이라면 이게 아니라 <b>교체</b>를 쓰세요.
-          </p>
+          {/* 교체와의 차이는 지울 수 없다 — 잘못 쓰면 없던 철거 기록이 생기거나 반대로
+              있었던 게 사라진다. 한 줄로 줄이되 남긴다. */}
+          <p className="hint">기간·사진은 그대로 둡니다. 실제로 내리고 새로 건 것이면 <b>교체</b>를 쓰세요.</p>
 
           <label className="fld"><span>홍보물 검색</span>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="업체명 · 내용" />

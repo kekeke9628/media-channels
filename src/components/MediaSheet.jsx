@@ -222,7 +222,7 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, onRemove, onQuickAdd,
               매체(틀) 자체를 내리는 건 시트 맨 아래 버튼이다. 무엇을 내리는지 이름에 넣는다. */}
           {isEditor && (
             <button className={'btn wide' + (slot.overdue ? ' danger' : ' ok')} onClick={() => onRemove(cur.id)}>
-              홍보물 철거 — {cur.brand}
+              홍보물 철거
             </button>
           )}
         </>
@@ -352,7 +352,7 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
               </i>
             ) : (
               <i className="headline">
-                <span>{zoneLabel} · {t.label} · {o.spec || t.spec} · {o.faces}면</span>
+                <span>{t.label} · {o.spec || t.spec} · {o.faces}면</span>
                 {isEditor && <button className="mini" onClick={startEditFaces}>수정</button>}
               </i>
             )}
@@ -370,9 +370,9 @@ export default function MediaSheet({ T, o, isEditor, onClose, onRemove, onDelete
         {isEditor && (
           <>
             <h4 style={{ marginTop: 22 }}>매체 자체를 정리할 때</h4>
+            {/* 되돌릴 수 있는지 없는지는 남긴다 — 버튼을 누르기 전에 알아야 하는 유일한 정보다. */}
             <p className="hint" style={{ marginTop: 0 }}>
-              위쪽 "홍보물 철거"는 걸린 홍보물만 내립니다. 아래는 <b>{o.name} 틀 자체</b>를
-              {hasHistory ? ' 지도에서 내립니다 — 지난 배치 기록은 남고, 나중에 복구할 수 있습니다.' : ' 완전히 지웁니다 — 배치 기록이 없어 되돌릴 수 없습니다.'}
+              {hasHistory ? '기록은 남고 나중에 복구할 수 있습니다.' : '배치 기록이 없어 되돌릴 수 없습니다.'}
             </p>
             <button className="btn wide danger" onClick={() => onDelete(o.id)}>{hasHistory ? '이 매체 철거 (지도에서 내리기)' : '이 매체 삭제'}</button>
           </>

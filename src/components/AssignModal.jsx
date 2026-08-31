@@ -170,10 +170,9 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
               )}
             </>
           ) : (
-            <p className="hint">
-              기간을 한 번만 입력하고, 이 유형의 매체 중 원하는 곳을 체크하면 그 개수만큼 배치가 한 번에 등록됩니다.
-              {targets.some((x) => (x.faces || 1) > 1) && ' 면이 여러 개인 매체는 항상 1면에 걸립니다 — 다른 면에 걸려면 단일 매체로 따로 배치하세요.'}
-            </p>
+            targets.some((x) => (x.faces || 1) > 1)
+              ? <p className="hint">면이 여러 개인 매체는 1면에 걸립니다.</p>
+              : null
           )}
 
           <div className="fld2">
@@ -190,11 +189,10 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
             <>
               <PhotoField
                 label={needInstall ? '설치 확인 사진 (필수)' : '설치 확인 사진 (선택)'} capture
-                hint={'현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.'}
                 caption="설치 확인 사진" result={installPhoto} busy={installBusy}
                 onPick={processInstallPhoto} onClear={() => setInstallPhoto(null)}
               />
-              {missingInstall && <p className="warnbox">오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)</p>}
+              {missingInstall && <p className="warnbox">오늘부터 걸리는 배치라 사진이 필요합니다.</p>}
             </>
           )}
 

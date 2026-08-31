@@ -514,6 +514,9 @@ td.sub{display:table-cell}
 .facerow em{margin-left:auto;font-style:normal;font-size:11.5px;color:var(--ink2)}
 .sbody{padding:16px 18px;overflow:auto;flex:1;min-height:0}
 .sbody h4{font-size:12.5px;margin:18px 0 8px;color:var(--ink2)}
+/* .sub는 기본이 display:block이라 제목 안에 넣은 건수("지난 배치 1건")가 제 줄로
+   떨어져 두 줄이 됐다 — 제목 안에서는 글자 옆에 붙인다. */
+.sbody h4 .sub{display:inline}
 .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
 /* 직계 자식만 — 예전엔 안쪽 헬퍼 div(버튼 묶음 등)까지 잡혀서 편집 중에 엉뚱한 곳에
    테두리 상자가 하나 더 생겼다. */
@@ -550,8 +553,11 @@ td.sub{display:table-cell}
    내용 폭을 지키게 해, 조작 요소는 이름이 아무리 길어도 항상 보이게 한다. */
 /* 매체 상세 안에서 쓰는 작은 업로드 버튼 — 등록 폼의 큰 드롭존과 달리 안내문 없이 버튼만 */
 .drop.compact{padding:0;border:0;background:none;margin-top:8px}
-/* 폭을 꽉 채우려고 display:block으로 덮었더니 .dropbtn의 세로 가운데 정렬(inline-flex)이
+/* 매체 상세의 사진 버튼 두 개("다시 찍기" / "보관함에서 선택")가 한 줄에 하나씩 쌓여
+   면마다 두 줄을 먹었다 — 면이 4개면 그것만 8줄이다. 나란히 둘씩 놓는다.
+   폭을 꽉 채우려고 display:block으로 덮었더니 .dropbtn의 세로 가운데 정렬(inline-flex)이
    같이 사라져, min-height:44px 칸 안에서 글자가 12.5px 위로 붙어 있었다. flex는 유지한다. */
+.drop.compact .dropbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .drop.compact .dropbtn{display:flex;width:100%}
 
 /* 홍보물 카드의 "보유 규격" 줄 — 규격 뱃지들 + 규격 추가 버튼 */
@@ -763,6 +769,9 @@ td.sub{display:table-cell}
 .faceline .tag{flex:none}
 .faceline .mini{flex:none;padding:10px 6px}
 .mini.wide{display:block;width:100%;margin-top:7px;text-align:center}
+/* .fld 안에서는 부모의 gap(5px)이 이미 간격을 주므로 자체 margin을 뺀다 — 안 그러면
+   종료일 스위치만 아래로 처져 옆 칸과 어긋나 보인다. */
+.fld > .mini.wide{margin-top:0}
 /* 정렬 줄 — 검색·필터와 구분되게 한 칸 띄우고 글자를 작게. */
 .sortrow{margin-top:-4px}
 .sortrow .sel{padding:6px 9px;font-size:12px}

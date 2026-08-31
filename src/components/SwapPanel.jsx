@@ -35,10 +35,9 @@ export default function SwapPanel({ state, refDate, isEditor, onSwap, onPick, on
 
   return (
     <div>
-      <p className="hint" style={{ marginBottom: 10 }}>
-        오늘·내일 손봐야 할 자리만 모았습니다. 줄에서 <b>교체</b>를 누르면 내리고 새로 거는 것이 한 번에 끝납니다.
-        <br />게시 종료일 <b>다음 날</b>에 내립니다 — 8/30까지면 8/30에는 그대로 두고 8/31에 바꿉니다.
-      </p>
+      {/* "무엇을 모았나"는 탭 이름과 버튼이 이미 말한다. 종료일 다음 날에 내린다는 규칙만
+          남긴다 — 직관과 어긋나는 규칙이라 지우면 매번 되묻게 된다. */}
+      <p className="hint" style={{ marginBottom: 10 }}>게시 종료일 <b>다음 날</b>에 내립니다 — 8/30까지면 8/31에 바꿉니다.</p>
       <div className="seg swapseg">
         <button className={day === 'today' ? 'on' : ''} onClick={() => setDay('today')}>
           오늘 교체{today.length > 0 && <em>{today.length}</em>}

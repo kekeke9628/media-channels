@@ -148,7 +148,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
               {/* 현장에서 새로 걸 때는 대개 아직 등록 안 한 홍보물이다 — 목록을 훑고 맨 아래까지
                   내려가서야 이 버튼을 만나면 늦다. 가장 먼저 보이게 둔다. */}
               <button className="btn primary wide" onClick={onCreateNew}>+ 새 홍보물 등록해서 바로 배치</button>
-              <p className="hint">또는 이미 등록된 홍보물 중에서 고르세요.{hiddenExpired > 0 && ` 게시 기간이 끝난 ${hiddenExpired}건은 목록에서 뺐습니다.`}</p>
+              {hiddenExpired > 0 && <p className="hint">기간이 끝난 {hiddenExpired}건은 뺐습니다.</p>}
               <label className="fld"><span>홍보물 검색</span><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="업체명 · 내용" /></label>
               {rows.length === 0 ? (
                 <p className="sub" style={{ padding: '8px 0' }}>
@@ -207,11 +207,10 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
 
               <PhotoField
                 label={needInstall ? '설치 확인 사진 (필수)' : '설치 확인 사진 (선택)'} capture
-                hint={'현장에 실제로 부착된 모습을 한 장 남겨두면 이 배치에 "설치사진 ✓"로 표시됩니다.'}
                 caption="설치 확인 사진" result={installPhoto} busy={installBusy}
                 onPick={processInstallPhoto} onClear={() => setInstallPhoto(null)}
               />
-              {missingInstall && <p className="warnbox">오늘부터 걸리는 배치입니다 — 실제로 부착된 모습을 한 장 남겨 주세요. (나중에 걸 예정이면 시작일을 미래로 잡으면 됩니다.)</p>}
+              {missingInstall && <p className="warnbox">오늘부터 걸리는 배치라 사진이 필요합니다.</p>}
 
               {conflict && (
                 <div className="conflictbox">
