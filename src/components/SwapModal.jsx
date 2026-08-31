@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel, placementDefaults, endMismatch, installPhotoRequired, postingShots } from '../constants.js';
-import { convertImage } from '../lib/convertImage.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
 import PhotoField from './PhotoField.jsx';
+import { useInstallPhoto } from '../lib/useInstallPhoto.js';
 import EndDateField from './EndDateField.jsx';
 
 // 교체 — 걸려 있던 홍보물을 내리고 그 자리에 새것을 건다.
@@ -48,8 +48,7 @@ export default function SwapModal({ pl: oldPl, title, date, postings, placements
   const [noEnd, setNoEnd] = useState(false);
   const [end, setEnd] = useState(iso(Date.parse(date) + 30 * DAY));
   const [saving, setSaving] = useState(false);
-  const [installPhoto, setInstallPhoto] = useState(null);
-  const [installBusy, setInstallBusy] = useState(false);
+  const { installPhoto, installBusy, pickInstallPhoto, clearInstallPhoto } = useInstallPhoto();
 
   const pick = (p) => {
     setPosting(p);
@@ -151,8 +150,8 @@ export default function SwapModal({ pl: oldPl, title, date, postings, placements
               <PhotoField
                 label={needInstall ? '설치 확인 사진 (필수)' : '설치 확인 사진 (선택)'} capture
                 caption="설치 확인 사진" result={installPhoto} busy={installBusy}
-                onPick={async (f) => { setInstallBusy(true); setInstallPhoto(await convertImage(f)); setInstallBusy(false); }}
-                onClear={() => setInstallPhoto(null)}
+                onPick={pickInstallPhoto}
+                onClear={clearInstallPhoto}
               />
               {missingInstall && <p className="warnbox">오늘 바꿔 다는 자리라 사진이 필요합니다.</p>}
             </>

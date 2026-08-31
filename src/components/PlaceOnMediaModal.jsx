@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel, placementDefaults, endMismatch, postingShots } from '../constants.js';
-import { convertImage } from '../lib/convertImage.js';
+import { iso, DAY, contentOf, subOf, matches, byName, postingExpired, periodLabel, placementDefaults, endMismatch, postingShots, findOverlap, vacantFrom } from '../constants.js';
 import PhotoField from './PhotoField.jsx';
+import { useInstallPhoto } from '../lib/useInstallPhoto.js';
 import EndDateField from './EndDateField.jsx';
 import { installPhotoRequired } from '../constants.js';
 import { getPostingImageUrls } from '../lib/queries.js';
-import { statusOf } from '../lib/status.js';
+import { faceOccupied } from '../lib/status.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
 
 // 매체 상세에서 "이 매체에 홍보물 배치"로 연다 — 매체는 이미 정해져 있으니(여기),
@@ -59,32 +59,9 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
   const [end, setEnd] = useState(iso(Date.parse(refDate) + 30 * DAY));
   const [conflict, setConflict] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [installPhoto, setInstallPhoto] = useState(null);
-  const [installBusy, setInstallBusy] = useState(false);
-  const processInstallPhoto = async (f) => {
-    setInstallBusy(true);
-    const r = await convertImage(f);
-    setInstallPhoto(r);
-    setInstallBusy(false);
-  };
-
-  const mediaPlacements = (f) => placements.filter((pl) => pl.mediaId === media.id && (pl.face || 1) === f).sort((a, b) => b.start.localeCompare(a.start));
-  // 철거한 배치는 그 면을 더 이상 잡고 있지 않다 — DB 배제 제약도 같은 규칙이다(028).
-  // 이걸 안 빼면, 종료일 미정으로 걸었다 철거한 자리에 새로 걸 때마다 "겹치는 배치가
-  // 있습니다"가 떴다 — 이미 뗀 것을 두고 겹친다고 하니 무엇이 잘못인지 알 수 없다.
-  const standing = (f) => mediaPlacements(f).filter((pl) => !pl.removedAt);
-  // 그 면이 비는 날 — 아직 걸려 있는 마지막 배치의 다음 날, 없으면 오늘.
-  const vacantStart = (f) => {
-    const last = standing(f)[0];
-    return last ? (last.end ? iso(Date.parse(last.end) + DAY) : refDate) : refDate;
-  };
-  const findOverlap = (f) => {
-    const newEndEff = noEnd ? '9999-12-31' : end;
-    return standing(f).find((pl) => {
-      const plEndEff = pl.end || '9999-12-31';
-      return start <= plEndEff && pl.start <= newEndEff;
-    });
-  };
+  const { installPhoto, installBusy, pickInstallPhoto, clearInstallPhoto } = useInstallPhoto();
+  const vacantStart = (f) => vacantFrom(placements, media.id, f, refDate);
+  const overlapAt = (f) => findOverlap(placements, { mediaId: media.id, face: f, start, end: noEnd ? null : end });
 
   // 홍보물을 고르는 순간(또는 처음 진입 시) 비어 있는 면을 자동으로 고르고, 그 면의
   // 마지막 배치 다음 날로 시작일을 맞춘다.
@@ -93,7 +70,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
     // 매체 상세의 "N면에 홍보물 배치" 버튼으로 들어왔으면 그 면을 그대로 쓰고, 아니면
     // 비어 있는 면을 자동으로 고른다.
     const faces = Array.from({ length: mediaFaces }, (_, i) => i + 1);
-    const vacant = faces.find((f) => !mediaPlacements(f).some((pl) => statusOf(pl, refDate) === 'live' || statusOf(pl, refDate) === 'open'));
+    const vacant = faces.find((f) => !faceOccupied(placements, media.id, f, refDate));
     const nextFace = (initialFace && initialFace <= mediaFaces) ? initialFace : (vacant || 1);
     setFace(nextFace);
     setLabelTouched(false);
@@ -118,7 +95,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
   }, [face]);
 
   const submit = async () => {
-    const ov = findOverlap(face);
+    const ov = overlapAt(face);
     if (ov && !conflict) { setConflict(ov); return; }
     setSaving(true);
     if (ov && conflict) {
@@ -187,7 +164,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
                   <label className="fld"><span>면 선택</span></label>
                   <div className="seg">
                     {Array.from({ length: mediaFaces }, (_, i) => i + 1).map((f) => {
-                      const occupied = mediaPlacements(f).some((pl) => statusOf(pl, refDate) === 'live' || statusOf(pl, refDate) === 'open');
+                      const occupied = faceOccupied(placements, media.id, f, refDate);
                       return <button key={f} type="button" className={face === f ? 'on' : ''} onClick={() => setFace(f)}>{f}면{occupied ? ' · 사용중' : ''}</button>;
                     })}
                   </div>
@@ -208,7 +185,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
               <PhotoField
                 label={needInstall ? '설치 확인 사진 (필수)' : '설치 확인 사진 (선택)'} capture
                 caption="설치 확인 사진" result={installPhoto} busy={installBusy}
-                onPick={processInstallPhoto} onClear={() => setInstallPhoto(null)}
+                onPick={pickInstallPhoto} onClear={clearInstallPhoto}
               />
               {missingInstall && <p className="warnbox">오늘부터 걸리는 배치라 사진이 필요합니다.</p>}
 

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { swapDue, swapTarget, swapLateDays, nextDay, byName, contentOf, subOf } from '../constants.js';
+import { swapDue, swapTarget, swapLateDays, nextDay, byName, subOf } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import MapBtn from './MapBtn.jsx';

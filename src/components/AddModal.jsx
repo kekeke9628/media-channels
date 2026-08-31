@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { iso, DAY, periodLabel, endMismatch } from '../constants.js';
+import { iso, DAY, periodLabel, endMismatch, findOverlap, vacantFrom } from '../constants.js';
 import { ZONES } from '../data/seed.js';
-import { convertImage } from '../lib/convertImage.js';
 import PhotoField from './PhotoField.jsx';
+import { useInstallPhoto } from '../lib/useInstallPhoto.js';
 import EndDateField from './EndDateField.jsx';
 import { installPhotoRequired } from '../constants.js';
-import { statusOf } from '../lib/status.js';
+import { faceOccupied } from '../lib/status.js';
 import { useModalKeys } from '../lib/useModalKeys.js';
 
 // 홍보물 등록 — 두 가지 진입 경로가 있다.
@@ -37,8 +37,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const [pEnd, setPEnd] = useState('');
   const [pAlways, setPAlways] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [installPhoto, setInstallPhoto] = useState(null);
-  const [installBusy, setInstallBusy] = useState(false);
+  const { installPhoto, installBusy, pickInstallPhoto, clearInstallPhoto } = useInstallPhoto();
 
   const targets = useMemo(() => media.filter((m) => m.active && m.type === typeCode), [media, typeCode]);
 
@@ -54,22 +53,13 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const [face, setFace] = useState(initialFace || 1);
   const [faceLabel, setFaceLabel] = useState('');
   const [labelTouched, setLabelTouched] = useState(false);
-  const mediaPlacements = (id, f) => placements.filter((pl) => pl.mediaId === id && (pl.face || 1) === f).sort((a, b) => b.start.localeCompare(a.start));
-  // 철거한 배치는 그 면을 더 이상 잡고 있지 않다 — DB 배제 제약도 같은 규칙이다(028).
-  // 이걸 안 빼면, 종료일 미정으로 걸었다 철거한 자리에 새로 걸 때마다 "겹치는 배치가
-  // 있습니다"가 떴다 — 이미 뗀 것을 두고 겹친다고 하니 무엇이 잘못인지 알 수 없다.
-  const standing = (id, f) => mediaPlacements(id, f).filter((pl) => !pl.removedAt);
-  // 그 면이 비는 날 — 아직 걸려 있는 마지막 배치의 다음 날, 없으면 오늘.
-  const vacantStart = (f) => {
-    const last = initialMedia ? standing(initialMedia.id, f)[0] : null;
-    return last ? (last.end ? iso(Date.parse(last.end) + DAY) : refDate) : refDate;
-  };
+  const vacantStart = (f) => (initialMedia ? vacantFrom(placements, initialMedia.id, f, refDate) : refDate);
   // 배치 기간을 손으로 고쳤으면 그 뒤로는 게시 기간을 따라가지 않는다.
   const [dateTouched, setDateTouched] = useState(false);
   useEffect(() => {
     if (!initialMedia) return;
     const faces = Array.from({ length: mediaFaces }, (_, i) => i + 1);
-    const vacant = faces.find((f) => !mediaPlacements(initialMedia.id, f).some((pl) => statusOf(pl, refDate) === 'live' || statusOf(pl, refDate) === 'open'));
+    const vacant = faces.find((f) => !faceOccupied(placements, initialMedia.id, f, refDate));
     const nextFace = initialFace && faces.includes(initialFace) ? initialFace : (vacant || 1);
     setFace(nextFace);
     setStart(vacantStart(nextFace));
@@ -95,13 +85,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   // 교체일은 앞 화면에서 정해져 왔다. start를 직접 세팅하는 effect가 셋이라(위) 상태를
   // 잠그려 들면 어느 하나를 놓치기 쉬워서, 쓰는 자리에서 파생값으로 덮는다.
   const startEff = swapping ? swapDate : start;
-  const findOverlap = (id, f) => {
-    const newEndEff = noEnd ? '9999-12-31' : end;
-    return standing(id, f).find((pl) => {
-      const plEndEff = pl.end || '9999-12-31';
-      return start <= plEndEff && pl.start <= newEndEff;
-    });
-  };
+  const overlapAt = (id, f = 1) => findOverlap(placements, { mediaId: id, face: f, start, end: noEnd ? null : end });
 
   // ── (1) 여러 매체에 한 번에 배치 — 사이드바 진입일 때만 씀 ───────────────────
   const [bulkOn, setBulkOn] = useState(false);
@@ -112,7 +96,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   useEffect(() => { setBulkConfirm(false); }, [start, end, noEnd, selected]);
   const toggleOne = (id) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleAll = () => setSelected((prev) => (prev.size === targets.length ? new Set() : new Set(targets.map((x) => x.id))));
-  const bulkConflictCount = [...selected].filter((id) => findOverlap(id, 1)).length;
+  const bulkConflictCount = [...selected].filter((id) => overlapAt(id, 1)).length;
 
   // 유형이 바뀌면 배치 대상 매체 목록도 바뀌므로 초기화한다.
   useEffect(() => {
@@ -122,12 +106,6 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typeCode]);
 
-  const processInstallPhoto = async (f) => {
-    setInstallBusy(true);
-    const r = await convertImage(f);
-    setInstallPhoto(r);
-    setInstallBusy(false);
-  };
 
   const buildPayload = () => ({ type: typeCode, brand, title, start: pStart || null, end: pEnd || null, alwaysOn: pAlways });
 
@@ -136,7 +114,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     // 서버가 한 트랜잭션으로 처리한다(replace_placement). 여기서 미리 종료일을 손대면
     // 교체가 실패했을 때 그 자리가 빈 채로 남는다.
     if (!swapping) {
-      const ov = findOverlap(mediaId, face);
+      const ov = overlapAt(mediaId, face);
       if (ov && !conflict) { setConflict(ov); return; }
       setSaving(true);
       if (ov && conflict) {
@@ -163,7 +141,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
     setProgress({ done: 0, total: ids.length });
     let ok = 0, failed = 0;
     for (const id of ids) {
-      const ov = findOverlap(id, 1);
+      const ov = overlapAt(id, 1);
       if (ov) {
         const adjusted = await onAdjustEnd(ov.id, iso(Date.parse(start) - DAY));
         if (!adjusted) { failed++; setProgress((pr) => ({ ...pr, done: pr.done + 1 })); continue; }
@@ -232,7 +210,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                 <label className="fld"><span>면 선택</span></label>
                 <div className="seg">
                   {Array.from({ length: mediaFaces }, (_, i) => i + 1).map((f) => {
-                    const occupied = mediaPlacements(initialMedia.id, f).some((pl) => statusOf(pl, refDate) === 'live' || statusOf(pl, refDate) === 'open');
+                    const occupied = faceOccupied(placements, initialMedia.id, f, refDate);
                     return <button key={f} type="button" className={face === f ? 'on' : ''} onClick={() => setFace(f)}>{f}면{occupied ? ' · 사용중' : ''}</button>;
                   })}
                 </div>
@@ -297,8 +275,8 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               <PhotoField
                 label={needInstall ? '설치 확인 사진 (필수)' : '설치 확인 사진 (선택)'} capture
                 caption="설치 확인 사진" result={installPhoto} busy={installBusy}
-                onPick={processInstallPhoto}
-                onClear={() => setInstallPhoto(null)}
+                onPick={pickInstallPhoto}
+                onClear={clearInstallPhoto}
               />
               {missingInstall && <p className="warnbox">{swapping ? '오늘 바꿔 다는 자리라 사진이 필요합니다.' : '오늘부터 걸리는 배치라 사진이 필요합니다.'}</p>}
 
@@ -357,7 +335,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
                       <input type="checkbox" checked={selected.has(x.id)} onChange={() => toggleOne(x.id)} />
                       <span>{x.name}</span>
                       <i className="sub">{ZONES[x.zone]?.label || x.zone}</i>
-                      {findOverlap(x.id, 1) && <i className="conflicttag">겹침</i>}
+                      {overlapAt(x.id, 1) && <i className="conflicttag">겹침</i>}
                     </label>
                   ))}
                 </div>

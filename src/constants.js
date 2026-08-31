@@ -139,6 +139,32 @@ export const lateLabel = (pl, refDate) => {
   return n > 0 ? `+${n}일 밀림` : '오늘 철거';
 };
 
+// ── 자리(매체·면) 점유 판정 ─────────────────────────────────────────────────
+// 종료일 미정은 "끝이 정해지지 않음"이라, 비교할 때만 먼 미래로 친다.
+const FAR = '9999-12-31';
+
+// 그 면에 아직 걸려 있는 배치 — 최근 시작 순.
+// 철거한 배치는 그 면을 더 이상 잡고 있지 않다(DB 배제 제약도 같은 규칙, 028).
+export const standingOn = (placements, mediaId, face = 1) => placements
+  .filter((pl) => pl.mediaId === mediaId && (pl.face || 1) === face && !pl.removedAt)
+  .sort((a, b) => b.start.localeCompare(a.start));
+
+// 새로 걸 기간과 겹치는, 아직 걸려 있는 배치 하나. end가 비면 종료일 미정이다.
+//
+// 배치 팝업 셋(AddModal·AssignModal·PlaceOnMediaModal)이 각자 같은 판정을 적어 두고
+// 있었는데 그중 AssignModal만 철거한 배치를 안 빼고 있었다 — 홍보물 카드의 "+ 배치 추가"로
+// 들어가면 이미 뗀 자리를 두고 "겹치는 배치가 있습니다"가 뜨고, 그대로 진행하면 철거된
+// 배치의 종료일을 앞당겨 지난 기록을 고쳐 버렸다. 셋이 같은 것을 보게 한 곳으로 모은다.
+export const findOverlap = (placements, { mediaId, face = 1, start, end }) =>
+  standingOn(placements, mediaId, face)
+    .find((pl) => start <= (pl.end || FAR) && pl.start <= (end || FAR));
+
+// 그 면이 비는 날 — 아직 걸려 있는 마지막 배치의 다음 날, 없으면 기준일.
+export const vacantFrom = (placements, mediaId, face, refDate) => {
+  const last = standingOn(placements, mediaId, face)[0];
+  return last ? (last.end ? nextDay(last.end) : refDate) : refDate;
+};
+
 // 홍보물을 대표하는 사진 — 인쇄 시안(디자인 파일)은 안 쓰기로 했다. 이건 관리 도구고,
 // 관리에서 근거가 되는 건 "실제로 그 자리에 걸린 모습"이지 걸리기 전의 시안이 아니다.
 // 시안이 있으면 목록에서 시안을 보게 되는데, 그건 현장에 실제로 무엇이 어떻게 걸렸는지를

@@ -62,7 +62,6 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .quickbtns .btn{flex:1;white-space:nowrap}
 .quickbtns.wide{width:100%;margin-top:10px}
 .sel{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12.5px;background:#fff;font-family:inherit}
-.mini-sel{padding:4px 6px;font-size:11.5px}
 .dd{position:relative}
 .ddmenu{position:absolute;left:0;top:calc(100% + 5px);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px;z-index:30;box-shadow:0 10px 28px rgba(0,0,0,.1);min-width:200px;max-width:calc(100vw - 32px)}
 /* dd 버튼이 툴바 오른쪽 끝 쪽에 있을 때(예: 검색창 뒤에 오는 상태 필터) left:0으로
@@ -72,13 +71,6 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .ddtop button{flex:1;border:1px solid var(--line);background:#FAF8F4;border-radius:6px;padding:5px;font-size:11.5px;cursor:pointer}
 .ddmenu label{display:flex;align-items:center;gap:7px;padding:5px 4px;font-size:12.5px;cursor:pointer}
 .ddmenu label i{width:9px;height:9px;border-radius:3px;display:inline-block}
-
-.editbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 18px 0;padding:10px 14px;background:#FBF6EC;border:1px solid #E7D9BC;border-radius:11px;font-size:13px;flex-wrap:wrap}
-.editbar em{font-style:normal;background:#C2703D;color:#fff;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:12px;margin-left:6px}
-.editbar>div{display:flex;gap:6px}
-.eb-undo,.eb-cancel,.eb-save{border:1px solid var(--line);background:#fff;padding:6px 12px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer}
-.eb-save{background:var(--brass);border-color:var(--brass);color:#fff}
-.eb-undo:disabled{opacity:.4;cursor:default}
 
 .mapwrap{position:relative;width:100%;aspect-ratio:16/8;touch-action:none;overflow:hidden;cursor:grab}
 .mapwrap:active{cursor:grabbing}
@@ -214,7 +206,6 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .daterange .inp.date{flex:1;min-width:0}
 .inp.num{flex:0 0 64px;min-width:0;text-align:center;padding:8px 6px}
 .iconinp{width:52px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:7px 4px;font-size:14px;font-family:inherit}
-.colorinp{width:38px;height:34px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff}
 .chk{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2)}
 /* flex + flex:1로는 컨테이너 폭이 내용에 맞춰지는 데스크톱에서 여전히 글자 수대로 폭이
    갈렸다(매체 55px / 매체 유형 84px) — 균등 컬럼 그리드면 어느 폭에서든 똑같이 나뉜다.
@@ -320,16 +311,9 @@ td.sub{display:table-cell}
 .ccard:hover{border-color:var(--brass)}
 .cthumb{aspect-ratio:3/4;position:relative;background:#EFEDE9}
 .cthumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.cver{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px}
-.cshot{position:absolute;bottom:8px;right:8px;background:rgba(75,123,88,.92);color:#fff;font-size:10px;padding:2px 7px;border-radius:20px}
 .cbody{padding:11px 12px 12px}
 .cbody b{font-size:13px;display:block;line-height:1.35}
 .crow{display:flex;justify-content:space-between;align-items:center;margin:7px 0 5px}
-.csize{font-size:10.5px;color:var(--ink2);margin:5px 0 7px}
-.csize b{display:inline;color:#4B7B58;font-size:10.5px}
-.lnk{font-size:11.5px;color:#3C6E9E;text-decoration:none}
-/* 링크가 없을 때도 같은 자리에 같은 모양으로 두되, 눌리면 이유를 알려 준다. */
-.lnk.asbtn{background:none;border:0;padding:0;font-family:inherit;cursor:pointer;color:var(--ink2);text-decoration:underline dotted}
 
 .modal{position:fixed;inset:0;background:rgba(35,33,30,.5);display:grid;place-items:center;z-index:60;
   padding:16px;--modal-gap:32px}
@@ -440,7 +424,6 @@ td.sub{display:table-cell}
 /* 교체는 <label>이라 버튼처럼 보이게 맞춰 준다 — .mini는 button 기준으로 만든 스타일. */
 .photoedit-btns label.mini{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
 .photoedit-btns input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.movebox{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#F8F1E4;border:1px solid #E7D9BC;border-radius:10px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:#8A6A20}
 .medialist{border:1px solid var(--line);border-radius:9px;max-height:220px;overflow:auto;margin-top:6px}
 .medialist.wide{max-height:280px}
 .medialist-item{display:flex;align-items:center;gap:8px;padding:7px 11px;font-size:12.5px;border-bottom:1px solid #F0ECE4;cursor:pointer}
@@ -563,9 +546,6 @@ td.sub{display:table-cell}
    같이 사라져, min-height:44px 칸 안에서 글자가 12.5px 위로 붙어 있었다. flex는 유지한다. */
 .drop.compact .dropbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .drop.compact .dropbtn{display:flex;width:100%}
-
-/* 홍보물 카드의 "보유 규격" 줄 — 규격 뱃지들 + 규격 추가 버튼 */
-.varrow{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px}
 
 .mini-t{font-size:12px;margin-top:10px;min-width:0;width:100%}
 .mini-t td{padding:6px 4px;border-bottom:1px solid #F0ECE4}
@@ -693,8 +673,6 @@ td.sub{display:table-cell}
   width:30px;height:30px;padding:0;border:1px solid var(--line);background:#fff;
   border-radius:7px;color:#5B5348;cursor:pointer}
 .iconbtn:hover{border-color:#8A8275;color:#23211E}
-.mcard-brand{margin-top:7px;font-size:12.5px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
-.mcard-brand i{font-style:normal}
 .mcard-date{margin-top:3px;font-size:11.5px;color:var(--ink2)}
 .mcard .btn.ok{background:#4B7B58;border-color:#4B7B58;color:#fff}
 
@@ -765,7 +743,6 @@ td.sub{display:table-cell}
 .faceline:hover{background:#F4F1EA}
 /* 면 구획으로 옮겨 올 때 헤더에 가리지 않게 여유를 둔다. */
 .facesheet{scroll-margin-top:12px}
-.dateedit{margin-top:9px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#FCFBF8}
 .faceline em{font-style:normal;font-weight:700;color:#8E6B2C;font-size:11.5px;flex:none;min-width:2.6em}
 .faceline b{flex:1 1 auto;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .faceline .sub{flex:none}

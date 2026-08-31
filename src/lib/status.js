@@ -58,6 +58,18 @@ function computeSlot(list, ref) {
   };
 }
 
+// 그 면이 지금 사용 중인가 — 배치 팝업 셋이 어느 면을 기본으로 고를지, 면 버튼에
+// "사용중"을 붙일지 정할 때 쓴다.
+//
+// 게시예정은 사용 중으로 치지 않는다: 아직 안 걸린 예약이라 그 면은 지금 비어 있고,
+// 미리 잡아 두는 일이 흔하다. 철거된 배치도 statusOf가 'removed'라 자연히 빠진다.
+// (겹침 판정은 이것과 다르다 — 그건 기간이 겹치는지를 보므로 constants.findOverlap.)
+export const faceOccupied = (placements, mediaId, face, ref) => placements.some((pl) => {
+  if (pl.mediaId !== mediaId || (pl.face || 1) !== face) return false;
+  const st = statusOf(pl, ref);
+  return st === 'live' || st === 'open';
+});
+
 // 매체 목록 — 지도 핀·매체 상세처럼 "이 매체 전체"를 한 항목으로 다루는 화면이 쓴다.
 // 매체별로 faces(면수)만큼 슬롯을 계산해 .slots에 담고, 상단 필드(current·overdue 등)는
 // 여러 슬롯 중 가장 급한 것을 대표값으로 얹는다 — 지도 핀 색처럼 값 하나가 필요한 곳에서
