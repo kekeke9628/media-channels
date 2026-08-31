@@ -45,7 +45,10 @@ export default function TimelinePanel({ state, types, refDate, onPick }) {
     <div>
       <div className="toolrow">
         <input className="inp" placeholder="업체명 · 내용 · 매체명 검색" value={q} onChange={(e) => setQ(e.target.value)} />
-        <div className="dd">
+        {/* right — 이 버튼은 검색창 뒤라 늘 툴바 오른쪽 끝에 붙는다. 기본값(left:0)으로
+            펼치면 메뉴가 화면 밖으로 나가고, .ddmenu가 absolute라 문서 폭까지 같이 늘어나
+            페이지 전체가 옆으로 밀린다(390 → 429px). 오른쪽 끝을 버튼에 맞춘다. */}
+        <div className="dd right">
           <button className="btn" onClick={() => setOpenDD((v) => !v)}>매체 유형 {typeSel.size === types.length ? '전체' : typeSel.size} ▾</button>
           {openDD && (
             <div className="ddmenu" onMouseLeave={() => setOpenDD(false)}>
