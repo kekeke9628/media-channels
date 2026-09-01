@@ -135,7 +135,7 @@ export default function SwapModal({ pl: oldPl, title, date, postings, placements
                 </div>
               </div>
 
-              <div className="fld2">
+              <div className="fld2 datepair">
                 {/* 시작일은 앞 화면에서 고른 교체일이라 고정이다 — 여기서 바꿀 수 있게 하면
                     "오늘 교체" 목록에서 들어와 놓고 다른 날짜로 저장되는 일이 생긴다.
                     옛 배치의 종료일 다음 날이라, 내리는 날과 새로 거는 날이 같다. */}

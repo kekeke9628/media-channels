@@ -160,7 +160,7 @@ export default function AssignModal({ posting, T, media, placements, refDate, on
               : null
           )}
 
-          <div className="fld2">
+          <div className="fld2 datepair">
             <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
             <EndDateField end={end} noEnd={noEnd}
               onChangeEnd={(v) => { setEnd(v); setConflict(null); }}

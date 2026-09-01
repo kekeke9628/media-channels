@@ -172,7 +172,7 @@ export default function PlaceOnMediaModal({ media, T, postings, placements, refD
                 </>
               )}
 
-              <div className="fld2">
+              <div className="fld2 datepair">
                 <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setConflict(null); }} /></label>
                 <EndDateField end={end} noEnd={noEnd}
                   onChangeEnd={(v) => { setEnd(v); setConflict(null); }}

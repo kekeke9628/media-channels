@@ -376,9 +376,9 @@ td.sub{display:table-cell}
 /* grid/flex 자식의 기본 min-width:auto 때문에 숫자 입력칸이 내용 크기 밑으로 줄지 않아,
    좁은 화면에서 2열 묶음이 화면 밖으로 밀려나갔다(매체 유형 추가 폼에서 53px 넘침). */
 /* align-items:start — 기본값(stretch)이면 짝을 이룬 두 칸의 높이가 서로 같아진다.
-   종료일 칸이 "미정" 안내 문구 때문에 시작일 칸보다 세 줄 더 길어지면서, 시작일 칸
-   아래에 내용 없는 빈 공간만 늘어났다(EndDateField). 다른 fld2 쌍은 원래도 높이가
-   같아서 이 값을 바꿔도 그대로다. */
+   한쪽 칸만 길어질 때(예전 종료일 칸의 "미정" 버튼) 반대쪽 칸 아래에 내용 없는
+   빈 공간만 늘어났다. 지금은 두 칸 높이가 같지만, 한쪽이 길어져도 상대가 따라
+   늘어나지 않도록 그대로 둔다. */
 .fld2{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0;align-items:start}
 .fld2>.fld{min-width:0}
 .fld span{color:var(--ink2);font-weight:600}
@@ -410,6 +410,15 @@ td.sub{display:table-cell}
    자리인지 알 수 없는 회색 덩어리로 보였다(데스크톱 크롬도 appearance:none을 주면 같다).
    비어 있을 때만 안내 글자를 깔아 준다 — input을 투명하게 두고 그 아래에 글자를 놓는다. */
 .datefld{position:relative;display:block;min-width:0}
+/* 종료일 = 날짜 + "미정"을 한 줄로. 체크는 글자 폭만 쓰고 남는 폭은 전부 날짜칸이
+   가져간다 — 좁은 화면에서 날짜가 먼저 줄어야 "2026. 9. 16."이 잘리지 않는다. */
+/* align-items는 center가 아니라 stretch다 — 모바일에서 .chk가 44px(터치 목표)이라
+   center로 두면 그 44px이 줄 높이가 되고 40px짜리 날짜칸이 2px 내려앉아, 나란한
+   시작일 칸과 윗변이 어긋났다. stretch면 줄 높이를 날짜칸이 정하고 체크는 그 높이를
+   꽉 채우므로(라벨 전체가 눌린다) 누를 자리도 줄지 않는다. */
+.endrow{display:flex;align-items:stretch;gap:7px;min-width:0}
+.endrow>.datefld{flex:1 1 auto;min-width:0}
+.endrow>.chk{flex:none;gap:4px;white-space:nowrap;min-height:0}
 .datefld > input{position:relative;background:transparent}
 /* 데스크톱은 브라우저가 "yyyy. mm. dd." 자리표시를 직접 그리므로 이 글자를 넣으면 겹친다
    — appearance:none을 쓰는 iOS에서만 깔아 준다(위 .fld input[type=date]와 같은 조건). */
@@ -745,6 +754,11 @@ td.sub{display:table-cell}
      10px 12px로 키움)보다 작아서, 특히 게시 기간처럼 버튼과 나란히 있는 칸이 유독 작아
      보였다. 44px 목표에 맞춰 같이 키운다. */
   .fld input,.fld select{padding:11px 12px;font-size:14px}
+  /* 시작일·종료일은 좁은 화면에서 한 줄에 하나씩 쌓는다. 종료일 칸이 날짜 + "미정"
+     체크를 한 줄에 담게 되면서, 두 칸을 반씩 나누면 날짜 자리가 390px 화면에서 99px,
+     320px에서는 64px밖에 안 남는다 — iOS 렌더링으로 "2026. 9. 16."이 들어가려면 93px이
+     필요하다(실측). 폭을 다 쓰면 279px이 남아 어느 화면에서도 잘리지 않는다. */
+  .fld2.datepair{grid-template-columns:1fr}
   /* 날짜칸 높이 고정도 커진 패딩에 맞춰 다시 잡는다(위 @supports 블록과 같은 값을
      모바일 패딩·글자 크기로 다시 계산한 것 — 일반 텍스트 칸의 모바일 높이 40px). */
   @supports (-webkit-touch-callout: none) {
@@ -788,9 +802,6 @@ td.sub{display:table-cell}
 .faceline .tag{flex:none}
 .faceline .mini{flex:none;padding:10px 6px}
 .mini.wide{display:block;width:100%;margin-top:7px;text-align:center}
-/* .fld 안에서는 부모의 gap(5px)이 이미 간격을 주므로 자체 margin을 뺀다 — 안 그러면
-   종료일 스위치만 아래로 처져 옆 칸과 어긋나 보인다. */
-.fld > .mini.wide{margin-top:0}
 /* 정렬 줄 — 검색·필터와 구분되게 한 칸 띄우고 글자를 작게. */
 .sortrow{margin-top:-4px}
 .sortrow .sel{padding:6px 9px;font-size:12px}

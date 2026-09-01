@@ -280,7 +280,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
               />
               {missingInstall && <p className="warnbox">{swapping ? '오늘 바꿔 다는 자리라 사진이 필요합니다.' : '오늘부터 걸리는 배치라 사진이 필요합니다.'}</p>}
 
-              <div className="fld2">
+              <div className="fld2 datepair">
                 <label className="fld"><span>{swapping ? '시작일 (교체일)' : '시작일'}</span><input type="date" value={startEff} disabled={swapping} onChange={(e) => { setStart(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
                 <EndDateField end={end} noEnd={noEnd}
                   onChangeEnd={(v) => { setEnd(v); setDateTouched(true); setConflict(null); }}
@@ -302,7 +302,7 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
 
           {!initialMedia && bulkOn && targets.length > 0 && (
             <>
-              <div className="fld2">
+              <div className="fld2 datepair">
                 <label className="fld"><span>시작일</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); setDateTouched(true); setConflict(null); }} /></label>
                 <EndDateField end={end} noEnd={noEnd}
                   onChangeEnd={(v) => { setEnd(v); setDateTouched(true); setConflict(null); }}
