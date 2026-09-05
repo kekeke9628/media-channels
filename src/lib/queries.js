@@ -371,7 +371,13 @@ export async function createPlacement({ postingId, mediaId, start, end, installP
 // 순간에만 사진을 첨부할 수 있어서 현장에서 찍은 사진을 넣으려면 배치를 지우고 다시
 // 만들어야 했다(기간·이력이 꼬인다). 이미 사진이 있으면 새 사진으로 교체한다.
 export async function setPlacementInstallPhoto(placementId, result) {
-  const install_photo_path = await uploadPostingImage(`placements/${placementId}/install.webp`, result.view.url);
+  // 찍을 때마다 새 이름으로 올린다. 예전에는 placements/<id>/install.webp 한 경로에 덮어썼는데,
+  // 그러면 "다시 찍기"가 화면에 반영되지 않았다 — 경로가 그대로면 서명 URL도 그대로고,
+  // 스토리지 기본 캐시(1시간)에 걸려 브라우저가 옛 사진을 계속 준다. 화면 쪽에서도 사진
+  // 경로가 안 바뀌니 다시 불러올 이유를 못 찾는다(MediaSheet pathsKey).
+  const prev = await supabase.from('placements').select('install_photo_path').eq('id', placementId).maybeSingle();
+  const install_photo_path = await uploadPostingImage(
+    `placements/${placementId}/install-${Date.now().toString(36)}.webp`, result.view.url);
   const { data, error } = await supabase
     .from('placements')
     .update({ install_photo_path })
@@ -379,6 +385,10 @@ export async function setPlacementInstallPhoto(placementId, result) {
     .select()
     .single();
   if (error) throw error;
+  // 옛 파일은 DB가 새 경로를 가리킨 뒤에 지운다 — 먼저 지웠다가 저장이 실패하면 사진이
+  // 통째로 사라진다. 지우기가 실패해도 cleanupOrphanImages가 나중에 걷어낸다.
+  const old = prev.data?.install_photo_path;
+  if (old && old !== install_photo_path) await removePostingFiles([old]);
   return mapPlacement(data);
 }
 
