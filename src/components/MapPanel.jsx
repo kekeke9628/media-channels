@@ -567,6 +567,8 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
       {cropFile && (
         <MapCropModal
           file={cropFile}
+          currentAR={mapImage ? mapAR : 0}
+          pinCount={allMedia.filter((m) => m.active).length}
           onCancel={() => setCropFile(null)}
           onConfirm={(blob) => { setCropFile(null); onMapImage(blob); }}
         />

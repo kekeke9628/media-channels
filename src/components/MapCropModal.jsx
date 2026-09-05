@@ -29,7 +29,7 @@ const ERASE_RECTS = [
   { x: 0.20, y: 0, w: 0.18, h: 0.185 },
 ];
 
-export default function MapCropModal({ file, onCancel, onConfirm }) {
+export default function MapCropModal({ file, currentAR = 0, pinCount = 0, onCancel, onConfirm }) {
   const [pages, setPages] = useState(null); // pdf.js document, null이면 일반 이미지
   const [pageNum, setPageNum] = useState(2);
   const [pageCount, setPageCount] = useState(1);
@@ -233,6 +233,19 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
     return { w: Math.max(1, Math.round(iw * s2)), h: Math.max(1, Math.round(ih * s2)) };
   };
 
+  // 매체 핀은 지도 위 비율 좌표(%)다 — 지도 틀이 바뀌면 좌표는 그대로여도 가리키는 자리가
+  // 통째로 달라진다. 실제로 2:1로 잘라 쓰던 배치도를 "전체 그대로"(2.31:1)로 다시 올렸더니
+  // 핀 40개가 전부 딴 곳으로 갔다. 지도를 새로 올리는 일은 드물고 되돌리는 버튼도 없어서,
+  // 적용을 누르기 직전에 못 박아 준다(막지는 않는다 — 지도 자체를 바꾸려는 것일 수도 있다).
+  //
+  // 비율만 본다. 같은 비율이라도 다른 영역을 잘라내면 핀은 어긋나지만, 같은 센터맵을 같은
+  // 규칙(DEFAULT_CROP)으로 다시 자르면 틀까지 같아져 핀이 그대로 남는다 — 실제로 어긋나는
+  // 경우는 비율이 바뀔 때라, 잡아낼 수 있는 선에서 잡는다.
+  const outAR = srcImg ? (whole ? wholeSize().w / wholeSize().h : OUT_W / OUT_H) : 0;
+  const ratioBreaks = currentAR > 0 && pinCount > 0 && outAR > 0
+    && Math.abs(outAR - currentAR) > 0.01;
+  const arText = (r) => r.toFixed(2) + ':1';
+
   const confirm = () => {
     setBusy(true);
     if (whole) {
@@ -304,6 +317,12 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
                 </>
               )}
             </>
+          )}
+          {ratioBreaks && (
+            <p className="warnbox">
+              지금 지도와 비율이 다릅니다({arText(currentAR)} → {arText(outAR)}).
+              매체 핀 {pinCount}개가 모두 어긋납니다.
+            </p>
           )}
         </div>
         <div className="mfoot">
