@@ -145,6 +145,14 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
   // 그러면 원본이 프레임 왼쪽 위에 실제 크기로 얹혀서, 센터맵 PDF에 걸어 둔 기본 크롭
   // 비율(DEFAULT_CROP)도 화면에는 전혀 반영되지 않는다 — 손으로 한 번 끌어야 제자리를
   // 찾아갔다("예전에 비율 설정해 놓은 게 작동을 안 한다").
+  //
+  // 이 transform은 style로 직접 넣는 값이라 React가 모른다. 두 방식의 <img>가 같은
+  // 자리·같은 타입이면 React는 DOM을 그대로 돌려 쓰는데, 그러면 크롭에서 넣은 축소
+  // 배율이 "전체 그대로"까지 따라와 미리보기가 19%로 쪼그라들고(684×299 틀에 130×57)
+  // 나머지는 틀 배경(#1c1a17)이라 새까만 네모만 보였다 — 스타일시트의
+  // .cropframe.whole img{transform:none}은 inline style을 못 이긴다. 아래에서 두 틀에
+  // 서로 다른 key를 줘 DOM 자체가 갈리게 했다(지우는 것보다 확실하다 — 크롭에서 직접
+  // 건드리는 속성이 늘어나도 새 DOM에는 남을 수가 없다).
   useEffect(applyTransform, [srcImg, whole]);
 
   useEffect(() => {
@@ -163,7 +171,9 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
     };
     frame.addEventListener('wheel', onWheel, { passive: false });
     return () => frame.removeEventListener('wheel', onWheel);
-  }, [loading]);
+  // whole도 의존성이다 — 아래에서 두 방식의 틀에 서로 다른 key를 줘 DOM이 갈리므로,
+  // 여기서 다시 붙이지 않으면 탭을 한 번 오간 뒤 휠 확대가 떨어져 나간 옛 틀에 남는다.
+  }, [loading, whole]);
 
   // 데스크톱(휠+드래그)과 모바일(핀치+드래그) 모두 지원 — Pointer Events로 손가락 2개를 추적한다.
   const onPointerDown = (e) => {
@@ -276,7 +286,7 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
               {whole ? (
                 <>
                   {/* 잘리는 곳 없이 저장되는 그대로를 보여준다 — 미리보기 틀도 원본 비율을 따른다. */}
-                  <div className="cropframe whole">
+                  <div className="cropframe whole" key="whole">
                     {srcImg && <img src={srcImg.src} alt="" draggable={false} style={{ filter: 'grayscale(1)' }} />}
                   </div>
                   <p className="hint">
@@ -287,7 +297,7 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
                 </>
               ) : (
                 <>
-                  <div className="cropframe" ref={frameRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+                  <div className="cropframe" key="crop" ref={frameRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
                     {srcImg && <img ref={imgElRef} src={srcImg.src} alt="" draggable={false} style={{ filter: 'grayscale(1)' }} />}
                   </div>
                   <p className="hint">휠(PC)로 확대/축소, 두 손가락(모바일)으로 확대·축소, 드래그로 이동해 영역을 프레임 안에 맞추세요.</p>
