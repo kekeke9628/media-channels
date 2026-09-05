@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { iso, DAY, periodLabel, endMismatch, findOverlap, vacantFrom } from '../constants.js';
+import { iso, DAY, norm, periodLabel, endMismatch, findOverlap, vacantFrom } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import PhotoField from './PhotoField.jsx';
 import { useInstallPhoto } from '../lib/useInstallPhoto.js';
@@ -20,7 +20,7 @@ import { useModalKeys } from '../lib/useModalKeys.js';
 // (3) 교체 탭의 "새 홍보물 등록해서 바로 교체"(swapPl 있음): (2)와 화면은 같지만 마지막에
 // 배치가 아니라 교체를 한다 — 걸려 있던 것을 내리는 일까지 서버에서 한 덩어리로 처리한다.
 // 자리(매체·면)와 교체일은 앞 화면에서 정해져 왔으므로 여기서는 못 바꾼다.
-export default function AddModal({ T, types, media, placements, refDate, isEditor, initialMediaId, initialFace, swapPl, swapDate, onSwapNew, onClose, onAdd, onAssign, onAdjustEnd, onDone }) {
+export default function AddModal({ T, types, media, placements, postings, refDate, isEditor, initialMediaId, initialFace, swapPl, swapDate, onSwapNew, onClose, onAdd, onAssign, onAdjustEnd, onDone }) {
   const swapping = !!swapPl;
   const activeTypes = useMemo(() => types.filter((t) => t.active), [types]);
   const initialMedia = initialMediaId ? media.find((x) => x.id === initialMediaId && x.active) : null;
@@ -29,6 +29,8 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
   const t = T[typeCode];
 
   const [brand, setBrand] = useState('');
+  // 이미 있는 업체명인지 — 막는 게 아니라 알려 주기만 한다(아래 입력칸 주석).
+  const dupBrand = !brand.trim() ? 0 : (postings || []).filter((p) => norm(p.brand) === norm(brand)).length;
   const [title, setTitle] = useState('');
   // 홍보물 자체의 게시 기간 — 매번 쓰는 값이 아니라 접어 둔다. 안 넣고 등록하면 상시가
   // 아니라 "기간 미입력"으로 남아 목록에서 채우라고 표시된다(constants.js periodLabel).
@@ -234,6 +236,14 @@ export default function AddModal({ T, types, media, placements, refDate, isEdito
           )}
 
           <label className="fld"><span>업체명</span><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="예: 나이키" /></label>
+          {/* 같은 업체명이 이미 있어도 막지 않는다 — 한 업체가 캠페인마다 따로 등록되는 게
+              정상이라("언더아머" / "언더아머 9월"), 막으면 이름을 억지로 비틀게 된다.
+              다만 같은 것을 두 번 등록하는 실수도 흔해서, 있다는 사실만 알려 준다. */}
+          {dupBrand > 0 && (
+            <p className="sub" style={{ margin: '-4px 0 0', color: '#8A6420' }}>
+              같은 업체명이 이미 {dupBrand}건 있습니다 — 그대로 등록해도 됩니다.
+            </p>
+          )}
           <label className="fld"><span>내용 (선택)</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="비워두면 업체명이 그대로 들어갑니다" /></label>
           {/* 홍보물 자체의 게시 기간 — "8월 프로모션"처럼 쓰는 기간이 정해진 것만 넣는다.
               비워 두면 상시로 보고, 지난 홍보물은 배치 팝업 후보에서 빠진다.

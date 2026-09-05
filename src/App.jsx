@@ -737,7 +737,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
       )}
       {addOpen && isEditor && (
         <AddModal
-          {...ctx} media={media} placements={placements} initialMediaId={addMediaId} initialFace={addFace}
+          {...ctx} media={media} placements={placements} postings={postings} initialMediaId={addMediaId} initialFace={addFace}
           swapPl={addSwap?.pl || null} swapDate={addSwap?.date}
           onSwapNew={(created, opts) => swapPlacement(addSwap.pl, created, opts)}
           onClose={() => { setAddOpen(false); setAddMediaId(null); setAddFace(null); setAddSwap(null); }}
