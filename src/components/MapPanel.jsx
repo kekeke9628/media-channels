@@ -57,14 +57,33 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
   // 보였다. 겹쳐 놓지 못한다는 사실을 그 자리에서 알려 준다.
   // 지도 프레임 높이. 가로는 화면 폭에 맞춰야 하니 어쩔 수 없지만, 세로는 배치도마다·
   // 보는 사람마다 원하는 게 달라서 직접 잡을 수 있게 한다(아래 손잡이를 끌면 된다).
-  // 0이면 기본값(가로:세로 = 16:8)을 그대로 쓴다. 이 기기에서만 기억한다.
-  const [mapH, setMapH] = useState(() => {
-    try { return +localStorage.getItem('mapHeight') || 0; } catch { return 0; }
+  // 0이면 배치도 자신의 비율을 그대로 쓴다(빈 띠 없이 딱 맞는 상태). 이 기기에서만 기억한다.
+  // 픽셀이 아니라 "폭 대비 비율"로 기억한다. 예전에는 px로 저장했는데, 그러면 지도 폭이
+  // 달라지는 순간(창 크기 변경, 폰↔PC, 본문 폭 제한을 넣은 6829545) 저장해 둔 높이가
+  // 지도와 어긋나 아래에 빈 띠가 생기거나 지도가 잘렸다 — 사용자가 고른 건 "이만큼 보이게"
+  // 라는 모양이지 "몇 px"이 아니다. 비율로 두면 폭이 바뀌어도 고른 모양이 그대로 따라온다.
+  const [mapHR, setMapHR] = useState(() => {
+    try { return +localStorage.getItem('mapHeightRatio') || 0; } catch { return 0; }
   });
-  const saveMapH = (h) => {
-    setMapH(h);
-    try { h ? localStorage.setItem('mapHeight', String(h)) : localStorage.removeItem('mapHeight'); } catch { /* 저장 못 해도 이번 세션엔 적용된다 */ }
+  const saveMapHR = (r) => {
+    setMapHR(r);
+    try {
+      r ? localStorage.setItem('mapHeightRatio', String(r)) : localStorage.removeItem('mapHeightRatio');
+      localStorage.removeItem('mapHeight');
+    } catch { /* 저장 못 해도 이번 세션엔 적용된다 */ }
   };
+  // 예전 px 값을 한 번만 비율로 옮긴다 — 이미 높이를 잡아 둔 사람의 설정을 그냥 버리지
+  // 않으려고. 폭을 알아야 나눌 수 있어 그릴 수 있게 된 다음(effect)에 한다.
+  useEffect(() => {
+    if (mapHR) return;
+    let px = 0;
+    try { px = +localStorage.getItem('mapHeight') || 0; } catch { return; }
+    if (!px) return;
+    const w = wrapRef.current?.getBoundingClientRect().width;
+    if (!w) return;
+    saveMapHR(px / w);
+  }, [mapHR]);
+
   const grabRef = useRef(null);
   const onGrabDown = (e) => {
     e.preventDefault();
@@ -84,7 +103,7 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
     if (fit && Math.abs(next - fit) < 24) next = fit;
     // 최소값을 고정 220px로 뒀더니 모바일 기본 높이(182px)보다 커서, 위로 끌면 오히려
     // 늘어나고 거기서 멈췄다 — 손가락을 따라갈 수 있게 충분히 낮춘다.
-    saveMapH(Math.round(clamp(next, 120, window.innerHeight * 0.9)));
+    saveMapHR(clamp(next, 120, window.innerHeight * 0.9) / rect.width);
   };
   const onGrabUp = (e) => { grabRef.current = null; e.currentTarget.releasePointerCapture?.(e.pointerId); };
 
@@ -422,7 +441,8 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
         className={'mapwrap' + (addMode ? ' addmode' : '')}
         /* 기본 높이는 지도 이미지에 딱 맞춘다 — 16:8로 못 박아 두면 3:1 지도를 올렸을 때
            아래에 빈 띠가 생긴 채로 시작하고, 사용자는 그걸 없애려고 매번 끌어야 한다. */
-        style={mapH ? { height: mapH + 'px', aspectRatio: 'auto' } : { aspectRatio: String(mapAR) }}
+        /* 높이를 px로 박지 않고 비율(가로/세로)로 준다 — 폭이 달라져도 고른 모양이 그대로다. */
+        style={{ aspectRatio: String(mapHR ? 1 / mapHR : mapAR) }}
         ref={wrapRef}
         onPointerDown={onWrapPointerDown}
         onPointerMove={onWrapPointerMove}
@@ -544,10 +564,10 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
       {/* 지도 아래 손잡이 — 끌어서 높이 조절, 두 번 누르면 기본값으로 되돌린다. */}
       <div className="mapgrab" onPointerDown={onGrabDown} onPointerMove={onGrabMove}
         onPointerUp={onGrabUp} onPointerCancel={onGrabUp}
-        onDoubleClick={() => saveMapH(0)}
+        onDoubleClick={() => saveMapHR(0)}
         title="끌어서 지도 높이 조절 · 두 번 누르면 기본 높이">
         <i />
-        {mapH > 0 && <button className="mapgrab-reset" onPointerDown={(e) => e.stopPropagation()} onClick={() => saveMapH(0)}>기본 높이로</button>}
+        {mapHR > 0 && <button className="mapgrab-reset" onPointerDown={(e) => e.stopPropagation()} onClick={() => saveMapHR(0)}>기본 높이로</button>}
       </div>
 
       <div className="legend">
