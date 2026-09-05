@@ -36,8 +36,15 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
   const [srcImg, setSrcImg] = useState(null); // HTMLImageElement (렌더링된 페이지 또는 원본 이미지)
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  // 기본은 자르지 않고 전체를 그대로 저장한다.
+  // 기본은 자르지 않고 전체를 그대로 저장한다. 다만 센터맵 PDF 2페이지처럼 미리 잡아 둔
+  // 크롭 비율(DEFAULT_CROP)이 있는 파일이면 그쪽으로 열어 준다 — 그 규칙을 비율로 박아 둔
+  // 이유가 "같은 센터맵을 다시 올리면 알아서 같게"인데, 탭을 직접 찾아 눌러야만 적용되면
+  // 걸어 둔 값이 없는 것과 같다. 두 탭이 바로 위에 있으니 전체로 되돌리는 건 한 번 누르면 된다.
   const [whole, setWhole] = useState(true);
+  // 사용자가 탭을 직접 고른 뒤에는 자동 선택이 그 위를 덮지 않게 한다(페이지를 넘길 때마다
+  // 골라 둔 방식이 되돌아가면 고르는 의미가 없다).
+  const modeTouched = useRef(false);
+  const pickMode = (v) => { modeTouched.current = true; setWhole(v); };
 
   const frameRef = useRef(null);
   const imgElRef = useRef(null);
@@ -111,6 +118,7 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
             x: -x0 * img.width * scale,
             y: -y0 * img.height * scale,
           };
+          if (!modeTouched.current) setWhole(false);
         } else {
           stateRef.current = {
             zoom: 1, baseScale,
@@ -132,7 +140,12 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
     const { x, y, zoom, baseScale } = stateRef.current;
     el.style.transform = `translate(${x}px, ${y}px) scale(${baseScale * zoom})`;
   };
-  useEffect(applyTransform, [srcImg]);
+  // whole도 의존성이다 — "전체 그대로"에서 "영역 선택"으로 바꾸면 크롭용 <img>가 그때
+  // 새로 붙는데, srcImg만 보고 있으면 이 effect가 다시 돌지 않아 transform이 비어 있다.
+  // 그러면 원본이 프레임 왼쪽 위에 실제 크기로 얹혀서, 센터맵 PDF에 걸어 둔 기본 크롭
+  // 비율(DEFAULT_CROP)도 화면에는 전혀 반영되지 않는다 — 손으로 한 번 끌어야 제자리를
+  // 찾아갔다("예전에 비율 설정해 놓은 게 작동을 안 한다").
+  useEffect(applyTransform, [srcImg, whole]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -257,8 +270,8 @@ export default function MapCropModal({ file, onCancel, onConfirm }) {
           ) : (
             <>
               <div className="seg">
-                <button className={whole ? 'on' : ''} onClick={() => setWhole(true)}>전체 그대로</button>
-                <button className={!whole ? 'on' : ''} onClick={() => setWhole(false)}>영역 선택 (2:1)</button>
+                <button className={whole ? 'on' : ''} onClick={() => pickMode(true)}>전체 그대로</button>
+                <button className={!whole ? 'on' : ''} onClick={() => pickMode(false)}>영역 선택 (2:1)</button>
               </div>
               {whole ? (
                 <>
