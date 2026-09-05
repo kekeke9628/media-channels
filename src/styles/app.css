@@ -38,6 +38,12 @@ body{margin:0}
 /* overflow-anchor:none — 탭 버튼(.tabs) 클릭 시 아래 .panel 내용의 높이가 바뀌면서
    브라우저의 스크롤 앵커링이 화면을 위아래로 살짝 튕기던 문제(모바일에서 "흔들림"으로 보고됨) */
 main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:column;gap:16px;overflow-anchor:none}
+/* 넓은 화면에서 폭을 통째로 쓰면 어느 화면이든 늘어지기만 한다. 실측(1920px): "EAST LOW"
+   한 단어가 334px 칸에, 130px짜리 권한 드롭다운이 540px 칸에 앉고, 표의 조치 버튼과 그
+   앞 값 사이가 몇 백 px씩 벌어진다 — 눈이 훑는 거리만 길어질 뿐 더 보이는 건 없다.
+   1400px은 가장 열이 많은 표(매체 현황 9열)가 늘어짐 없이 꽉 차는 폭으로 잡았다.
+   자식마다 거는 이유는 지도·표를 한 칸으로 묶어 왼쪽 끝을 맞추기 위해서다. */
+main > *{max-width:1400px;width:100%;margin-inline:auto}
 
 .mapcard{background:var(--card);border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .maphead{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:2px solid var(--ink);flex-wrap:wrap}
@@ -206,6 +212,9 @@ main{flex:1;min-width:0;padding:20px 24px 60px;display:flex;flex-direction:colum
 .formrow{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
 .inp{flex:1;min-width:130px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;font-family:inherit}
 .inp.date{flex:0 0 148px;min-width:0}
+/* 드롭다운은 고를 값이 정해져 있어 늘릴 이유가 없다 — 1400px에서 "편집자" 한 단어가
+   430px 칸을 차지했다. 글자만큼만 쓰고 남는 폭은 옆 입력칸이 가져간다. */
+.formrow select.inp{flex:0 0 auto;min-width:0}
 /* 좁은 화면에서 toolrow가 줄바꿈되면 date input 혼자 남은 줄을 꽉 채워 보이던 문제
    (iOS 네이티브 date input이 flex-basis를 무시하고 넓게 그려짐) — 두 날짜 입력을
    별도 한 줄짜리 flex 컨테이너로 묶어 항상 같은 줄에서 절반씩 나눠 갖게 한다. */
@@ -327,8 +336,11 @@ td.sub{display:table-cell}
 .swapwho b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .swapmeta{font-size:11.5px}
 .swapacts{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:6px}
-/* 교체가 이 화면에서 유일하게 중요한 동작이라 남는 폭을 다 준다. */
-.swapbtn{flex:1;padding:11px 12px}
+/* 교체가 이 화면에서 유일하게 중요한 동작이지만, 남는 폭을 다 주면 넓은 화면에서
+   줄마다 500px짜리 검은 띠가 된다 — 폭을 못 박고 오른쪽에 붙인다.
+   좁은 화면은 아래 @media에서 원래대로 남는 폭을 다 준다(엄지로 누르는 화면이라
+   버튼이 클수록 좋고, 애초에 띠가 될 만큼 넓지도 않다). */
+.swapbtn{flex:none;min-width:132px;margin-left:auto;padding:11px 12px}
 
 /* 지금 내려가는 것 — 팝업 맨 위에서 무엇을 바꾸는 중인지 못 박는다. */
 .swapfrom{display:flex;flex-direction:column;gap:2px;background:#F7F4EC;
@@ -510,10 +522,13 @@ td.sub{display:table-cell}
 .alertwrap .slack.danger{border-left-color:#B4534B;background:#FCF3F1}
 .slack b{display:block;font-size:13px;margin-bottom:3px}
 .slack span{display:block;font-size:12.5px}
-/* 알람 줄에서 바로 조치할 수 있도록 오른쪽에 버튼을 붙인다. 좁은 화면에서는 줄바꿈돼
-   아래로 내려가므로 폭 걱정이 없다. */
+/* 알람 줄에서 바로 조치할 수 있도록 오른쪽에 버튼을 붙인다.
+   배지·문장을 100%로 끊어 두면 버튼만 아래 빈 줄에 남아 줄 높이가 두 배가 된다 —
+   1400px에서 줄마다 40px씩 헛돌았다. 폭이 되는 화면에서는 셋이 한 줄에 들어간다
+   (좁은 화면은 아래 @media에서 원래대로 끊는다 — 거기선 한 줄에 못 담는다). */
 .alertwrap .slack{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
-.alertwrap .slack b,.alertwrap .slack span{flex:1 1 100%}
+.alertwrap .slack b{flex:none;margin-bottom:0}
+.alertwrap .slack span{flex:0 1 auto}
 .alertwrap .slack .alert-act{flex:none;margin-left:auto}
 /* 문장 속에서 링크처럼 눌러 그 매체로 이동하는 버튼 */
 .linklike{border:0;background:none;padding:0;font:inherit;color:var(--brass);font-weight:700;cursor:pointer;text-decoration:underline}
@@ -672,8 +687,15 @@ td.sub{display:table-cell}
 .app.narrow .sidefoot{display:none}
 .app.narrow .side > .sidekpi{display:none}
 .mobile-kpi{display:none}
-.app.narrow .mobile-kpi{display:flex;flex-direction:row;gap:14px;margin-top:4px;padding:0;background:none}
-.app.narrow .brand{border-bottom:0;padding-bottom:0}
+.app.narrow .mobile-kpi{display:flex;flex-direction:row;gap:10px;margin-top:4px;padding:0;background:none}
+/* 아주 좁은 화면(360px 이하)에서는 로고+KPI와 오른쪽 빠른 조작 줄이 한 줄에 안 들어가
+   문서 폭이 8px 넘쳐 페이지 전체가 옆으로 밀렸다(실측 360px에서 368px). 넘칠 때만
+   아래로 접히게 둔다 — 390px 이상에서는 지금처럼 한 줄 그대로다. */
+/* 아주 좁은 화면에서는 로고+KPI와 오른쪽 빠른 조작 줄이 한 줄에 안 들어가 문서 폭이
+   8px 넘쳐 페이지 전체가 옆으로 밀렸다(실측 360px에서 368px). 넘칠 때만 아래로 접히게
+   두고, 간격을 줄여(11→7px, KPI 14→10px) 390px에서는 지금처럼 한 줄을 유지한다
+   — 실측 390px 기준 필요 폭 364 → 352px, 쓸 수 있는 폭 358px. */
+.app.narrow .brand{border-bottom:0;padding-bottom:0;flex-wrap:wrap;gap:7px}
 .app.narrow .brand span{display:none}
 .app.narrow .skv{white-space:nowrap;gap:6px}
 .mobile-quickrow{display:none}
@@ -773,6 +795,11 @@ td.sub{display:table-cell}
      320px에서는 64px밖에 안 남는다 — iOS 렌더링으로 "2026. 9. 16."이 들어가려면 93px이
      필요하다(실측). 폭을 다 쓰면 279px이 남아 어느 화면에서도 잘리지 않는다. */
   .fld2.datepair{grid-template-columns:1fr}
+  /* 좁은 화면에서는 알람 줄을 한 줄에 못 담는다 — 배지·문장을 끊고 버튼을 아래로 내린다. */
+  .alertwrap .slack b{flex:1 1 100%;margin-bottom:3px}
+  .alertwrap .slack span{flex:1 1 100%}
+  /* 교체 버튼은 좁은 화면에서 남는 폭을 다 쓴다(엄지로 누르는 화면). */
+  .swapbtn{flex:1;min-width:0;margin-left:0}
   /* 날짜칸 높이 고정도 커진 패딩에 맞춰 다시 잡는다(위 @supports 블록과 같은 값을
      모바일 패딩·글자 크기로 다시 계산한 것 — 일반 텍스트 칸의 모바일 높이 40px). */
   @supports (-webkit-touch-callout: none) {
