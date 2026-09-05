@@ -590,9 +590,32 @@ td.sub{display:table-cell}
 .mtxt b{font-size:12.5px;display:block}
 .mtxt i{font-style:normal;font-size:11px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 /* max-height에 걸려 폭이 줄면 왼쪽에 붙고 오른쪽에 빈 칸만 남았다 — 가운데로 모은다. */
-.bigthumb{aspect-ratio:3/4;max-height:220px;margin-inline:auto;border-radius:11px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:600;padding:14px;text-align:center;position:relative;overflow:hidden}
+.bigthumb{aspect-ratio:3/4;max-height:160px;margin-inline:auto;border-radius:11px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:600;padding:14px;text-align:center;position:relative;overflow:hidden}
 .bigthumb span{position:relative;text-shadow:0 1px 4px rgba(0,0,0,.65)}
 .bigthumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* 누를 수 있다는 표시. 사진 위에 얹히므로 어두운 알약으로 깔아 어떤 사진에서도 읽히게. */
+.bigthumb.zoomable,.tsmall.zoomable{cursor:zoom-in}
+.bigthumb-zoom{position:absolute;right:7px;bottom:7px;font-style:normal;font-size:10.5px;
+  background:rgba(20,18,16,.62);color:#fff;padding:3px 8px;border-radius:20px;letter-spacing:.02em}
+.bigthumb.zoomable:hover .bigthumb-zoom{background:rgba(20,18,16,.85)}
+
+/* 사진 크게 보기 — 팝업(z-index 60) 위에 뜬다. touch-action:none이라야 확대·이동이
+   브라우저 기본 제스처(페이지 확대·당겨서 새로고침)에 먹히지 않는다. */
+.pview{position:fixed;inset:0;z-index:90;background:rgba(18,16,14,.94);
+  display:flex;flex-direction:column;touch-action:none;overscroll-behavior:contain}
+.pview-head{display:flex;align-items:center;gap:10px;padding:12px 14px;color:#E7E2D8;font-size:12.5px;flex:none}
+.pview-head span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pview-head button{margin-left:auto;flex:none;border:0;background:rgba(255,255,255,.12);color:#fff;
+  width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer}
+.pview-head button:hover{background:rgba(255,255,255,.22)}
+/* grid-template을 minmax(0,1fr)로 못 박아야 한다 — 줄 높이를 auto로 두면 그 높이를
+   사진이 정하는 셈이라 사진의 max-height:100%가 기준 없는 값이 돼(순환) 무시된다.
+   실제로 900×1200 사진이 863px 칸을 뚫고 원본 크기로 나왔다. */
+.pview-frame{flex:1;min-height:0;display:grid;grid-template:minmax(0,1fr)/minmax(0,1fr);
+  place-items:center;overflow:hidden;padding:0 12px}
+.pview-img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center;
+  will-change:transform;user-select:none;-webkit-user-drag:none;cursor:grab}
+.pview-hint{flex:none;margin:0;padding:10px 14px 16px;text-align:center;color:#9A9287;font-size:11px}
 /* 매체 상세에서 면(face)마다 한 구획씩 — 2면 이상일 때만 사이에 구분선이 보인다. */
 .facesheet + .facesheet{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
 /* 칸 수는 폭이 정한다(auto-fill) — 시트가 좁아지면 알아서 두 칸·한 칸으로 떨어진다.
@@ -814,6 +837,10 @@ td.sub{display:table-cell}
      320px에서는 64px밖에 안 남는다 — iOS 렌더링으로 "2026. 9. 16."이 들어가려면 93px이
      필요하다(실측). 폭을 다 쓰면 279px이 남아 어느 화면에서도 잘리지 않는다. */
   .fld2.datepair{grid-template-columns:1fr}
+  /* 현장에서 그 자리를 알아보는 건 휴대폰으로만 한다 — 거기서는 사진이 커야 한다.
+     PC는 사무실에서 훑어보는 용도라 작게 두고, 자세히 볼 일은 눌러서 크게 본다
+     (PhotoViewer). 면 구획이 그만큼 짧아져 한 화면에 더 들어온다. */
+  .bigthumb{max-height:220px}
   /* 좁은 화면에서는 알람 줄을 한 줄에 못 담는다 — 배지·문장을 끊고 버튼을 아래로 내린다. */
   .alertwrap .slack b{flex:1 1 100%;margin-bottom:3px}
   .alertwrap .slack span{flex:1 1 100%}

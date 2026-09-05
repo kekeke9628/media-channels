@@ -3,6 +3,7 @@ import { useModalKeys } from '../lib/useModalKeys.js';
 import { LONG_OPEN, subOf, swapLateDays, canTakePhoto, PHOTO_ONLY_MOBILE } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { getPostingImageUrls } from '../lib/queries.js';
+import PhotoViewer from './PhotoViewer.jsx';
 import { convertImage } from '../lib/convertImage.js';
 
 // 면(face) 하나의 "현재 배치 + 지난 배치" — 단일 면 매체는 이 컴포넌트가 정확히 하나만
@@ -122,7 +123,7 @@ function StatCell({ label, value, mono, onSave, children, editable }) {
   );
 }
 
-function FaceSection({ slot, faceCount, imgUrls, isEditor, refDate, onRemove, onSwap, onQuickAdd, onAttachPhoto, onEditDates, onEditText, onRelink, collapsible }) {
+function FaceSection({ slot, faceCount, imgUrls, isEditor, refDate, onZoom, onRemove, onSwap, onQuickAdd, onAttachPhoto, onEditDates, onEditText, onRelink, collapsible }) {
   const cur = slot.overdue || slot.current;
   // 아직 시작하지 않은(게시예정) 배치는 "지난 배치"가 아니다 — 예전에는 cur만 빼고 나머지를
   // 전부 지난 배치로 묶어서, 다음 달에 걸릴 예약이 이력 표에 "지난 배치"로 들어가 있었다.
@@ -180,8 +181,12 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, refDate, onRemove, on
             const install = imgUrls.get(cur.installPhotoPath);
             return (
               <>
-                <div className="bigthumb" style={install ? undefined : { background: `linear-gradient(150deg, hsl(${cur.hue} 42% 52%), hsl(${(cur.hue + 40) % 360} 38% 38%))` }}>
-                  {install ? <img className="bigthumb-img" src={install} alt="" /> : <span>사진 없음</span>}
+                {/* 사진이 있으면 눌러서 크게 본다 — 목록 크기로는 인쇄물 글자나 비뚤어짐이
+                    안 보인다. 누를 수 있다는 걸 알려야 하므로 모서리에 표시를 얹는다. */}
+                <div className={'bigthumb' + (install ? ' zoomable' : '')}
+                  onClick={install ? () => onZoom(install, `${slot.faceLabel} · ${cur.brand}`) : undefined}
+                  style={install ? undefined : { background: `linear-gradient(150deg, hsl(${cur.hue} 42% 52%), hsl(${(cur.hue + 40) % 360} 38% 38%))` }}>
+                  {install ? <><img className="bigthumb-img" src={install} alt="" /><em className="bigthumb-zoom">⤢ 크게</em></> : <span>사진 없음</span>}
                 </div>
                 <p className="sub" style={{ textAlign: 'center', marginTop: 5 }}>
                   {install ? '설치 확인 사진' : '설치 확인 사진 없음 — 아래에서 찍어 주세요'}
@@ -274,7 +279,9 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, refDate, onRemove, on
             // 그 배치의 설치 확인 사진 — 지난 배치도 "그때 실제로 걸렸던 모습"으로 남는다.
             const url = imgUrls.get(p.installPhotoPath);
             return (
-              <div className="tsmall" key={p.id} title={p.brand + ' ' + p.start + '~' + (p.end || '미정')}>
+              <div className={'tsmall' + (url ? ' zoomable' : '')} key={p.id}
+                title={p.brand + ' ' + p.start + '~' + (p.end || '미정')}
+                onClick={url ? () => onZoom(url, `${p.brand} · ${p.start} ~ ${p.end || '미정'}`) : undefined}>
                 {url ? <img src={url} alt="" /> : <i style={{ background: `linear-gradient(150deg, hsl(${p.hue} 40% 55%), hsl(${(p.hue + 40) % 360} 36% 40%))` }} />}
                 <em className="mono">{p.start.slice(2, 7)}</em>
               </div>
@@ -329,6 +336,9 @@ export default function MediaSheet({ T, o, isEditor, refDate, onClose, onRemove,
   // 사진은 전부 설치 확인 사진이다(홍보물 시안은 안 쓴다) — 지금 걸린 것 한 장과
   // 이력에 남은 것들. 전부 view 크기라 큰 자리에 써도 뭉개지지 않는다.
   const [imgUrls, setImgUrls] = useState(new Map());
+  // 크게 볼 사진 하나 — 면마다 따로 들고 있으면 어느 것이 열렸는지 시트가 모른다.
+  const [zoom, setZoom] = useState(null); // { src, caption }
+  const openZoom = (src, caption) => setZoom({ src, caption });
   const paths = o.slots.flatMap((s) => s.history.map((p) => p.installPhotoPath));
   // o.id(매체 id)만 의존하면, 시트를 닫지 않은 채로(예: "이 매체에 홍보물 배치") 같은
   // 매체에 새로 배치해도 매체 id는 그대로라 다시 안 불러왔다 — 방금 건 이미지가 안 보이던
@@ -390,7 +400,7 @@ export default function MediaSheet({ T, o, isEditor, refDate, onClose, onRemove,
         {/* 면이 4개 이상일 때만 접기를 켠다 — 1~2면(웨더워리어 등)은 지금까지처럼 전부 펼친 채. */}
         <div className="facegrid">
           {o.slots.map((slot) => (
-            <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} refDate={refDate} onRemove={onRemove} onSwap={onSwap} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} onRelink={onRelink} collapsible={o.faces >= 4} />
+            <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} refDate={refDate} onZoom={openZoom} onRemove={onRemove} onSwap={onSwap} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} onRelink={onRelink} collapsible={o.faces >= 4} />
           ))}
         </div>
 
@@ -407,6 +417,7 @@ export default function MediaSheet({ T, o, isEditor, refDate, onClose, onRemove,
         )}
         </div>
       </div>
+      {zoom && <PhotoViewer src={zoom.src} caption={zoom.caption} onClose={() => setZoom(null)} />}
     </div>
   );
 }
