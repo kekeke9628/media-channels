@@ -4,54 +4,24 @@ import { ZONES } from '../data/seed.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import MapBtn from './MapBtn.jsx';
 
-// 교체 — 관리 업체 담당자가 현장에 나가기 전에 여는 화면.
-//
-// 다른 화면들은 "지금 무엇이 어디에 걸려 있나"를 보여주지만, 담당자가 실제로 알고 싶은
-// 건 하나다: 오늘(또는 내일) 어느 자리를 손봐야 하는가. 그래서 목록을 그 하나로 좁히고,
-// 각 줄에서 바로 교체까지 끝낼 수 있게 한다 — 철거하고 다시 배치하는 두 단계로 돌지
-// 않는다(그 사이에 그만두면 자리가 빈 채로 남는다).
-export default function SwapPanel({ state, refDate, isEditor, onSwap, onPick, onShowOnMap }) {
-  const [day, setDay] = useState('today');
-  const date = day === 'tomorrow' ? nextDay(refDate) : refDate;
-
-  const rowsOf = (d) => state
-    .filter((s) => swapDue(s, refDate, d))
-    // 오래 넘긴 것부터. 만료가 아닌 것끼리는 매체명 순으로 — 목록이 매번 같은 순서여야
-    // 담당자가 "아까 그 줄"을 다시 찾을 수 있다.
-    .sort((a, b) => (b.overdueDays || 0) - (a.overdueDays || 0) || byName(a.name, b.name));
-
-  const today = useMemo(() => rowsOf('today'), [state, refDate]);
-  const tomorrow = useMemo(() => rowsOf('tomorrow'), [state, refDate]);
-  const rows = day === 'tomorrow' ? tomorrow : today;
-
-  // 설치 확인 사진 — 담당자가 현장에서 그 자리를 알아보는 데 이만한 게 없다.
-  const [shots, setShots] = useState(new Map());
-  useEffect(() => {
-    let cancelled = false;
-    const paths = [...today, ...tomorrow].map((s) => swapTarget(s)?.installPhotoPath);
-    getPostingImageUrls(paths).then((m) => { if (!cancelled) setShots(m); });
-    return () => { cancelled = true; };
-  }, [state]);
-
+// 하루치 목록 한 덩어리. 좁은 화면에서는 탭으로 골라 하나만, 넓은 화면에서는 오늘·내일을
+// 나란히 두 벌 그린다 — 그래서 머리글이 두 가지다(탭이 있으면 날짜 줄, 없으면 제목).
+function SwapColumn({ d, rows, date, head, shots, refDate, isEditor, onSwap, onPick, onShowOnMap }) {
   return (
-    <div>
-      {/* "종료일 다음 날에 내린다"는 안내를 여기 배너로 뒀었는데, 화면이 이미 같은 말을
-          줄마다 하고 있었다 — 목록 머리("8/31에 내리는 자리"), 줄 태그("내일 내림"),
-          줄 메타("게시 ~8/30 · 8/31 내림"), 교체 팝업("8/31에 내려갑니다 (내일)").
-          규칙을 설명하는 문장보다 규칙이 적용된 두 날짜를 나란히 보여주는 쪽이 강하다. */}
-      <div className="seg swapseg">
-        <button className={day === 'today' ? 'on' : ''} onClick={() => setDay('today')}>
-          오늘 교체{today.length > 0 && <em>{today.length}</em>}
-        </button>
-        <button className={day === 'tomorrow' ? 'on' : ''} onClick={() => setDay('tomorrow')}>
-          내일 교체{tomorrow.length > 0 && <em>{tomorrow.length}</em>}
-        </button>
-      </div>
-      <p className="sub mono" style={{ margin: '10px 0 6px' }}>{date}에 내리는 자리 · {rows.length}곳</p>
+    <section className="swapcol">
+      {head ? (
+        <div className="swaphead">
+          <b>{d === 'tomorrow' ? '내일 교체' : '오늘 교체'}</b>
+          {rows.length > 0 && <em>{rows.length}</em>}
+          <span className="sub mono">{date}에 내림</span>
+        </div>
+      ) : (
+        <p className="sub mono swapdate">{date}에 내리는 자리 · {rows.length}곳</p>
+      )}
 
       {rows.length === 0 ? (
         <p className="empty">
-          {day === 'tomorrow'
+          {d === 'tomorrow'
             ? '내일 내릴 자리가 없습니다.'
             : '오늘 내릴 자리가 없습니다. 밀린 자리도 없습니다.'}
         </p>
@@ -77,7 +47,7 @@ export default function SwapPanel({ state, refDate, isEditor, onSwap, onPick, on
                     <b>{s.name}</b>
                     {late > 0
                       ? <span className="tag over">{late}일 밀림</span>
-                      : <span className="tag live">{day === 'tomorrow' ? '내일 내림' : '오늘 내림'}</span>}
+                      : <span className="tag live">{d === 'tomorrow' ? '내일 내림' : '오늘 내림'}</span>}
                   </div>
                   <div className="swapwho">
                     <b>{pl?.brand}</b>
@@ -98,6 +68,69 @@ export default function SwapPanel({ state, refDate, isEditor, onSwap, onPick, on
           })}
         </div>
       )}
+    </section>
+  );
+}
+
+// 교체 — 관리 업체 담당자가 현장에 나가기 전에 여는 화면.
+//
+// 다른 화면들은 "지금 무엇이 어디에 걸려 있나"를 보여주지만, 담당자가 실제로 알고 싶은
+// 건 하나다: 오늘(또는 내일) 어느 자리를 손봐야 하는가. 그래서 목록을 그 하나로 좁히고,
+// 각 줄에서 바로 교체까지 끝낼 수 있게 한다 — 철거하고 다시 배치하는 두 단계로 돌지
+// 않는다(그 사이에 그만두면 자리가 빈 채로 남는다).
+export default function SwapPanel({ state, refDate, isEditor, narrow, onSwap, onPick, onShowOnMap }) {
+  const [day, setDay] = useState('today');
+  const date = day === 'tomorrow' ? nextDay(refDate) : refDate;
+
+  const rowsOf = (d) => state
+    .filter((s) => swapDue(s, refDate, d))
+    // 오래 넘긴 것부터. 만료가 아닌 것끼리는 매체명 순으로 — 목록이 매번 같은 순서여야
+    // 담당자가 "아까 그 줄"을 다시 찾을 수 있다.
+    .sort((a, b) => (b.overdueDays || 0) - (a.overdueDays || 0) || byName(a.name, b.name));
+
+  const today = useMemo(() => rowsOf('today'), [state, refDate]);
+  const tomorrow = useMemo(() => rowsOf('tomorrow'), [state, refDate]);
+  const rows = day === 'tomorrow' ? tomorrow : today;
+
+  // 설치 확인 사진 — 담당자가 현장에서 그 자리를 알아보는 데 이만한 게 없다.
+  const [shots, setShots] = useState(new Map());
+  useEffect(() => {
+    let cancelled = false;
+    const paths = [...today, ...tomorrow].map((s) => swapTarget(s)?.installPhotoPath);
+    getPostingImageUrls(paths).then((m) => { if (!cancelled) setShots(m); });
+    return () => { cancelled = true; };
+  }, [state]);
+
+  const common = { shots, refDate, isEditor, onSwap, onPick, onShowOnMap };
+
+  // 넓은 화면은 오늘·내일을 나란히 놓고 탭을 없앤다. 현장에 나가기 전에 하는 일이
+  // "오늘 것 처리하고 내일 것 미리 챙기기"라 두 목록을 번갈아 보는데, 탭이면 볼 때마다
+  // 눌러야 하고 무엇이 몇 건인지도 한눈에 안 들어온다. 폭이 남는 화면에서는 굳이 감출
+  // 이유가 없다 — 좁은 화면은 두 열을 넣으면 사진과 교체 버튼이 다 뭉개지므로 그대로 탭.
+  if (!narrow) {
+    return (
+      <div className="swapcols">
+        <SwapColumn d="today" rows={today} date={refDate} head {...common} />
+        <SwapColumn d="tomorrow" rows={tomorrow} date={nextDay(refDate)} head {...common} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* "종료일 다음 날에 내린다"는 안내를 여기 배너로 뒀었는데, 화면이 이미 같은 말을
+          줄마다 하고 있었다 — 목록 머리("8/31에 내리는 자리"), 줄 태그("내일 내림"),
+          줄 메타("게시 ~8/30 · 8/31 내림"), 교체 팝업("8/31에 내려갑니다 (내일)").
+          규칙을 설명하는 문장보다 규칙이 적용된 두 날짜를 나란히 보여주는 쪽이 강하다. */}
+      <div className="seg swapseg">
+        <button className={day === 'today' ? 'on' : ''} onClick={() => setDay('today')}>
+          오늘 교체{today.length > 0 && <em>{today.length}</em>}
+        </button>
+        <button className={day === 'tomorrow' ? 'on' : ''} onClick={() => setDay('tomorrow')}>
+          내일 교체{tomorrow.length > 0 && <em>{tomorrow.length}</em>}
+        </button>
+      </div>
+      <SwapColumn d={day} rows={rows} date={date} {...common} />
     </div>
   );
 }
