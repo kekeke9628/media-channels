@@ -82,6 +82,32 @@ export function zoneOf(m) {
   return VALID_ZONES.has(z) ? z : (m?.zone || null);
 }
 
+// 새 매체의 이름을 제안한다 — 같은 유형에서 "이 자리와 가장 가까운 매체"의 이름을 본떠
+// 다음 번호를 붙인다(DEL01이 옆에 있으면 DEL02).
+//
+// 이름이 곧 자리인데(DEL01 = 듀라트란스·EAST·LOW·01) 구역 글자를 좌표로 계산할 수는 없다 —
+// zoneAt의 사각형은 옛 도면 기준이라 26개 중 19개가 틀렸다(CLAUDE.md). 대신 바로 옆 핀의
+// 이름을 빌린다: 같은 줄에 나란히 서는 매체는 거의 언제나 같은 계열이라 이 편이 훨씬 잘 맞는다.
+//
+// 번호는 그 접두사의 최댓값 + 1이고, 이미 쓰는 이름이면(보관된 것 포함) 빌 때까지 올린다.
+// 어디까지나 제안이라 화면에서는 그대로 고칠 수 있다.
+const NAME_PARTS = /^(.*?)(\d+)$/;
+export function suggestMediaName(all, type, at) {
+  const same = (all || []).filter((m) => m.type === type && NAME_PARTS.test(m.name || ''));
+  if (!same.length) return '';
+  const d2 = (m) => (m.x - at.x) ** 2 + (m.y - at.y) ** 2;
+  const near = at && Number.isFinite(at.x) ? same.reduce((a, b) => (d2(b) < d2(a) ? b : a)) : same[0];
+  const [, prefix, digits] = near.name.match(NAME_PARTS);
+  const nums = same
+    .map((m) => m.name.match(NAME_PARTS))
+    .filter((x) => x[1] === prefix)
+    .map((x) => +x[2]);
+  const make = (v) => prefix + String(v).padStart(digits.length, '0');
+  let n = Math.max(...nums) + 1;
+  while (nameTaken(all, make(n))) n += 1;
+  return make(n);
+}
+
 export function sideOf(m) {
   const c = (m?.name || '').trim().toUpperCase()[1];
   if (c === 'E') return 'EAST';

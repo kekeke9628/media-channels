@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { clamp, nameTaken, swapLateDays } from '../constants.js';
+import { clamp, nameTaken, suggestMediaName, swapLateDays } from '../constants.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { ZONES } from '../data/seed.js';
 import MapCropModal from './MapCropModal.jsx';
@@ -45,6 +45,10 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
   itemsRef.current = items;
   const panRef = useRef({ x: 0, y: 0, zoom: 1 });
   const dragPinRef = useRef(null);
+  // 핀을 프레임 가장자리까지 끌면 지도가 그쪽으로 계속 밀린다 — 확대해 놓고 핀을 화면
+  // 밖 자리로 옮기려면 "놓고 → 지도 밀고 → 다시 잡기"를 반복해야 했다.
+  const edgeRef = useRef(null);   // 마지막 손가락 위치(화면 좌표)
+  const edgeRafRef = useRef(0);
   const panDragRef = useRef(null);
   const pointersRef = useRef(new Map()); // 모바일 핀치줌 — 활성 포인터(터치) 추적
   const pinchRef = useRef(null);
@@ -302,6 +306,36 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
     return { x: clamp(px, 1, 99), y: clamp(py, 1, 99) };
   };
 
+  // 가장자리에서 미는 폭과 한 프레임당 최대 이동량. 48px 안으로 들어오면 가까울수록 빨라진다.
+  const EDGE = 48, EDGE_MAX = 14;
+  const edgeStep = () => {
+    const id = dragPinRef.current, pt = edgeRef.current, wrap = wrapRef.current;
+    if (!id || !pt || !wrap) { edgeRafRef.current = 0; return; }
+    const r = wrap.getBoundingClientRect();
+    const push = (near, far) => (near < EDGE ? EDGE - near : far < EDGE ? -(EDGE - far) : 0);
+    const dx = push(pt.cx - r.left, r.right - pt.cx) * (EDGE_MAX / EDGE);
+    const dy = push(pt.cy - r.top, r.bottom - pt.cy) * (EDGE_MAX / EDGE);
+    if (dx || dy) {
+      const { x, y, zoom: z } = panRef.current;
+      const next = clampPan(x + dx, y + dy, z, r);
+      // 더 밀 곳이 없으면(1배이거나 이미 끝) 좌표를 다시 계산할 이유도 없다.
+      if (next.x !== x || next.y !== y) {
+        panRef.current = { ...next, zoom: z };
+        applyTransform();
+        // 손가락은 그대로인데 지도가 밀렸으므로 그 지점이 가리키는 자리도 달라진다.
+        const q = pointerToPct({ clientX: pt.cx, clientY: pt.cy });
+        onMoveLocal(id, +q.x.toFixed(2), +q.y.toFixed(2));
+      }
+    }
+    edgeRafRef.current = requestAnimationFrame(edgeStep);
+  };
+  const stopEdgePan = () => {
+    if (edgeRafRef.current) cancelAnimationFrame(edgeRafRef.current);
+    edgeRafRef.current = 0;
+    edgeRef.current = null;
+  };
+  useEffect(() => stopEdgePan, []);
+
   const panToPin = (item) => {
     const wrap = wrapRef.current;
     if (!wrap || !item) return;
@@ -348,6 +382,8 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
     if (dragPinRef.current) {
       const p = pointerToPct(e);
       onMoveLocal(dragPinRef.current, +p.x.toFixed(2), +p.y.toFixed(2));
+      edgeRef.current = { cx: e.clientX, cy: e.clientY };
+      if (!edgeRafRef.current) edgeRafRef.current = requestAnimationFrame(edgeStep);
       return;
     }
     if (!pointersRef.current.has(e.pointerId)) return;
@@ -381,6 +417,7 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
     if (dragPinRef.current) {
       const id = dragPinRef.current;
       dragPinRef.current = null;
+      stopEdgePan();
       const p = pointerToPct(e);
       onMoveCommit(id, +p.x.toFixed(2), +p.y.toFixed(2));
       return;
@@ -553,6 +590,9 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
 
       {addAt && createPortal(
         <AddMediaPopover
+          /* 자리마다 새로 연다 — key가 없으면 팝오버가 그대로 남아, 이름 제안이 옛 자리
+             기준으로 굳고 "직접 고쳤음" 표시까지 따라와 다음 자리에서 제안이 안 뜬다. */
+          key={`${addAt.x},${addAt.y}`}
           types={active} at={addAt} allMedia={allMedia}
           archived={allMedia.filter((m) => !m.active)} zoneLabel={zoneLabel}
           onCancel={() => setAddAt(null)}
@@ -605,7 +645,10 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit, a
   const [source, setSource] = useState('new'); // 'new' | 'existing' — 보관 중이던 매체를 이 자리로 옮겨 복구
   const [type, setType] = useState(types[0]?.code || '');
   const t = types.find((x) => x.code === type);
-  const [name, setName] = useState('');
+  // 이름은 옆 핀을 본떠 미리 채워 준다(constants.suggestMediaName) — 40개를 손으로 치다
+  // 보면 번호를 건너뛰거나 겹치기 십상이다. 손을 대는 순간부터는 건드리지 않는다.
+  const [name, setName] = useState(() => suggestMediaName(allMedia, types[0]?.code || '', at));
+  const [nameTouched, setNameTouched] = useState(false);
   // 면수를 빈 칸으로 시작하면 2면 유형(웨더워리어 등)을 추가할 때 깜빡 잊고 1을 넣기
   // 쉽다 — 그러면 그 매체만 조용히 1면짜리가 돼서, 나중에 배치할 때 면 선택이 아예 안
   // 뜨는 걸 보고서야 알아챈다. 유형의 기본 면수로 미리 채워 두고, 필요하면 고치게 한다.
@@ -617,6 +660,9 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit, a
     const list = archived.filter((m) => m.type === type);
     setExistingId(list[0]?.id || '');
     setFaces(types.find((x) => x.code === type)?.faces || 1);
+    // 유형이 바뀌면 이름 계열도 통째로 달라진다(듀라트란스 DEL / 웨더워리어 WWM…) —
+    // 아직 직접 고치지 않았을 때만 다시 제안한다.
+    if (!nameTouched) setName(suggestMediaName(allMedia, type, at));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
@@ -640,7 +686,9 @@ function AddMediaPopover({ types, at, archived, zoneLabel, onCancel, onSubmit, a
       </div>
       {source === 'new' ? (
         <>
-          <input className={'inp' + (dup ? ' bad' : '')} value={name} onChange={(e) => setName(e.target.value)} placeholder="매체명을 입력해주세요" />
+          <input className={'inp' + (dup ? ' bad' : '')} value={name}
+            onChange={(e) => { setNameTouched(true); setName(e.target.value); }}
+            placeholder="매체명을 입력해주세요" />
           {dup && <p className="sub" style={{ color: '#A74D46', margin: 0 }}>이미 있는 매체명입니다</p>}
           <input className="inp" type="number" min="1" value={faces} onChange={(e) => setFaces(e.target.value)} placeholder="면수를 입력해주세요" />
         </>
