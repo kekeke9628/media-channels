@@ -76,6 +76,78 @@ function PeriodLine({ p, isEditor, refDate, onSave }) {
   );
 }
 
+// 배치가 많은 홍보물은 네 곳만 보이고 나머지는 접어 둔다. 카드 격자는 한 줄에 놓인 카드
+// 높이가 가장 큰 카드에 맞춰지므로, 15곳에 걸린 홍보물 하나가 옆 카드까지 같이 늘려
+// 화면에 카드 두세 장밖에 안 남는다(PC에서 특히 심하다 — 열이 여러 개라 그 줄이 통째로).
+// 실측(2026-09-05): 홍보물 31건 중 27건(87%)이 네 곳 이하라 대부분 카드는 그대로고,
+// 6·9·10·15곳짜리 넷만 접힌다. 매체 현황의 면 줄과 같은 방식이다(PostsPanel FACES_SHOWN).
+const PLACEMENTS_SHOWN = 4;
+function PlacementList({ pls, isEditor, refDate, pLabel, isArchived, onPick, onShowOnMap, onRemove, onCancel, onUndo, onSwap }) {
+  const [open, setOpen] = useState(false);
+  const shown = open ? pls : pls.slice(0, PLACEMENTS_SHOWN);
+  const hidden = pls.length - shown.length;
+  return (
+    <>
+      <div className="pllist">{shown.map((pl) => {
+        const s = statusOf(pl, refDate);
+        const archived = isArchived(pl);
+        // 조작 버튼을 미리 모은다 — 하나도 없을 때(자동 철거된 보관 매체 등)
+        // 빈 줄이 생기지 않게 하려면 개수를 먼저 알아야 한다.
+        // 버튼 글자는 짧게 쓴다. 이 줄에는 매체명·상태·지도까지 함께 들어가는데,
+        // "홍보물 철거"를 그대로 두면 버튼만 147px을 먹어 매체명이 "WWH0…"로 잘렸다.
+        // 무엇을 철거하는지 이름에 넣기로 한 건 매체 상세 얘기다(7157de1) — 거기엔
+        // "매체 철거" 버튼이 나란히 있어 헷갈렸지만, 홍보물 카드에는 매체를 내리는
+        // 버튼이 없고 카드 제목이 업체명이라 혼동할 대상이 없다. 매체 현황의 면 줄도
+        // 이미 "철거"를 쓰고 있어 오히려 이쪽이 통일된다.
+        const acts = isEditor ? [
+          s !== 'upcoming' && s !== 'removed' &&
+            <button key="rm" className="mini ok" onClick={() => onRemove(pl.id)}>철거</button>,
+          // 아직 시작 안 한 배치는 실제로 걸린 적이 없다 — 철거가 아니라 취소(기록 삭제)가 맞다.
+          // 철거로 처리하면 걸린 적도 없는 업체가 그 매체 이력에 남는다.
+          s === 'upcoming' &&
+            <button key="cx" className="mini no" onClick={() => onCancel(pl.id)}>배치 취소</button>,
+          s === 'removed' && pl.removalSource === 'manual' &&
+            <button key="un" className="mini" onClick={() => onUndo(pl.id)}>되돌리기</button>,
+          // 걸려 있는(또는 만료된) 자리는 "교체" 하나로 처리한다. 예전에는
+          // "다시 걸기"가 따로 있었는데, 그건 같은 홍보물을 그 자리에 또 거는
+          // 것이라 교체와 헷갈렸다 — 게다가 옛 배치를 손대지 않고 새것만 만들어
+          // 정리는 autoClose에 맡기는, 교체와 다른 기록을 남겼다.
+          // 같은 홍보물로 다시 거는 것도 교체 팝업에서 그 홍보물을 고르면 된다.
+          s !== 'upcoming' && s !== 'removed' && !archived &&
+            <button key="sw" className="mini" onClick={() => onSwap(pl, pLabel(pl))}>교체</button>,
+        ].filter(Boolean) : [];
+        return (
+          // 어느 면인지까지 넘긴다 — 상세가 그 면 구획으로 스크롤해 준다.
+          // 듀라트란스는 한 매체에 면이 20개까지 있어서, 맨 위만 열어 주면
+          // 방금 누른 17면을 찾으러 한참 내려야 했다(매체 현황 면 줄과 같은 동작).
+          <div className={'plrow' + (archived ? ' off' : '')} key={pl.id}
+            onClick={archived ? undefined : () => onPick(pl.mediaId, pl.face)}>
+            <b className="plrow-name">{pLabel(pl)}</b>
+            {archived && <i className="sub">보관된 매체</i>}
+            {/* 설치 확인 사진 표시(📷)는 뺐다. 배치는 사실상 전부 사진이 있어서
+                모든 줄에 똑같이 붙는 바람에 알려주는 게 없었고, 정작 중요한
+                "사진이 없다"는 알람 예정 ③이 따로 모아 준다. 줄을 누르면 상세로
+                넘어가 사진을 바로 볼 수 있다는 점도 같다. */}
+            <StatusChip status={s} />
+            {/* 보관된 매체는 지도에 핀이 없다 — 눌러도 아무 일이 없을 버튼은
+                아예 안 보이는 편이 낫다(줄 전체 클릭을 막아 둔 것과 같은 이유). */}
+            {!archived && <MapBtn mediaId={pl.mediaId} onShowOnMap={onShowOnMap} className="pushright" />}
+            {acts.length > 0 && (
+              <span className="plrow-btns" onClick={(e) => e.stopPropagation()}>{acts}</span>
+            )}
+          </div>
+        );
+      })}</div>
+      {hidden > 0 && (
+        <button className="mini wide" onClick={() => setOpen(true)}>+{hidden}곳 더 보기</button>
+      )}
+      {open && pls.length > PLACEMENTS_SHOWN && (
+        <button className="mini wide" onClick={() => setOpen(false)}>접기</button>
+      )}
+    </>
+  );
+}
+
 export default function PromosPanel({ T, types, postings, placements, media, refDate, isEditor, onPick, onShowOnMap, onAssign, onSwap, onRemove, onUndo, onCancel, onDeletePosting, onEditPeriod }) {
   const [openDD, setOpenDD] = useState(false);
   const [draftOnly, setDraftOnly] = useState(false);
@@ -112,7 +184,12 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
   const placementsOf = useMemo(() => {
     const by = {};
     placements.forEach((pl) => (by[pl.postingId] = by[pl.postingId] || []).push(pl));
-    Object.values(by).forEach((arr) => arr.sort((a, b) => b.start.localeCompare(a.start)));
+    // 철거된 자리는 뒤로 보낸다 — 목록을 네 곳만 남기고 접기 때문에, 섞여 있으면 지난
+    // 배치가 앞자리를 차지하고 정작 지금 걸려 있는 자리가 "더 보기" 뒤로 숨는다.
+    // 대표 사진을 고를 때 이미 같은 이유로 걸려 있는 자리를 먼저 본다.
+    Object.values(by).forEach((arr) => arr.sort((a, b) => (
+      (a.removedAt ? 1 : 0) - (b.removedAt ? 1 : 0) || b.start.localeCompare(a.start)
+    )));
     return by;
   }, [placements]);
 
@@ -186,56 +263,9 @@ export default function PromosPanel({ T, types, postings, placements, media, ref
                   {pls.length === 0 ? <span className="tag vacant">미배치</span> : <span className="sub mono">{pls.length}곳에 배치</span>}
                 </div>
                 {pls.length > 0 && (
-                  <div className="pllist">{pls.map((pl) => {
-                    const s = statusOf(pl, refDate);
-                    const archived = isArchived(pl);
-                    // 조작 버튼을 미리 모은다 — 하나도 없을 때(자동 철거된 보관 매체 등)
-                    // 빈 줄이 생기지 않게 하려면 개수를 먼저 알아야 한다.
-                    // 버튼 글자는 짧게 쓴다. 이 줄에는 매체명·상태·지도까지 함께 들어가는데,
-                    // "홍보물 철거"를 그대로 두면 버튼만 147px을 먹어 매체명이 "WWH0…"로 잘렸다.
-                    // 무엇을 철거하는지 이름에 넣기로 한 건 매체 상세 얘기다(7157de1) — 거기엔
-                    // "매체 철거" 버튼이 나란히 있어 헷갈렸지만, 홍보물 카드에는 매체를 내리는
-                    // 버튼이 없고 카드 제목이 업체명이라 혼동할 대상이 없다. 매체 현황의 면 줄도
-                    // 이미 "철거"를 쓰고 있어 오히려 이쪽이 통일된다.
-                    const acts = isEditor ? [
-                      s !== 'upcoming' && s !== 'removed' &&
-                        <button key="rm" className="mini ok" onClick={() => onRemove(pl.id)}>철거</button>,
-                      // 아직 시작 안 한 배치는 실제로 걸린 적이 없다 — 철거가 아니라 취소(기록 삭제)가 맞다.
-                      // 철거로 처리하면 걸린 적도 없는 업체가 그 매체 이력에 남는다.
-                      s === 'upcoming' &&
-                        <button key="cx" className="mini no" onClick={() => onCancel(pl.id)}>배치 취소</button>,
-                      s === 'removed' && pl.removalSource === 'manual' &&
-                        <button key="un" className="mini" onClick={() => onUndo(pl.id)}>되돌리기</button>,
-                      // 걸려 있는(또는 만료된) 자리는 "교체" 하나로 처리한다. 예전에는
-                      // "다시 걸기"가 따로 있었는데, 그건 같은 홍보물을 그 자리에 또 거는
-                      // 것이라 교체와 헷갈렸다 — 게다가 옛 배치를 손대지 않고 새것만 만들어
-                      // 정리는 autoClose에 맡기는, 교체와 다른 기록을 남겼다.
-                      // 같은 홍보물로 다시 거는 것도 교체 팝업에서 그 홍보물을 고르면 된다.
-                      s !== 'upcoming' && s !== 'removed' && !archived &&
-                        <button key="sw" className="mini" onClick={() => onSwap(pl, pLabel(pl))}>교체</button>,
-                    ].filter(Boolean) : [];
-                    return (
-                      // 어느 면인지까지 넘긴다 — 상세가 그 면 구획으로 스크롤해 준다.
-                      // 듀라트란스는 한 매체에 면이 20개까지 있어서, 맨 위만 열어 주면
-                      // 방금 누른 17면을 찾으러 한참 내려야 했다(매체 현황 면 줄과 같은 동작).
-                      <div className={'plrow' + (archived ? ' off' : '')} key={pl.id}
-                        onClick={archived ? undefined : () => onPick(pl.mediaId, pl.face)}>
-                        <b className="plrow-name">{pLabel(pl)}</b>
-                        {archived && <i className="sub">보관된 매체</i>}
-                        {/* 설치 확인 사진 표시(📷)는 뺐다. 배치는 사실상 전부 사진이 있어서
-                            모든 줄에 똑같이 붙는 바람에 알려주는 게 없었고, 정작 중요한
-                            "사진이 없다"는 알람 예정 ③이 따로 모아 준다. 줄을 누르면 상세로
-                            넘어가 사진을 바로 볼 수 있다는 점도 같다. */}
-                        <StatusChip status={s} />
-                        {/* 보관된 매체는 지도에 핀이 없다 — 눌러도 아무 일이 없을 버튼은
-                            아예 안 보이는 편이 낫다(줄 전체 클릭을 막아 둔 것과 같은 이유). */}
-                        {!archived && <MapBtn mediaId={pl.mediaId} onShowOnMap={onShowOnMap} className="pushright" />}
-                        {acts.length > 0 && (
-                          <span className="plrow-btns" onClick={(e) => e.stopPropagation()}>{acts}</span>
-                        )}
-                      </div>
-                    );
-                  })}</div>
+                  <PlacementList pls={pls} isEditor={isEditor} refDate={refDate} pLabel={pLabel} isArchived={isArchived}
+                    onPick={onPick} onShowOnMap={onShowOnMap} onRemove={onRemove} onCancel={onCancel}
+                    onUndo={onUndo} onSwap={onSwap} />
                 )}
                 {isEditor && <button className="btn primary wide" style={{ marginTop: 6 }} onClick={() => onAssign(p.id)}>+ 배치 추가</button>}
                 {isEditor && pls.length === 0 && (
