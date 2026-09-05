@@ -29,6 +29,16 @@ const ERASE_RECTS = [
   { x: 0.20, y: 0, w: 0.18, h: 0.185 },
 ];
 
+// 마지막으로 적용한 잘라낸 자리 — 원본 대비 비율(0~1)로 저장한다. 픽셀로 저장하면 같은
+// PDF라도 렌더 배율이 조금만 달라져도 엉뚱한 곳이 잡힌다. 이 기기에서만 기억한다.
+const CROP_KEY = 'mapCropRect';
+const readCrop = () => {
+  try {
+    const r = JSON.parse(localStorage.getItem(CROP_KEY) || 'null');
+    return r && r.w > 0 ? r : null;
+  } catch { return null; }
+};
+
 export default function MapCropModal({ file, currentAR = 0, pinCount = 0, onCancel, onConfirm }) {
   const [pages, setPages] = useState(null); // pdf.js document, null이면 일반 이미지
   const [pageNum, setPageNum] = useState(2);
@@ -44,6 +54,10 @@ export default function MapCropModal({ file, currentAR = 0, pinCount = 0, onCanc
   // 사용자가 탭을 직접 고른 뒤에는 자동 선택이 그 위를 덮지 않게 한다(페이지를 넘길 때마다
   // 골라 둔 방식이 되돌아가면 고르는 의미가 없다).
   const modeTouched = useRef(false);
+  // 같은 배치도를 다시 올릴 때 팬·줌을 처음부터 다시 맞추지 않게, 지난번에 적용한
+  // 자리를 기억해 뒀다가 한 번에 되돌린다(센터맵 PDF는 DEFAULT_CROP이 알아서 잡지만,
+  // 손으로 조정했거나 다른 파일이면 그 조정이 매번 날아갔다).
+  const [savedCrop] = useState(readCrop);
   const pickMode = (v) => { modeTouched.current = true; setWhole(v); };
 
   const frameRef = useRef(null);
@@ -134,6 +148,22 @@ export default function MapCropModal({ file, currentAR = 0, pinCount = 0, onCanc
     return () => { cancelled = true; };
   }, [pages, pageNum, isPdf, file]);
 
+  // 비율로 적은 자리를 지금 이미지에 맞춰 팬·줌 값으로 되돌린다(DEFAULT_CROP과 같은 셈).
+  const useCrop = (r) => {
+    const img = srcImg;
+    if (!img || !r) return;
+    const baseScale = Math.max(FRAME_W / img.width, FRAME_H / img.height);
+    const scale = clamp(FRAME_W / (r.w * img.width), baseScale * MIN_ZOOM, baseScale * MAX_ZOOM);
+    stateRef.current = {
+      zoom: scale / baseScale, baseScale,
+      x: -r.x * img.width * scale,
+      y: -r.y * img.height * scale,
+    };
+    modeTouched.current = true;
+    setWhole(false);   // 잘라낸 자리를 되돌리는 것이므로 영역 선택으로 간다
+    applyTransform();  // 이미 영역 선택이면 effect가 안 돌므로 여기서 바로 반영
+  };
+
   const applyTransform = () => {
     const el = imgElRef.current;
     if (!el) return;
@@ -163,7 +193,11 @@ export default function MapCropModal({ file, currentAR = 0, pinCount = 0, onCanc
       const r = frame.getBoundingClientRect();
       const cx = e.clientX - r.left, cy = e.clientY - r.top;
       const s = stateRef.current;
-      const nz = clamp(s.zoom * Math.exp(-e.deltaY * 0.0015), MIN_ZOOM, MAX_ZOOM);
+      // 휠 한 칸이 너무 컸다 — 크롬 기본 한 칸(deltaY 100)이 0.0015면 +16%라, 원하는
+      // 자리에서 한 칸 넘기면 이미 지나쳐 있었다. +6%로 낮춰 12칸에 두 배가 되게 한다.
+      // deltaMode는 기기마다 픽셀(0)·줄(1)·페이지(2)로 달라서 그대로 쓰면 배율이 널뛴다.
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      const nz = clamp(s.zoom * Math.exp(-dy * 0.0006), MIN_ZOOM, MAX_ZOOM);
       const scaleBefore = s.baseScale * s.zoom, scaleAfter = s.baseScale * nz;
       const contentX = (cx - s.x) / scaleBefore, contentY = (cy - s.y) / scaleBefore;
       stateRef.current = { ...s, zoom: nz, x: cx - contentX * scaleAfter, y: cy - contentY * scaleAfter };
@@ -260,6 +294,14 @@ export default function MapCropModal({ file, currentAR = 0, pinCount = 0, onCanc
     }
     const { x, y, zoom, baseScale } = stateRef.current;
     const scale = baseScale * zoom;
+    // 다음에 같은 배치도를 올릴 때 "이전 배율 적용"으로 되돌릴 수 있게 남긴다.
+    try {
+      localStorage.setItem(CROP_KEY, JSON.stringify({
+        x: -x / scale / srcImg.naturalWidth,
+        y: -y / scale / srcImg.naturalHeight,
+        w: FRAME_W / scale / srcImg.naturalWidth,
+      }));
+    } catch { /* 저장 못 해도 이번 업로드에는 영향 없다 */ }
     const cv = document.createElement('canvas');
     cv.width = OUT_W; cv.height = OUT_H;
     const ctx = cv.getContext('2d');
@@ -296,6 +338,14 @@ export default function MapCropModal({ file, currentAR = 0, pinCount = 0, onCanc
                 <button className={whole ? 'on' : ''} onClick={() => pickMode(true)}>전체 그대로</button>
                 <button className={!whole ? 'on' : ''} onClick={() => pickMode(false)}>영역 선택 (2:1)</button>
               </div>
+              {/* 지난번에 적용한 자리로 한 번에 되돌린다 — 같은 배치도를 다시 올릴 때마다
+                  팬·줌을 눈대중으로 다시 맞추던 수고를 없앤다. 두 방식 어디서 눌러도
+                  영역 선택으로 넘어간다(되돌릴 대상이 잘라낸 자리이므로). */}
+              {savedCrop && (
+                <button type="button" className="mini wide" onClick={() => useCrop(savedCrop)}>
+                  이전 배율 적용
+                </button>
+              )}
               {whole ? (
                 <>
                   {/* 잘리는 곳 없이 저장되는 그대로를 보여준다 — 미리보기 틀도 원본 비율을 따른다. */}
