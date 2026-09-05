@@ -480,8 +480,15 @@ td.sub{display:table-cell}
 /* 교체는 <label>이라 버튼처럼 보이게 맞춰 준다 — .mini는 button 기준으로 만든 스타일. */
 .photoedit-btns label.mini{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
 .photoedit-btns input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.medialist{border:1px solid var(--line);border-radius:9px;max-height:220px;overflow:auto;margin-top:6px}
-.medialist.wide{max-height:280px}
+/* 높이는 화면을 따라간다 — 220px로 못 박아 두니 1080px 모니터에서 40개짜리 매체 목록이
+   6화면 넘게 스크롤됐다. 작은 노트북에서는 vh에 걸려 알아서 줄어든다. */
+.medialist{border:1px solid var(--line);border-radius:9px;max-height:min(48vh,420px);overflow:auto;margin-top:6px}
+.medialist.wide{max-height:min(52vh,460px)}
+/* 체크박스 목록(매체 고르기)은 한 줄에 "☑ DEL01  EAST LOW  [겹침]"뿐이라 484px 칸에서
+   절반이 빈다 — 폭이 되는 만큼 여러 칸으로 흘린다. 좁은 화면에서는 minmax에 걸려
+   저절로 한 칸이 된다. 사진이 붙는 .wide 목록은 한 줄이 이미 폭을 다 쓰므로 그대로. */
+.medialist:not(.wide){display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.medialist:not(.wide) .medialist-all{grid-column:1 / -1}
 .medialist-item{display:flex;align-items:center;gap:8px;padding:7px 11px;font-size:12.5px;border-bottom:1px solid #F0ECE4;cursor:pointer}
 .medialist-item:last-child{border-bottom:0}
 .medialist-item:hover{background:#FAF8F4}
@@ -536,7 +543,11 @@ td.sub{display:table-cell}
 .linklike{border:0;background:none;padding:0;font:inherit;color:var(--brass);font-weight:700;cursor:pointer;text-decoration:underline}
 .linklike:hover{color:#8E6B2C}
 
-.sheet{background:#fff;border-radius:15px;width:min(460px,100%);box-shadow:0 20px 60px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden}
+/* 폭은 면 개수를 따라간다 — 1면 460 / 2면 820 / 3면 이상 1180px. 면이 여럿인 매체를
+   한 줄에 하나씩 쌓아 두면 PC에서도 듀라트란스 20면을 스무 번 스크롤해야 한다.
+   좁은 화면에서는 min(…,100%)에 걸려 지금과 똑같이 한 칸으로 떨어진다. */
+.sheet{background:#fff;border-radius:15px;width:min(calc(var(--face-cols,1) * 360px + 100px),100%);
+  box-shadow:0 20px 60px rgba(0,0,0,.25);display:flex;flex-direction:column;overflow:hidden}
 .shead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
 .shead b{font-size:15px;display:block}
 .shead i{font-style:normal;font-size:11.5px;color:var(--ink2)}
@@ -584,6 +595,12 @@ td.sub{display:table-cell}
 .bigthumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 /* 매체 상세에서 면(face)마다 한 구획씩 — 2면 이상일 때만 사이에 구분선이 보인다. */
 .facesheet + .facesheet{border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
+/* 칸 수는 폭이 정한다(auto-fill) — 시트가 좁아지면 알아서 두 칸·한 칸으로 떨어진다.
+   형제 사이 여백·구분선은 세로로 쌓일 때 쓰던 것이라 격자에서는 걷어낸다(칸 사이는
+   gap이 띄우고, .multi는 이미 옅은 바탕 상자라 선이 없어도 구분된다). */
+.facegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;align-items:start}
+.facegrid > .facesheet + .facesheet{border-top:0;margin-top:0;padding-top:0}
+.facegrid > .facesheet.multi + .facesheet.multi{margin-top:0;padding-top:12px}
 /* 면이 2개 이상인 매체 — 구획마다 옅은 바탕을 깔아 한 덩어리로 보이게 한다.
    바탕이 구분선 역할을 하므로 위 실선과 큰 여백은 걷어낸다(선까지 있으면 지저분하다). */
 .facesheet.multi{background:#F7F4EC;border-radius:10px;padding:12px}

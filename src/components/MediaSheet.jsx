@@ -355,7 +355,11 @@ export default function MediaSheet({ T, o, isEditor, refDate, onClose, onRemove,
 
   return (
     <div className="modal" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      {/* 면 구획을 몇 칸으로 흘릴지에 따라 시트 폭이 정해진다 — 1면짜리 매체까지 넓게
+          열면 좁은 칸 하나에 내용이 몰려 빈 공간만 남는다. 세 칸이 상한이다(듀라트란스
+          20면을 스무 칸으로 늘어놔 봐야 한 칸이 읽을 수 없이 좁아진다). */}
+      <div className="sheet" style={{ '--face-cols': Math.min(3, Math.max(1, o.slots.length)) }}
+        onClick={(e) => e.stopPropagation()}>
         <div className="shead">
           <div>
             {editingFaces
@@ -384,9 +388,11 @@ export default function MediaSheet({ T, o, isEditor, refDate, onClose, onRemove,
         </div>
         <div className="sbody">
         {/* 면이 4개 이상일 때만 접기를 켠다 — 1~2면(웨더워리어 등)은 지금까지처럼 전부 펼친 채. */}
-        {o.slots.map((slot) => (
-          <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} refDate={refDate} onRemove={onRemove} onSwap={onSwap} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} onRelink={onRelink} collapsible={o.faces >= 4} />
-        ))}
+        <div className="facegrid">
+          {o.slots.map((slot) => (
+            <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} refDate={refDate} onRemove={onRemove} onSwap={onSwap} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} onRelink={onRelink} collapsible={o.faces >= 4} />
+          ))}
+        </div>
 
         {/* 위쪽 "홍보물 철거"와 헷갈리지 않게, 여기가 매체(틀) 자체를 다루는 자리임을 밝힌다. */}
         {isEditor && (
