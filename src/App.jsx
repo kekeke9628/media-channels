@@ -381,12 +381,14 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
   // 잘못 만든 배치를 기록째 지운다 — 실제 철거(markPlacementRemoved)와는 다르다. 철거는
   // "걸렸다가 뗐다"는 사실 기록이라 이력에 남아야 하지만, 애초에 잘못 만든 배치는 남으면
   // 그 매체에 걸린 적도 없는 업체가 이력에 찍힌다.
-  const cancelPlacement = async (id) => {
+  // 지난 배치를 지울 때도 같은 경로를 쓴다 — 하는 일이 똑같고(기록·사진을 통째로 삭제),
+  // 부르는 자리에 따라 문구만 다르다("배치 취소" / "기록 삭제").
+  const cancelPlacement = async (id, msg = '배치를 취소했습니다.') => {
     try {
       await deletePlacement(id);
       setPlacements((prev) => prev.filter((p) => p.id !== id));
-      flash('배치를 취소했습니다.');
-    } catch (e) { flash('취소에 실패했습니다: ' + e.message); }
+      flash(msg);
+    } catch (e) { flash('삭제에 실패했습니다: ' + e.message); }
   };
 
   // 겹침 조정(기존 배치 종료일 단축)은 새 배치를 넣기 전에 반드시 먼저 커밋돼야 한다 —
@@ -694,6 +696,7 @@ function AppShell({ admin, isEditor, meId, onSignOut, email, accessToken, update
             {...ctx} o={m} onClose={clearSelection} onRemove={markRemoved} onDelete={removeMedia}
             onEditMediaFaces={editMediaFaces} onRenameMedia={renameMedia} onChangeMediaType={changeMediaType} onAttachPhoto={attachInstallPhoto}
             onEditDates={editPlacementDates} onEditText={editPostingText} focusFace={focusFace}
+            onDeletePlacement={(id) => cancelPlacement(id, '지난 배치 기록을 지웠습니다.')}
             onRelink={(pl) => setRelinking({ pl, title: seat(pl) })}
             onSwap={(pl) => setSwapping({ pl, title: seat(pl), date: removalDate(pl, refDate) })}
             onQuickAdd={(id, face) => { setPlacingMediaId(id); setPlacingFace(face || null); }}

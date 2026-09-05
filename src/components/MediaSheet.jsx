@@ -123,7 +123,7 @@ function StatCell({ label, value, mono, onSave, children, editable }) {
   );
 }
 
-function FaceSection({ slot, faceCount, imgUrls, isEditor, refDate, onZoom, onRemove, onSwap, onQuickAdd, onAttachPhoto, onEditDates, onEditText, onRelink, collapsible }) {
+function FaceSection({ slot, faceCount, imgUrls, isEditor, refDate, onZoom, onRemove, onSwap, onQuickAdd, onAttachPhoto, onEditDates, onEditText, onRelink, onDeletePlacement, collapsible }) {
   const cur = slot.overdue || slot.current;
   // 아직 시작하지 않은(게시예정) 배치는 "지난 배치"가 아니다 — 예전에는 cur만 빼고 나머지를
   // 전부 지난 배치로 묶어서, 다음 달에 걸릴 예약이 이력 표에 "지난 배치"로 들어가 있었다.
@@ -287,8 +287,27 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, refDate, onZoom, onRe
               </div>
             );
           })}</div>
+          {/* 잘못 등록한 배치를 여기서 지운다 — 교체하고 나서야 "아까 그건 잘못 넣은 거였네"를
+              알아채는 일이 흔한데, 지금까지는 지울 방법이 아예 없어서 그 매체 이력에 걸린 적도
+              없는 업체가 그대로 남았다. 실제로 걸렸던 기록까지 지우면 이력이 사라지므로,
+              무엇을 지우는지 확인부터 받는다(되돌릴 수 없다 — 사진 파일도 함께 지워진다). */}
           <table className="mini-t">
-            <tbody>{past.map((p) => (<tr key={p.id}><td>{p.brand}</td><td className="mono sub">{p.start} ~ {p.end || '미정'}</td><td className="r sub mono">{p.removedAt ? '철거 ' + p.removedAt.slice(5) : '—'}</td></tr>))}</tbody>
+            <tbody>{past.map((p) => (
+              <tr key={p.id}>
+                <td>{p.brand}</td>
+                <td className="mono sub">{p.start} ~ {p.end || '미정'}</td>
+                <td className="r sub mono">
+                  {p.removedAt ? '철거 ' + p.removedAt.slice(5) : '—'}
+                  {isEditor && onDeletePlacement && (
+                    <button className="mini no" onClick={() => {
+                      const label = `${p.brand} (${p.start} ~ ${p.end || '미정'})`;
+                      if (!window.confirm(`${label} 기록을 지웁니다.\n실제로 걸렸던 배치라면 이력이 사라지니, 잘못 등록한 것만 지워 주세요.\n되돌릴 수 없습니다.`)) return;
+                      onDeletePlacement(p.id);
+                    }}>삭제</button>
+                  )}
+                </td>
+              </tr>
+            ))}</tbody>
           </table>
         </>
       )}
@@ -296,7 +315,7 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, refDate, onZoom, onRe
   );
 }
 
-export default function MediaSheet({ T, o, isEditor, refDate, onClose, onRemove, onSwap, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onChangeMediaType, onAttachPhoto, onEditDates, onEditText, onRelink, focusFace }) {
+export default function MediaSheet({ T, o, isEditor, refDate, onClose, onRemove, onSwap, onDelete, onQuickAdd, onEditMediaFaces, onRenameMedia, onChangeMediaType, onAttachPhoto, onEditDates, onEditText, onRelink, onDeletePlacement, focusFace }) {
   const t = T[o.type];
   const zoneLabel = ZONES[o.zone]?.label || o.zone;
   const hasHistory = o.slots.some((s) => s.history.length > 0);
@@ -400,7 +419,7 @@ export default function MediaSheet({ T, o, isEditor, refDate, onClose, onRemove,
         {/* 면이 4개 이상일 때만 접기를 켠다 — 1~2면(웨더워리어 등)은 지금까지처럼 전부 펼친 채. */}
         <div className="facegrid">
           {o.slots.map((slot) => (
-            <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} refDate={refDate} onZoom={openZoom} onRemove={onRemove} onSwap={onSwap} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} onRelink={onRelink} collapsible={o.faces >= 4} />
+            <FaceSection key={slot.id} slot={slot} faceCount={o.faces} imgUrls={imgUrls} isEditor={isEditor} refDate={refDate} onZoom={openZoom} onRemove={onRemove} onSwap={onSwap} onQuickAdd={onQuickAdd} onAttachPhoto={onAttachPhoto} onEditDates={onEditDates} onEditText={onEditText} onRelink={onRelink} onDeletePlacement={onDeletePlacement} collapsible={o.faces >= 4} />
           ))}
         </div>
 
