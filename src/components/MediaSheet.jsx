@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useModalKeys } from '../lib/useModalKeys.js';
-import { LONG_OPEN, subOf, swapLateDays } from '../constants.js';
+import { LONG_OPEN, subOf, swapLateDays, canTakePhoto, PHOTO_ONLY_MOBILE } from '../constants.js';
 import { ZONES } from '../data/seed.js';
 import { getPostingImageUrls } from '../lib/queries.js';
 import { convertImage } from '../lib/convertImage.js';
@@ -212,10 +212,19 @@ function FaceSection({ slot, faceCount, imgUrls, isEditor, refDate, onRemove, on
               // 현장에서 바로 찍는 경우와, 아까 찍어 둔 걸 나중에 올리는 경우가 반반이다.
               <div className="drop compact">
                 <div className="dropbtns">
-                  <label className="dropbtn">
-                    <input type="file" accept="image/*" capture="environment" disabled={photoBusy} onChange={take} />
-                    {photoBusy ? '올리는 중…' : (done ? '다시 찍기' : '설치 확인 사진 찍기')}
-                  </label>
+                  {canTakePhoto() ? (
+                    <label className="dropbtn">
+                      <input type="file" accept="image/*" capture="environment" disabled={photoBusy} onChange={take} />
+                      {photoBusy ? '올리는 중…' : (done ? '다시 찍기' : '설치 확인 사진 찍기')}
+                    </label>
+                  ) : (
+                    /* PC에서는 카메라가 안 열린다 — 버튼을 숨기지 않고 이유를 알려 준다.
+                       그대로 두면 옆의 "보관함에서 선택"과 똑같이 파일 선택창만 열려서,
+                       누른 사람은 카메라가 왜 안 켜지는지 알 수가 없다. */
+                    <button type="button" className="dropbtn" onClick={() => window.alert(PHOTO_ONLY_MOBILE)}>
+                      {done ? '다시 찍기' : '설치 확인 사진 찍기'}
+                    </button>
+                  )}
                   <label className="dropbtn ghost">
                     <input type="file" accept="image/*" disabled={photoBusy} onChange={take} />
                     보관함에서 선택

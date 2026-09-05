@@ -98,6 +98,17 @@ export function sideOf(m) {
 // 배치에서만 필수로 본다. 미래 예약은 그냥 두고, 시작일이 지나면 알람이 대신 쫓아간다.
 export const installPhotoRequired = (start, refDate) => !!start && start <= refDate;
 
+// 사진 "찍기"는 카메라를 여는 것이라 휴대폰·태블릿에서만 된다. PC 브라우저는 input의
+// capture 속성을 그냥 무시하고 파일 선택창을 여는데, 그러면 옆의 "보관함에서 선택"과
+// 똑같이 동작해 버려서 누른 사람은 카메라가 왜 안 켜지는지 알 수가 없다 — 눌렀을 때
+// 이유를 말해 준다(막는 게 목적이 아니라, 옆 버튼으로 가라고 알려 주는 것이다).
+// 터치가 되는 기기인지로 가른다. 터치 노트북은 카메라 버튼이 그대로 보이지만 그건
+// 지금과 같은 동작이라 나빠지지 않는다.
+export const canTakePhoto = () => typeof navigator !== 'undefined'
+  && (navigator.maxTouchPoints > 0 || !!window.matchMedia?.('(pointer: coarse)')?.matches);
+export const PHOTO_ONLY_MOBILE =
+  '사진 찍기는 휴대폰에서만 됩니다.\nPC에서는 옆의 "보관함에서 선택"으로 올려 주세요.';
+
 // 교체 화면이 쓰는 판정 — "그날 손대야 하는 자리".
 //
 // 철거·교체는 종료일이 아니라 그 **다음 날**에 한다. "8/30까지"면 8/30에도 걸려 있어야

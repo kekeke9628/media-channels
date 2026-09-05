@@ -463,7 +463,9 @@ td.sub{display:table-cell}
 .dropbtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .dropbtns .dropbtn{cursor:pointer;position:relative}
 .dropbtn.ghost{background:#fff;color:#23211E;border:1px solid var(--line)}
-.dropbtn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:9px;background:#23211E;color:#fff;font-size:13px;font-weight:600}
+/* label일 때도 button일 때도 같아야 한다 — PC에서는 카메라 버튼이 <button>이라
+   border:0을 안 주면 브라우저 기본 테두리가 붙어 옆 버튼과 달라 보인다. */
+.dropbtn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border:0;border-radius:9px;background:#23211E;color:#fff;font-size:13px;font-weight:600}
 .drop p{font-size:11.5px;color:var(--ink2);margin:9px 0 0}
 /* .rbox/.rline/.rprev(용량 표시·비율 경고·시안 미리보기)는 홍보물 등록에서 디자인 시안
    필드를 걷어내며(인쇄 시안은 안 쓰기로 했다) 함께 없앴다 — 오직 그 필드에서만 쓰였다. */

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { canTakePhoto, PHOTO_ONLY_MOBILE } from '../constants.js';
 
 // 사진 한 장을 붙이는 칸. 사진을 고르기 전에는 큰 점선 영역, 고른 뒤에는 그 영역이 사라지고
 // 미리보기 옆에 교체·삭제가 붙는다.
@@ -37,13 +38,20 @@ export default function PhotoField({ label, hint, caption, result, busy, onPick,
               흔하다 — 카메라만 열리면 그때마다 다시 찍어야 한다. 두 길을 다 연다.
               capture 속성이 붙은 input은 카메라로, 없는 쪽은 사진 보관함으로 열린다. */}
           <div className="dropbtns">
-            {capture && (
+            {capture && (canTakePhoto() ? (
               <label className="dropbtn">
                 <input type="file" accept="image/*" capture="environment"
                   onChange={(e) => { if (e.target.files[0]) onPick(e.target.files[0]); e.target.value = ''; }} />
                 사진 찍기
               </label>
-            )}
+            ) : (
+              /* PC에서는 카메라가 안 열린다 — 버튼을 숨기지 않고 이유를 알려 준다.
+                 숨기면 "휴대폰에서 되던 게 없어졌다"가 되고, 그대로 두면 옆 버튼과
+                 똑같이 파일 선택창만 열려 왜 카메라가 안 켜지는지 알 수가 없다. */
+              <button type="button" className="dropbtn" onClick={() => window.alert(PHOTO_ONLY_MOBILE)}>
+                사진 찍기
+              </button>
+            ))}
             <label className={capture ? 'dropbtn ghost' : 'dropbtn'}>
               <input type="file" accept="image/*"
                 onChange={(e) => { if (e.target.files[0]) onPick(e.target.files[0]); e.target.value = ''; }} />
@@ -59,8 +67,10 @@ export default function PhotoField({ label, hint, caption, result, busy, onPick,
             {caption && <i className="sub">{caption}</i>}
             <div className="photoedit-btns">
               {/* 교체는 파일 선택을 다시 여는 것이라 label, 삭제는 그냥 버튼이다. */}
+              {/* 교체는 막지 않는다 — 여기서 사진을 바꿀 유일한 길이라, 못 누르게 하면
+                  PC에서는 아예 못 바꾼다. PC에서는 capture만 떼서 파일 선택으로 연다. */}
               <label className="mini">
-                <input type="file" accept="image/*" {...(capture ? { capture: 'environment' } : {})}
+                <input type="file" accept="image/*" {...(capture && canTakePhoto() ? { capture: 'environment' } : {})}
                   onChange={(e) => { if (e.target.files[0]) onPick(e.target.files[0]); e.target.value = ''; }} />
                 사진 교체
               </label>
