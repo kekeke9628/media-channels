@@ -460,7 +460,11 @@ export default function MapPanel({ T, types, items, allMedia, refDate, zoneFilte
         )}
         <div className="mapstage" ref={stageRef} style={{ aspectRatio: String(mapAR), height: 'auto' }}>
           {mapImage ? (
-            <img src={mapImage} alt="배치도" className="mapbg-img"
+            /* draggable={false}가 없으면 브라우저가 이미지 끌기(HTML5 drag)를 시작해 버린다 —
+               그 순간 pointercancel이 날아와 포인터 캡처가 풀리고, 지도 이동이 첫 한 번만
+               먹고 그대로 멈춘다(실측: 300px을 끌어도 50px만 움직이고 정지). 위치 편집에서
+               지도를 자주 밀게 되니 거기서 특히 걸린다. 터치는 이 끌기가 없어 안 겪는다. */
+            <img src={mapImage} alt="배치도" className="mapbg-img" draggable={false}
               onLoad={(e) => {
                 const ar = e.currentTarget.naturalWidth / e.currentTarget.naturalHeight;
                 if (ar && Math.abs(ar - mapAR) > 0.001) setMapAR(ar);

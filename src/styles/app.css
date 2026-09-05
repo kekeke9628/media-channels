@@ -100,7 +100,8 @@ main > *{max-width:1400px;width:100%;margin-inline:auto}
    항상 흑백으로 보이도록 화면 표시 단계에서도 강제한다 — 매체 핀(빨강/초록)이 도드라지게.
    가로등 배너 시스템(streetlight-banner)의 .mapimg와 동일한 처리: 흑백에 대비를 낮추고
    밝기를 올린 뒤 불투명도까지 낮춰 배경 지도를 옅게 깔고 핀이 위에서 도드라지게 한다. */
-.mapbg-img{display:block;width:100%;height:100%;object-fit:contain;filter:grayscale(1) contrast(.92) brightness(1.12);opacity:.62}
+.mapbg-img{display:block;width:100%;height:100%;object-fit:contain;filter:grayscale(1) contrast(.92) brightness(1.12);opacity:.62;
+  user-select:none;-webkit-user-drag:none}
 .zonelbl{position:absolute;transform:translateX(-50%);font-size:10.5px;font-weight:700;color:#A79E8D;letter-spacing:.5px;pointer-events:none}
 /* 지도(.mapstage)와 분리된 레이어 — scale 없이 JS가 계산한 translate(px,px)로만 핀을 배치해
    확대 시 SVG가 중첩 transform 때문에 흐려지는 문제를 피한다. 레이어 자체는 클릭을 통과시키고
